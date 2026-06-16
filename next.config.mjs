@@ -9,7 +9,7 @@ const nextConfig = {
     return config;
   },
   experimental: {
-    serverComponentsExternalPackages: ['snarkjs', 'circomlibjs', '@stellar/stellar-sdk'],
+    serverComponentsExternalPackages: ['snarkjs', 'circomlibjs', '@stellar/stellar-sdk', 'pg'],
   },
 };
 

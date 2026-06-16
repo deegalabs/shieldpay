@@ -5,6 +5,7 @@ import { generatePaymentProof } from '@/lib/zk/prover';
 import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
 import { encodeProof, encodePublicSignals, fieldToBe32 } from '@/lib/zk/encode';
 import { recordProofOnChain } from '@/lib/stellar/soroban';
+import { insertPayment } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
 
 export const runtime = 'nodejs';
@@ -85,7 +86,27 @@ export async function POST(req: NextRequest) {
       publicSignalsBytes,
     });
 
+    // 4. persist (off-chain metadata; exact amount intentionally not stored)
+    let persisted = true;
+    try {
+      await insertPayment({
+        worker_name: workerName,
+        worker_address: workerAddress,
+        reference,
+        range_min: minValue,
+        range_max: maxValue,
+        value_commitment: commitment,
+        proof_id: proofId,
+        tx_hash: txHash,
+        verified: true,
+      });
+    } catch (dbErr) {
+      console.error('payment persisted off-chain failed (on-chain proof stands)', dbErr);
+      persisted = false;
+    }
+
     return NextResponse.json({
+      persisted,
       ok: true,
       workerName,
       reference,
