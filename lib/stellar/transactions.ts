@@ -90,7 +90,7 @@ export async function buildPaymentTx(args: {
     .addOperation(
       Operation.payment({
         destination: args.workerAddress,
-        asset: usdcAsset,
+        asset: usdcAsset(),
         amount: args.amountUsdc,
       }),
     )

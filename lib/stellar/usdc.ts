@@ -8,8 +8,14 @@ import {
 import { USDC } from '@/lib/constants';
 import { horizonServer, networkPassphrase, loadAccount } from './client';
 
-/** The USDC asset object for the active network. */
-export const usdcAsset = new Asset(USDC.code, USDC.issuer);
+/**
+ * The USDC asset object for the active network.
+ * Lazily constructed so an invalid/missing issuer never breaks the Next.js
+ * build (route modules are evaluated during page-data collection).
+ */
+export function usdcAsset(): Asset {
+  return new Asset(USDC.code, USDC.issuer);
+}
 
 /**
  * Whether an account already trusts (and can receive) USDC.
@@ -39,7 +45,7 @@ export async function buildUsdcTrustlineTx(workerSecret: string): Promise<string
     fee: BASE_FEE,
     networkPassphrase,
   })
-    .addOperation(Operation.changeTrust({ asset: usdcAsset }))
+    .addOperation(Operation.changeTrust({ asset: usdcAsset() }))
     .setTimeout(180)
     .build();
 

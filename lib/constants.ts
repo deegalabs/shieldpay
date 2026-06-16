@@ -25,7 +25,7 @@ export const USDC = {
   // Circle USDC testnet issuer. Replace for mainnet.
   issuer:
     process.env.USDC_ISSUER ??
-    'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA',
+    'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
 } as const;
 
 export const CONTRACTS = {
