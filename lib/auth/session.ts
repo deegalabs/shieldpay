@@ -12,7 +12,7 @@ export interface Session {
   sub: string; // stellar address, passkey handle, or email
   role: Role;
   name?: string;
-  method?: 'demo' | 'wallet' | 'passkey' | 'magic';
+  method?: 'demo' | 'wallet' | 'passkey' | 'magic' | 'privy';
 }
 
 export const SESSION_COOKIE = 'shieldpay_session';
