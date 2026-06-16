@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, HelpCircle } from 'lucide-react';
 import { NavLink } from '@/components/nav-link';
 
 export interface NavItem {
@@ -44,8 +44,14 @@ export function AppShell({
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto rounded-lg border border-border bg-surface-2/40 p-3 text-xs text-muted">
-          Payments backed by on-chain proofs. Exact amounts stay private.
+        <div className="mt-auto space-y-2">
+          <NavLink href="/help">
+            <HelpCircle size={16} />
+            Help &amp; docs
+          </NavLink>
+          <div className="rounded-lg border border-border bg-surface-2/40 p-3 text-xs text-muted">
+            Payments backed by on-chain proofs. Exact amounts stay private.
+          </div>
         </div>
       </aside>
 

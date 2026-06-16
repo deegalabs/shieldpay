@@ -31,6 +31,9 @@ export default function HomePage() {
             <a href="#legal" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
               Legal shield
             </a>
+            <Link href="/help" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
+              Help
+            </Link>
             <Button asChild variant="ghost" size="sm">
               <Link href="/login">Sign in</Link>
             </Button>
