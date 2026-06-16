@@ -37,18 +37,17 @@ contracts/target/
 Cargo.lock
 *.wasm
 
-# ZK circuits — compiled artifacts and trusted-setup output (large / regenerable)
-circuits/**/target/
+# ZK circuits — ignore large/regenerable setup artifacts and test outputs.
+# The RUNTIME artifacts (witness wasm, final zkey, verification key) ARE
+# committed so the deployed app and the on-chain verifier work without a rebuild.
 circuits/**/*.r1cs
 circuits/**/*.sym
-circuits/**/*_js/
 circuits/**/*.wtns
 circuits/**/*.ptau
-circuits/**/*.zkey
-circuits/**/proof.json
-circuits/**/public.json
-# Keep the verification key — it is committed so the verifier can be initialized
-!circuits/**/verification_key.json
+circuits/**/*_0.zkey
+circuits/**/input*.json
+circuits/**/proof*.json
+circuits/**/public*.json
 
 # Generated receipts / PDFs
 /tmp
@@ -57,3 +56,6 @@ circuits/**/public.json
 
 # Coverage / tests
 /coverage
+
+# Local tool binaries (e.g. downloaded circom)
+/tools
