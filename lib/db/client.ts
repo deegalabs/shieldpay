@@ -48,6 +48,9 @@ export interface PaymentRow {
   tx_hash: string;
   verified: boolean;
   created_at: string;
+  company_id: string | null;
+  payer_name: string | null;
+  payer_cnpj: string | null;
 }
 
 export async function insertPayment(
@@ -57,8 +60,8 @@ export async function insertPayment(
   const { rows } = await getPool().query<PaymentRow>(
     `INSERT INTO payments
        (worker_name, worker_address, reference, range_min, range_max,
-        value_commitment, proof_id, tx_hash, verified)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        value_commitment, proof_id, tx_hash, verified, company_id, payer_name, payer_cnpj)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
      RETURNING *`,
     [
       p.worker_name,
@@ -70,11 +73,169 @@ export async function insertPayment(
       p.proof_id,
       p.tx_hash,
       p.verified,
+      p.company_id,
+      p.payer_name,
+      p.payer_cnpj,
     ],
   );
   const row = rows[0];
   if (!row) throw new Error('insert returned no row');
   return row;
+}
+
+// ── Companies ──────────────────────────────────────────────────────────
+export interface CompanyRow {
+  id: string;
+  owner_sub: string;
+  name: string;
+  cnpj: string | null;
+  treasury_address: string | null;
+  created_at: string;
+}
+
+export async function getCompanyByOwner(ownerSub: string): Promise<CompanyRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<CompanyRow>(
+    `SELECT * FROM companies WHERE owner_sub = $1`,
+    [ownerSub],
+  );
+  return rows[0] ?? null;
+}
+
+/** Create or update the caller's company (upsert by owner). */
+export async function upsertCompany(c: {
+  owner_sub: string;
+  name: string;
+  cnpj?: string | null;
+  treasury_address?: string | null;
+}): Promise<CompanyRow> {
+  await ensureSchema();
+  const { rows } = await getPool().query<CompanyRow>(
+    `INSERT INTO companies (owner_sub, name, cnpj, treasury_address)
+     VALUES ($1,$2,$3,$4)
+     ON CONFLICT (owner_sub) DO UPDATE
+       SET name = EXCLUDED.name,
+           cnpj = COALESCE(EXCLUDED.cnpj, companies.cnpj),
+           treasury_address = COALESCE(EXCLUDED.treasury_address, companies.treasury_address)
+     RETURNING *`,
+    [c.owner_sub, c.name, c.cnpj ?? null, c.treasury_address ?? null],
+  );
+  const company = rows[0]!;
+  // Backfill pre-existing demo payments (no company) to the demo company so the
+  // dashboard keeps showing the seeded history.
+  if (c.owner_sub === process.env.COMPANY_PUBLIC_KEY) {
+    await getPool().query(
+      `UPDATE payments SET company_id = $1, payer_name = COALESCE(payer_name, $2)
+       WHERE company_id IS NULL`,
+      [company.id, company.name],
+    );
+  }
+  return company;
+}
+
+// ── Contractors ────────────────────────────────────────────────────────
+export interface ContractorRow {
+  id: string;
+  company_id: string;
+  name: string;
+  cpf_hash: string | null;
+  stellar_address: string;
+  range_min: number;
+  range_max: number;
+  anchored: boolean;
+  anchor_tx_hash: string | null;
+  created_at: string;
+}
+
+export async function listContractors(companyId: string): Promise<ContractorRow[]> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ContractorRow>(
+    `SELECT * FROM contractors WHERE company_id = $1 ORDER BY created_at DESC`,
+    [companyId],
+  );
+  return rows;
+}
+
+export async function getContractor(id: string, companyId: string): Promise<ContractorRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ContractorRow>(
+    `SELECT * FROM contractors WHERE id = $1 AND company_id = $2`,
+    [id, companyId],
+  );
+  return rows[0] ?? null;
+}
+
+export async function createContractor(c: {
+  company_id: string;
+  name: string;
+  cpf_hash: string | null;
+  stellar_address: string;
+  range_min: number;
+  range_max: number;
+}): Promise<ContractorRow> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ContractorRow>(
+    `INSERT INTO contractors (company_id, name, cpf_hash, stellar_address, range_min, range_max)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [c.company_id, c.name, c.cpf_hash, c.stellar_address, c.range_min, c.range_max],
+  );
+  return rows[0]!;
+}
+
+export async function updateContractor(
+  id: string,
+  companyId: string,
+  c: { name: string; stellar_address: string; range_min: number; range_max: number },
+): Promise<ContractorRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ContractorRow>(
+    `UPDATE contractors SET name=$3, stellar_address=$4, range_min=$5, range_max=$6
+     WHERE id=$1 AND company_id=$2 RETURNING *`,
+    [id, companyId, c.name, c.stellar_address, c.range_min, c.range_max],
+  );
+  return rows[0] ?? null;
+}
+
+export async function deleteContractor(id: string, companyId: string): Promise<void> {
+  await ensureSchema();
+  await getPool().query(`DELETE FROM contractors WHERE id=$1 AND company_id=$2`, [id, companyId]);
+}
+
+export async function setContractorAnchored(
+  id: string,
+  companyId: string,
+  txHash: string,
+): Promise<void> {
+  await ensureSchema();
+  await getPool().query(
+    `UPDATE contractors SET anchored=true, anchor_tx_hash=$3 WHERE id=$1 AND company_id=$2`,
+    [id, companyId, txHash],
+  );
+}
+
+export async function listPaymentsForCompany(companyId: string, limit = 50): Promise<PaymentRow[]> {
+  await ensureSchema();
+  const { rows } = await getPool().query<PaymentRow>(
+    `SELECT * FROM payments WHERE company_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [companyId, limit],
+  );
+  return rows;
+}
+
+export async function companyStats(companyId: string): Promise<{
+  total: number;
+  verified: number;
+  workers: number;
+}> {
+  await ensureSchema();
+  const { rows } = await getPool().query(
+    `SELECT COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE verified)::int AS verified,
+            COUNT(DISTINCT worker_address)::int AS workers
+     FROM payments WHERE company_id = $1`,
+    [companyId],
+  );
+  return rows[0] ?? { total: 0, verified: 0, workers: 0 };
 }
 
 export async function listPayments(limit = 50): Promise<PaymentRow[]> {

@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
   }
 
   const pdf = await generateReceiptPdf({
-    companyName: COMPANY.name,
-    companyCnpj: COMPANY.cnpj,
+    companyName: payment.payer_name || COMPANY.name,
+    companyCnpj: payment.payer_cnpj || COMPANY.cnpj,
     workerName: payment.worker_name,
     workerAddress: payment.worker_address,
     reference: payment.reference,

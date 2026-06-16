@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { Send, UserPlus, ArrowUpRight, ShieldCheck } from 'lucide-react';
-import { listPayments, paymentStats, type PaymentRow } from '@/lib/db/client';
+import {
+  listPaymentsForCompany,
+  companyStats,
+  getCompanyByOwner,
+  type PaymentRow,
+} from '@/lib/db/client';
+import { getSession } from '@/lib/auth/server';
 import { EXPLORER_BASE } from '@/lib/constants';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +18,14 @@ export default async function CompanyDashboard() {
   let payments: PaymentRow[] = [];
   let stats = { total: 0, verified: 0, workers: 0 };
   try {
-    [payments, stats] = await Promise.all([listPayments(10), paymentStats()]);
+    const session = await getSession();
+    const company = session ? await getCompanyByOwner(session.sub) : null;
+    if (company) {
+      [payments, stats] = await Promise.all([
+        listPaymentsForCompany(company.id, 10),
+        companyStats(company.id),
+      ]);
+    }
   } catch {
     /* DB not reachable — empty state */
   }

@@ -6,6 +6,8 @@ const nextConfig = {
   webpack: (config) => {
     config.externals = config.externals || [];
     config.externals.push('snarkjs', 'circomlibjs');
+    // Host disk is tight; skip the large webpack filesystem cache.
+    config.cache = false;
     // Privy references optional integrations we don't use; resolve them to empty
     // modules so the client bundle builds without installing them.
     config.resolve = config.resolve || {};

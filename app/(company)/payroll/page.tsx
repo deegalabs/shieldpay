@@ -1,7 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DEMO_WORKER } from '@/lib/constants';
+
+interface Contractor {
+  id: string;
+  name: string;
+  stellar_address: string;
+  range_min: number;
+  range_max: number;
+  anchored: boolean;
+}
+
+interface PayrollForm {
+  workerName: string;
+  workerAddress: string;
+  amountUsdc: number;
+  minUsdc: number;
+  maxUsdc: number;
+  reference: string;
+}
 
 interface PayrollResult {
   ok: boolean;
@@ -21,7 +39,7 @@ const STAGES = [
 ];
 
 export default function PayrollPage() {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<PayrollForm>({
     workerName: DEMO_WORKER.name,
     workerAddress: DEMO_WORKER.address,
     amountUsdc: 500,
@@ -32,6 +50,27 @@ export default function PayrollPage() {
   const [stage, setStage] = useState(-1);
   const [result, setResult] = useState<PayrollResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
+
+  useEffect(() => {
+    fetch('/api/contractors')
+      .then((r) => (r.ok ? r.json() : { contractors: [] }))
+      .then((d) => setContractors(d.contractors ?? []))
+      .catch(() => setContractors([]));
+  }, []);
+
+  function selectContractor(id: string) {
+    const c = contractors.find((x) => x.id === id);
+    if (!c) return;
+    setForm((f) => ({
+      ...f,
+      workerName: c.name,
+      workerAddress: c.stellar_address,
+      minUsdc: c.range_min / 100,
+      maxUsdc: c.range_max / 100,
+      amountUsdc: Math.round((c.range_min + c.range_max) / 2 / 100),
+    }));
+  }
 
   const running = stage >= 0 && !result && !error;
 
@@ -77,6 +116,25 @@ export default function PayrollPage() {
       </p>
 
       <div className="card mt-8 space-y-4">
+        {contractors.length > 0 && (
+          <Field label="Select a contractor">
+            <select
+              className="input"
+              defaultValue=""
+              onChange={(e) => selectContractor(e.target.value)}
+            >
+              <option value="" disabled>
+                Choose from your contractors…
+              </option>
+              {contractors.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — ${c.range_min / 100}–${c.range_max / 100} USDC
+                  {c.anchored ? ' ✓' : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Contractor">
           <input className="input" value={form.workerName} onChange={set('workerName')} />
         </Field>

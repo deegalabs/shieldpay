@@ -9,7 +9,16 @@ import { SESSION_COOKIE, verifySession } from '@/lib/auth/session';
  *   any session: /payments
  */
 function isCompanyPath(p: string) {
-  return p.startsWith('/dashboard') || p.startsWith('/payroll') || p.startsWith('/api/payroll');
+  return (
+    p.startsWith('/dashboard') ||
+    p.startsWith('/payroll') ||
+    p.startsWith('/contractors') ||
+    p.startsWith('/settings') ||
+    p.startsWith('/onboarding') ||
+    p.startsWith('/api/payroll') ||
+    p.startsWith('/api/contractors') ||
+    p.startsWith('/api/company')
+  );
 }
 function isWorkerPath(p: string) {
   return p.startsWith('/payments');

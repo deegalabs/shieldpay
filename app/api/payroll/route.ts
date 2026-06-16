@@ -5,8 +5,9 @@ import { generatePaymentProof } from '@/lib/zk/prover';
 import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
 import { encodeProof, encodePublicSignals, fieldToBe32 } from '@/lib/zk/encode';
 import { recordProofOnChain } from '@/lib/stellar/soroban';
-import { insertPayment } from '@/lib/db/client';
-import { EXPLORER_BASE } from '@/lib/constants';
+import { insertPayment, getCompanyByOwner } from '@/lib/db/client';
+import { getSession } from '@/lib/auth/server';
+import { EXPLORER_BASE, COMPANY } from '@/lib/constants';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -89,6 +90,8 @@ export async function POST(req: NextRequest) {
     // 4. persist (off-chain metadata; exact amount intentionally not stored)
     let persisted = true;
     try {
+      const session = await getSession();
+      const company = session ? await getCompanyByOwner(session.sub) : null;
       await insertPayment({
         worker_name: workerName,
         worker_address: workerAddress,
@@ -99,6 +102,9 @@ export async function POST(req: NextRequest) {
         proof_id: proofId,
         tx_hash: txHash,
         verified: true,
+        company_id: company?.id ?? null,
+        payer_name: company?.name ?? COMPANY.name,
+        payer_cnpj: company?.cnpj ?? COMPANY.cnpj,
       });
     } catch (dbErr) {
       console.error('payment persisted off-chain failed (on-chain proof stands)', dbErr);

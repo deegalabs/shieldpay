@@ -28,6 +28,37 @@ CREATE TABLE IF NOT EXISTS payments (
 CREATE INDEX IF NOT EXISTS idx_payments_worker ON payments(worker_address);
 CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at DESC);
 
+-- Companies: one per owner (the company-role session subject).
+CREATE TABLE IF NOT EXISTS companies (
+  id               BIGSERIAL PRIMARY KEY,
+  owner_sub        TEXT NOT NULL UNIQUE,
+  name             TEXT NOT NULL,
+  cnpj             TEXT,
+  treasury_address TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Link payments to the paying company + denormalize payer for receipts.
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS company_id BIGINT;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS payer_name TEXT;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS payer_cnpj TEXT;
+CREATE INDEX IF NOT EXISTS idx_payments_company ON payments(company_id);
+
+-- Contractors managed by a company (CPF stored only as a hash).
+CREATE TABLE IF NOT EXISTS contractors (
+  id              BIGSERIAL PRIMARY KEY,
+  company_id      BIGINT NOT NULL,
+  name            TEXT NOT NULL,
+  cpf_hash        TEXT,
+  stellar_address TEXT NOT NULL,
+  range_min       INTEGER NOT NULL,
+  range_max       INTEGER NOT NULL,
+  anchored        BOOLEAN NOT NULL DEFAULT false,
+  anchor_tx_hash  TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_contractors_company ON contractors(company_id);
+
 -- WebAuthn (passkey) credentials for the passkey login method.
 CREATE TABLE IF NOT EXISTS webauthn_credentials (
   id            BIGSERIAL PRIMARY KEY,
