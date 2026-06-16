@@ -1,5 +1,10 @@
 {
   "network": "testnet",
-  "anchor_registry": "",
-  "payment_verifier": ""
+  "deployer": "GCLQSBBXPQLGWCPC7ZQNKDDHRI4JUMUHFWY534BXWIF45HI3XLU6U2SM",
+  "anchor_registry": "CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
+  "payment_verifier": "CBP5ZZNSGWCCWDPDMYN5M6HH3V2K5V42A4SP5MITNNVAXEGM5X7OILGK",
+  "explorer": {
+    "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
+    "payment_verifier": "https://stellar.expert/explorer/testnet/contract/CBP5ZZNSGWCCWDPDMYN5M6HH3V2K5V42A4SP5MITNNVAXEGM5X7OILGK"
+  }
 }
