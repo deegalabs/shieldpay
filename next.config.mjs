@@ -5,11 +5,11 @@ const nextConfig = {
   // Mark them external so the server bundle stays clean on Railway.
   webpack: (config) => {
     config.externals = config.externals || [];
-    config.externals.push('snarkjs');
+    config.externals.push('snarkjs', 'circomlibjs');
     return config;
   },
   experimental: {
-    serverComponentsExternalPackages: ['snarkjs', '@stellar/stellar-sdk'],
+    serverComponentsExternalPackages: ['snarkjs', 'circomlibjs', '@stellar/stellar-sdk'],
   },
 };
 

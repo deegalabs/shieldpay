@@ -1,0 +1,110 @@
+import {
+  Contract,
+  Keypair,
+  TransactionBuilder,
+  nativeToScVal,
+  scValToNative,
+  xdr,
+} from '@stellar/stellar-sdk';
+import { sorobanServer, networkPassphrase } from './client';
+import { CONTRACTS } from '@/lib/constants';
+
+/**
+ * Server-side Soroban invocations against the deployed PaymentVerifier.
+ * The company key signs (it is the `company` arg, which require_auth's).
+ */
+
+function bytesScVal(buf: Buffer): xdr.ScVal {
+  return nativeToScVal(buf, { type: 'bytes' });
+}
+
+async function invokeAndConfirm(
+  kp: Keypair,
+  operation: xdr.Operation,
+): Promise<{ hash: string; returnValue: unknown }> {
+  const account = await sorobanServer.getAccount(kp.publicKey());
+  const tx = new TransactionBuilder(account, {
+    fee: '1000000', // inclusion fee; Soroban resource fees added by prepareTransaction
+    networkPassphrase,
+  })
+    .addOperation(operation)
+    .setTimeout(60)
+    .build();
+
+  const prepared = await sorobanServer.prepareTransaction(tx);
+  prepared.sign(kp);
+
+  const sent = await sorobanServer.sendTransaction(prepared);
+  if (sent.status === 'ERROR') {
+    throw new Error(`sendTransaction failed: ${JSON.stringify(sent.errorResult)}`);
+  }
+
+  let got = await sorobanServer.getTransaction(sent.hash);
+  for (let i = 0; got.status === 'NOT_FOUND' && i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    got = await sorobanServer.getTransaction(sent.hash);
+  }
+  if (got.status !== 'SUCCESS') {
+    throw new Error(`transaction ${sent.hash} status: ${got.status}`);
+  }
+  return {
+    hash: sent.hash,
+    returnValue: got.returnValue ? scValToNative(got.returnValue) : null,
+  };
+}
+
+/**
+ * Verify a Groth16 proof on-chain and record it. Returns the proof id and the
+ * Stellar transaction hash (the proof of on-chain verification).
+ */
+export async function recordProofOnChain(args: {
+  companySecret: string;
+  workerAddressHash: Buffer; // 32 bytes
+  paymentTxHash: Buffer; // 32 bytes
+  valueCommitment: Buffer; // 32 bytes
+  proofBytes: Buffer; // 256 bytes
+  publicSignalsBytes: Buffer;
+}): Promise<{ proofId: string; txHash: string }> {
+  if (!CONTRACTS.paymentVerifier) {
+    throw new Error('PAYMENT_VERIFIER_CONTRACT_ID not configured');
+  }
+  const kp = Keypair.fromSecret(args.companySecret);
+  const contract = new Contract(CONTRACTS.paymentVerifier);
+
+  const op = contract.call(
+    'verify_and_record',
+    nativeToScVal(kp.publicKey(), { type: 'address' }),
+    bytesScVal(args.workerAddressHash),
+    bytesScVal(args.paymentTxHash),
+    bytesScVal(args.valueCommitment),
+    bytesScVal(args.proofBytes),
+    bytesScVal(args.publicSignalsBytes),
+  );
+
+  const { hash, returnValue } = await invokeAndConfirm(kp, op);
+  return { proofId: String(returnValue ?? ''), txHash: hash };
+}
+
+/** Read-only check whether a payment tx hash has a recorded proof. */
+export async function isVerifiedOnChain(paymentTxHash: Buffer): Promise<boolean> {
+  if (!CONTRACTS.paymentVerifier) return false;
+  const contract = new Contract(CONTRACTS.paymentVerifier);
+  // Build a throwaway tx just to simulate the read.
+  const dummy = Keypair.random();
+  const op = contract.call('is_verified', bytesScVal(paymentTxHash));
+  try {
+    const account = await sorobanServer.getAccount(dummy.publicKey()).catch(() => null);
+    if (!account) return false;
+    const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase })
+      .addOperation(op)
+      .setTimeout(30)
+      .build();
+    const sim = await sorobanServer.simulateTransaction(tx);
+    if ('result' in sim && sim.result?.retval) {
+      return Boolean(scValToNative(sim.result.retval));
+    }
+  } catch {
+    /* read-only best effort */
+  }
+  return false;
+}

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { formatUsdc } from '@/lib/utils';
 
 /** Company portal (CFO / HR) — dashboard. Skeleton wired to mock data. */
@@ -21,7 +22,7 @@ export default function CompanyDashboard() {
       </div>
 
       <div className="mt-8 flex gap-4">
-        <button className="btn-primary">Run payroll</button>
+        <Link href="/payroll" className="btn-primary">Run payroll</Link>
         <button className="btn-ghost">Add contractor</button>
       </div>
 
