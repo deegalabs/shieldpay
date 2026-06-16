@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-surface p-6 shadow-lg;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5
+           font-medium text-background transition hover:opacity-90 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border
+           px-4 py-2.5 font-medium text-foreground transition hover:bg-surface;
+  }
+  .badge-verified {
+    @apply inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5
+           text-sm font-medium text-primary;
+  }
+}

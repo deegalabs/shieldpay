@@ -1,0 +1,8 @@
+{
+  "_comment": "Example witness. valueCommitment MUST equal Poseidon(value, valueRandomness); generate a real one with 'npm run zk:prove'. value/min/max are in USDC cents.",
+  "value": 50000,
+  "valueRandomness": "123456789",
+  "valueCommitment": "REPLACE_WITH_POSEIDON_OUTPUT",
+  "minValue": 45000,
+  "maxValue": 55000
+}

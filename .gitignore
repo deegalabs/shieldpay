@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+
+# Production
+/build
+/dist
+
+# Environment
+.env
+.env*.local
+.env.production
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Rust / Soroban
+contracts/target/
+**/target/
+Cargo.lock
+*.wasm
+
+# ZK circuits — compiled artifacts and trusted-setup output (large / regenerable)
+circuits/**/target/
+circuits/**/*.r1cs
+circuits/**/*.sym
+circuits/**/*_js/
+circuits/**/*.wtns
+circuits/**/*.ptau
+circuits/**/*.zkey
+circuits/**/proof.json
+circuits/**/public.json
+# Keep the verification key — it is committed so the verifier can be initialized
+!circuits/**/verification_key.json
+
+# Generated receipts / PDFs
+/tmp
+*.pdf
+!docs/**/*.pdf
+
+# Coverage / tests
+/coverage

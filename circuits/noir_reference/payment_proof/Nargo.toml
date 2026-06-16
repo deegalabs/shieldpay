@@ -1,0 +1,8 @@
+[package]
+name = "payment_proof"
+type = "bin"
+authors = ["ShieldPay"]
+# Pin for reproducibility. Matches the bb 0.87.x line if you go the UltraHonk route.
+compiler_version = ">=1.0.0-beta.9"
+
+[dependencies]
