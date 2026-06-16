@@ -37,6 +37,12 @@ export const COMPANY = {
   cnpj: '12.345.678/0001-90',
 } as const;
 
+/** Demo worker used by the one-click demo login and the payroll form default. */
+export const DEMO_WORKER = {
+  name: 'João Silva',
+  address: 'GWORKER1EXAMPLEADDRESSDONOTUSE000000000000000000000000000',
+} as const;
+
 export const CONTRACTS = {
   anchorRegistry: process.env.ANCHOR_REGISTRY_CONTRACT_ID ?? '',
   paymentVerifier: process.env.PAYMENT_VERIFIER_CONTRACT_ID ?? '',

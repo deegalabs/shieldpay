@@ -104,6 +104,58 @@ export async function listPaymentsForWorker(address: string): Promise<PaymentRow
   return rows;
 }
 
+// ── WebAuthn (passkey) credential storage ──────────────────────────────
+export interface CredentialRow {
+  id: string;
+  handle: string;
+  credential_id: string;
+  public_key: Buffer;
+  counter: string;
+  role: string;
+}
+
+export async function insertCredential(c: {
+  handle: string;
+  credential_id: string;
+  public_key: Buffer;
+  counter: number;
+  role: string;
+}): Promise<void> {
+  await ensureSchema();
+  await getPool().query(
+    `INSERT INTO webauthn_credentials (handle, credential_id, public_key, counter, role)
+     VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (credential_id) DO NOTHING`,
+    [c.handle, c.credential_id, c.public_key, c.counter, c.role],
+  );
+}
+
+export async function getCredentialsByHandle(handle: string): Promise<CredentialRow[]> {
+  await ensureSchema();
+  const { rows } = await getPool().query<CredentialRow>(
+    `SELECT * FROM webauthn_credentials WHERE handle = $1`,
+    [handle],
+  );
+  return rows;
+}
+
+export async function getCredentialById(credentialId: string): Promise<CredentialRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<CredentialRow>(
+    `SELECT * FROM webauthn_credentials WHERE credential_id = $1`,
+    [credentialId],
+  );
+  return rows[0] ?? null;
+}
+
+export async function updateCredentialCounter(credentialId: string, counter: number): Promise<void> {
+  await ensureSchema();
+  await getPool().query(
+    `UPDATE webauthn_credentials SET counter = $2 WHERE credential_id = $1`,
+    [credentialId, counter],
+  );
+}
+
 export async function paymentStats(): Promise<{
   total: number;
   verified: number;

@@ -27,4 +27,16 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_worker ON payments(worker_address);
 CREATE INDEX IF NOT EXISTS idx_payments_created ON payments(created_at DESC);
+
+-- WebAuthn (passkey) credentials for the passkey login method.
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+  id            BIGSERIAL PRIMARY KEY,
+  handle        TEXT NOT NULL,
+  credential_id TEXT NOT NULL UNIQUE,   -- base64url
+  public_key    BYTEA NOT NULL,
+  counter       BIGINT NOT NULL DEFAULT 0,
+  role          TEXT NOT NULL DEFAULT 'company',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_webauthn_handle ON webauthn_credentials(handle);
 `;

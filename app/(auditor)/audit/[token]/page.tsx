@@ -1,15 +1,27 @@
 import { listPayments, type PaymentRow } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
 import { truncateKey } from '@/lib/utils';
+import { verifyScopedToken } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Auditor portal — read-only, time-boxed access via a temporary token.
- * No wallet required. Cannot move funds or see current balance.
- * (For the demo the token is not enforced; in production it gates the period.)
+ * Auditor portal — read-only, time-boxed access via a signed, expiring token.
+ * No wallet required. The token is minted by a company (/api/auth/auditor-link).
  */
 export default async function AuditorView({ params }: { params: { token: string } }) {
+  const claims = await verifyScopedToken<{ scope: string }>(params.token);
+  if (!claims || claims.scope !== 'audit') {
+    return (
+      <main className="mx-auto max-w-md px-6 py-20 text-center">
+        <h1 className="text-2xl font-bold">Link expired or invalid</h1>
+        <p className="mt-3 text-muted">
+          This audit link is no longer valid. Ask the company to generate a new one.
+        </p>
+      </main>
+    );
+  }
+
   let payments: PaymentRow[] = [];
   try {
     payments = await listPayments(100);

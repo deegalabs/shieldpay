@@ -1,17 +1,21 @@
-import { listPayments, type PaymentRow } from '@/lib/db/client';
+import { listPayments, listPaymentsForWorker, type PaymentRow } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
+import { getSession } from '@/lib/auth/server';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Worker portal — received payments and their on-chain proofs.
- * In production this filters by the wallet-authenticated worker; for the demo
- * it shows the recorded payments so the flow is visible end to end.
+ * Scoped to the authenticated worker's address; a company session sees all.
  */
 export default async function WorkerPayments() {
+  const session = await getSession();
   let payments: PaymentRow[] = [];
   try {
-    payments = await listPayments(50);
+    payments =
+      session?.role === 'worker'
+        ? await listPaymentsForWorker(session.sub)
+        : await listPayments(50);
   } catch {
     /* DB not reachable */
   }

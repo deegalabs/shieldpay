@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { listPayments, paymentStats, type PaymentRow } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
+import AuthActions from './AuthActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +16,12 @@ export default async function CompanyDashboard() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <span className="text-sm text-muted">TechStartup Ltda</span>
+      <header className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <span className="text-sm text-muted">TechStartup Ltda</span>
+        </div>
+        <AuthActions />
       </header>
 
       <div className="grid gap-6 sm:grid-cols-3">

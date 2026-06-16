@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { DEMO_WORKER } from '@/lib/constants';
 
 interface PayrollResult {
   ok: boolean;
@@ -21,8 +22,8 @@ const STAGES = [
 
 export default function PayrollPage() {
   const [form, setForm] = useState({
-    workerName: 'João Silva',
-    workerAddress: 'GWORKER1EXAMPLEADDRESSDONOTUSE000000000000000000000000000',
+    workerName: DEMO_WORKER.name,
+    workerAddress: DEMO_WORKER.address,
     amountUsdc: 500,
     minUsdc: 450,
     maxUsdc: 550,
