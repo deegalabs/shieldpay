@@ -31,11 +31,10 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Rust / Soroban
+# Rust / Soroban (build outputs only; circuit wasm under circuits/ is committed)
 contracts/target/
-**/target/
+contracts/**/target/
 Cargo.lock
-*.wasm
 
 # ZK circuits — ignore large/regenerable setup artifacts and test outputs.
 # The RUNTIME artifacts (witness wasm, final zkey, verification key) ARE
