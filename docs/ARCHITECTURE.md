@@ -45,9 +45,11 @@ proof and the product's core promise (selective privacy + provability)
 collapses.
 
 - **Statement:** `min ≤ value ≤ max` ∧ `Poseidon(value, r) == commitment`
-- **System:** Groth16 (zk-SNARK), Circom toolchain
-- **Verification:** on-chain in the `PaymentVerifier` Soroban contract using
-  Stellar's native BLS12-381 host functions (Protocol 23+).
+- **System:** Groth16 (zk-SNARK), Circom toolchain, **BN254** curve
+- **Verification:** REAL on-chain pairing check in the `PaymentVerifier` Soroban
+  contract using Stellar's native **BN254** host functions (Protocol 25/26),
+  exposed via `soroban_sdk::crypto::bn254`. Verified on testnet: a valid proof
+  records; a proof with wrong public signals is rejected with `InvalidProof`.
 
 ## Component map
 
@@ -81,11 +83,13 @@ collapses.
   paths. Noir is kept as a readable reference.
 - **Decision 2 — range proof, not amount hiding.** The transaction itself is
   public on Stellar; ZK hides the *exact* amount, proving only range membership.
-- **Verifier seam.** `payment_verifier::verify_groth16` is a guarded stub today
-  so storage/auth/indexing are fully testable; wiring the BLS12-381
-  host-function pairing check (per the official `groth16_verifier` example) is
-  the Day 1–2 milestone. Stated plainly per the hackathon's "honest
-  work-in-progress over polished mystery" guidance.
+- **On-chain verification is real (done).** `payment_verifier` runs the full
+  Groth16/BN254 pairing check on-chain via `soroban_sdk::crypto::bn254`
+  (`e(-A,B)·e(α,β)·e(vk_x,γ)·e(C,δ) == 1`). The earlier stub was replaced and
+  verified on testnet. Note we use **BN254** (matching Circom+snarkjs), not the
+  BLS12-381 of the official BLS example. snarkjs artifacts are converted to the
+  on-chain byte layout by `circuits/scripts/encode_bn254_for_soroban.mjs`
+  (G2 needs c1-before-c0 Fp2 ordering).
 - **Demo signing.** For the hackathon, the company signs payments server-side
   from a funded testnet key; production uses a Freighter wallet signature flow.
 

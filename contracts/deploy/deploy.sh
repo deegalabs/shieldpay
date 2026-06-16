@@ -32,14 +32,16 @@ VERIFIER_ID=$(stellar contract deploy \
   --source "$SOURCE" --network "$NETWORK")
 echo "    PaymentVerifier: $VERIFIER_ID"
 
-echo "==> Initializing PaymentVerifier with the circuit verification key"
-VK_HEX=$(node -e "const fs=require('fs');const vk=fs.readFileSync('../circuits/payment_proof/target/verification_key.json');process.stdout.write(vk.toString('hex'))" 2>/dev/null || echo "")
-if [ -n "$VK_HEX" ]; then
+echo "==> Initializing PaymentVerifier with the encoded BN254 verification key"
+VK_JSON="../circuits/payment_proof/target/verification_key.json"
+if [ -f "$VK_JSON" ]; then
+  # Encode snarkjs VK -> Soroban BN254 byte layout (NOT the raw JSON).
+  VK_HEX=$(node ../circuits/scripts/encode_bn254_for_soroban.mjs vk "$VK_JSON")
   stellar contract invoke --id "$VERIFIER_ID" --source "$SOURCE" --network "$NETWORK" \
     -- initialize --vk_bytes "$VK_HEX"
 else
   echo "    WARNING: verification_key.json not found. Run 'npm run zk:setup' first,"
-  echo "    then call initialize manually."
+  echo "    then initialize manually with the encoded VK."
 fi
 
 echo "==> Writing $OUT"

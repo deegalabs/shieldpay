@@ -2,9 +2,10 @@
   "network": "testnet",
   "deployer": "GCLQSBBXPQLGWCPC7ZQNKDDHRI4JUMUHFWY534BXWIF45HI3XLU6U2SM",
   "anchor_registry": "CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
-  "payment_verifier": "CBP5ZZNSGWCCWDPDMYN5M6HH3V2K5V42A4SP5MITNNVAXEGM5X7OILGK",
+  "payment_verifier": "CB6LJ2YRBUVHKDQ4CPKDXH3BSUSQM6UR4WKRCLVJZG6VES7KDMTCDDKF",
+  "notes": "payment_verifier performs REAL on-chain Groth16/BN254 pairing verification. Initialized with the circuit verification key. (Supersedes the earlier stub deploy CBP5ZZNS...)",
   "explorer": {
     "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
-    "payment_verifier": "https://stellar.expert/explorer/testnet/contract/CBP5ZZNSGWCCWDPDMYN5M6HH3V2K5V42A4SP5MITNNVAXEGM5X7OILGK"
+    "payment_verifier": "https://stellar.expert/explorer/testnet/contract/CB6LJ2YRBUVHKDQ4CPKDXH3BSUSQM6UR4WKRCLVJZG6VES7KDMTCDDKF"
   }
 }

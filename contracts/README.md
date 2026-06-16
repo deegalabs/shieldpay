@@ -42,11 +42,25 @@ npm run contracts:deploy     # -> contracts/deploy/deploy.sh
 Deployed contract IDs are written to `deploy/addresses.json` and printed for
 your `.env` / Railway variables.
 
-## ZK verification status
+## ZK verification status — REAL, on-chain
 
-`payment_verifier` records verified proofs and exposes `verify_groth16` as the
-integration seam for the on-chain pairing check. The cryptographic check is
-implemented with Stellar's native **BLS12-381 host functions**, following the
-official [`stellar/soroban-examples/groth16_verifier`](https://github.com/stellar/soroban-examples/tree/main/groth16_verifier).
-See [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) for the milestone plan and
-an honest status of what is wired vs. stubbed.
+`payment_verifier` runs the **full Groth16 pairing check on-chain** using
+Stellar's native **BN254** host functions (`soroban_sdk::crypto::bn254`):
+
+```
+e(-A, B) · e(alpha, beta) · e(vk_x, gamma) · e(C, delta) == 1
+vk_x = IC[0] + sum_i (public_i · IC[i+1])
+```
+
+We use BN254 (matching the Circom + snarkjs toolchain), not the BLS12-381 of the
+official BLS example. snarkjs `verification_key.json` / `proof.json` /
+`public.json` are converted to the on-chain byte layout (uncompressed big-endian,
+G2 in c1-before-c0 order) by
+[`circuits/scripts/encode_bn254_for_soroban.mjs`](../circuits/scripts/encode_bn254_for_soroban.mjs).
+
+Verified on testnet:
+- valid proof → recorded, `is_verified` returns `true`
+- proof with wrong public signals → rejected with `InvalidProof` (Error #3)
+
+Unit tests (`cargo test -p payment_verifier`) run the real pairing against
+committed fixtures in `src/testdata/`.

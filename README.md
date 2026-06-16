@@ -145,12 +145,19 @@ This is a hackathon build; we'd rather show honest WIP than a polished mystery.
 - ✅ Monorepo, three-portal app skeleton, design system
 - ✅ Stellar SDK 15 integration (payments, memos, trustlines, wallet auth)
 - ✅ Circom range-proof circuit + Groth16 trusted-setup pipeline + snarkjs prover
-- ✅ Soroban contracts (`AnchorRegistry`, `PaymentVerifier`) with unit tests
-- 🚧 On-chain Groth16 pairing check in `PaymentVerifier` — storage/auth/indexing
-  done; BLS12-381 host-function verification is the next milestone (see
-  [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md))
+- ✅ Soroban contracts (`AnchorRegistry`, `PaymentVerifier`) deployed to testnet
+- ✅ **Real on-chain Groth16/BN254 pairing verification** in `PaymentVerifier`
+  via `soroban_sdk::crypto::bn254` — verified on testnet (valid proof records;
+  wrong public signals rejected with `InvalidProof`)
 - 🚧 DB persistence + receipt PDF wiring into the live flow
+- 🚧 Frontend portals wired to the live contracts (currently mock data)
 - ⏳ Mock data is used where noted (dashboards, seed identities)
+
+### Live on testnet
+
+- App: https://web-production-f389ce.up.railway.app
+- [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI)
+- [PaymentVerifier contract](https://stellar.expert/explorer/testnet/contract/CB6LJ2YRBUVHKDQ4CPKDXH3BSUSQM6UR4WKRCLVJZG6VES7KDMTCDDKF)
 
 ## Legal context
 
