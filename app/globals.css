@@ -2,35 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-inter: 'Inter', system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', monospace;
-}
-
 @layer base {
+  :root {
+    --font-mono: ui-monospace, 'SF Mono', monospace;
+    --radius: 0.75rem;
+
+    /* Fintech-premium dark palette (HSL triplets for hsl(var(--x))). */
+    --background: 222 47% 7%;
+    --surface: 222 39% 10%;
+    --surface-2: 221 33% 14%;
+    --foreground: 210 40% 98%;
+    --muted: 215 18% 62%;
+    --border: 215 25% 20%;
+    --ring: 243 75% 63%;
+
+    --primary: 158 64% 42%; /* emerald — primary action / success */
+    --primary-foreground: 160 84% 6%;
+    --brand: 243 75% 63%; /* indigo — identity / accents */
+    --accent: 243 75% 63%;
+    --warning: 38 92% 50%;
+    --danger: 0 84% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
   body {
     @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(60rem 40rem at 110% -10%, hsl(var(--brand) / 0.10), transparent),
+      radial-gradient(50rem 30rem at -10% 0%, hsl(var(--primary) / 0.06), transparent);
+    background-attachment: fixed;
+  }
+  h1, h2, h3 {
+    @apply tracking-tight;
   }
 }
 
 @layer components {
+  /* Surfaces */
   .card {
-    @apply rounded-xl border border-border bg-surface p-6 shadow-lg;
+    @apply rounded-xl border border-border bg-surface p-6 shadow-card;
   }
+  .card-2 {
+    @apply rounded-xl border border-border bg-surface-2 p-6 shadow-card;
+  }
+
+  /* Buttons (legacy class names kept; restyled) */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5
-           font-medium text-background transition hover:opacity-90 disabled:opacity-50;
+           font-medium text-primary-foreground shadow-card transition
+           hover:brightness-110 active:brightness-95 disabled:opacity-50 disabled:pointer-events-none;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border
-           px-4 py-2.5 font-medium text-foreground transition hover:bg-surface;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface/50
+           px-4 py-2.5 font-medium text-foreground transition
+           hover:bg-surface-2 hover:border-border disabled:opacity-50 disabled:pointer-events-none;
   }
+
+  /* Inputs */
+  .input {
+    @apply w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-foreground
+           placeholder:text-muted/70 outline-none transition
+           focus:border-ring focus:ring-2 focus:ring-ring/30;
+  }
+
+  /* Status badge */
   .badge-verified {
     @apply inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5
-           text-sm font-medium text-primary;
-  }
-  .input {
-    @apply w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground
-           outline-none transition focus:border-accent;
+           text-sm font-medium text-primary ring-1 ring-inset ring-primary/20;
   }
 }

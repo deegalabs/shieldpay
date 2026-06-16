@@ -1,9 +1,9 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * ShieldPay design system — "Fintech Premium".
- * References: Stripe Dashboard, Deel, QuickBooks.
- * Rule: cryptography is invisible. No neon, no hacker aesthetic.
+ * ShieldPay design system — "Fintech Premium" with depth.
+ * Tokens are CSS variables (see app/globals.css) so the palette can evolve and
+ * theme without touching components. References: Deel, Stripe, QuickBooks.
  */
 const config: Config = {
   darkMode: ['class'],
@@ -15,25 +15,43 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Surfaces
-        background: '#0F172A', // slate-900
-        surface: '#1E293B', // slate-800
-        foreground: '#F8FAFC', // slate-50
-        muted: '#94A3B8', // slate-400
-        border: '#334155', // slate-700
-        // Semantic
-        primary: '#10B981', // emerald-500 — primary action / success
-        warning: '#F59E0B', // amber-500
-        danger: '#EF4444', // red-500
-        accent: '#6366F1', // indigo-500
+        background: 'hsl(var(--background) / <alpha-value>)',
+        surface: 'hsl(var(--surface) / <alpha-value>)',
+        'surface-2': 'hsl(var(--surface-2) / <alpha-value>)',
+        foreground: 'hsl(var(--foreground) / <alpha-value>)',
+        muted: 'hsl(var(--muted) / <alpha-value>)',
+        border: 'hsl(var(--border) / <alpha-value>)',
+        ring: 'hsl(var(--ring) / <alpha-value>)',
+        primary: {
+          DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
+          foreground: 'hsl(var(--primary-foreground) / <alpha-value>)',
+        },
+        brand: 'hsl(var(--brand) / <alpha-value>)',
+        accent: 'hsl(var(--accent) / <alpha-value>)',
+        warning: 'hsl(var(--warning) / <alpha-value>)',
+        danger: 'hsl(var(--danger) / <alpha-value>)',
       },
       borderRadius: {
-        lg: '0.75rem',
-        xl: '1rem',
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 4px)',
+        sm: 'calc(var(--radius) - 8px)',
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 8px)',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+      },
+      boxShadow: {
+        card: '0 1px 2px 0 rgb(0 0 0 / 0.20), 0 1px 3px 1px rgb(0 0 0 / 0.10)',
+        elevated: '0 10px 30px -10px rgb(0 0 0 / 0.55)',
+        glow: '0 0 0 1px hsl(var(--border)), 0 8px 30px -12px hsl(var(--brand) / 0.45)',
+      },
+      keyframes: {
+        'fade-in': { from: { opacity: '0', transform: 'translateY(4px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.3s ease-out',
       },
     },
   },

@@ -69,7 +69,7 @@ export default function PayrollPage() {
     setForm({ ...form, [k]: e.target.type === 'number' ? Number(e.target.value) : e.target.value });
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold">Pay &amp; Prove</h1>
       <p className="mt-2 text-muted">
         Pay a contractor within their agreed range and generate a mathematical,
@@ -142,7 +142,7 @@ export default function PayrollPage() {
           </a>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

@@ -1,7 +1,10 @@
 import Link from 'next/link';
+import { Send, UserPlus, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { listPayments, paymentStats, type PaymentRow } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
-import AuthActions from './AuthActions';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,84 +14,103 @@ export default async function CompanyDashboard() {
   try {
     [payments, stats] = await Promise.all([listPayments(10), paymentStats()]);
   } catch {
-    /* DB not reachable — render empty state */
+    /* DB not reachable — empty state */
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
-      <header className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <span className="text-sm text-muted">TechStartup Ltda</span>
-        </div>
-        <AuthActions />
-      </header>
-
-      <div className="grid gap-6 sm:grid-cols-3">
-        <Stat label="Verified proofs" value={String(stats.verified)} accent />
-        <Stat label="Contractors paid" value={String(stats.workers)} />
-        <Stat label="Total payments" value={String(stats.total)} />
+    <div className="space-y-8">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Verified proofs" value={stats.verified} accent icon={<ShieldCheck size={16} />} />
+        <Stat label="Contractors paid" value={stats.workers} />
+        <Stat label="Total payments" value={stats.total} />
       </div>
 
-      <div className="mt-8 flex gap-4">
-        <Link href="/payroll" className="btn-primary">Run payroll</Link>
-        <button className="btn-ghost">Add contractor</button>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild>
+          <Link href="/payroll">
+            <Send size={16} /> Run payroll
+          </Link>
+        </Button>
+        <Button variant="ghost">
+          <UserPlus size={16} /> Add contractor
+        </Button>
       </div>
 
-      <section className="mt-10">
-        <h2 className="mb-4 text-lg font-semibold">Recent payments</h2>
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+          Recent payments
+        </h2>
         {payments.length === 0 ? (
-          <div className="card text-muted">
-            No payments yet. Click <span className="text-foreground">Run payroll</span> to
-            pay a contractor and generate an on-chain proof.
-          </div>
+          <Card className="p-8 text-center">
+            <p className="font-medium">No payments yet</p>
+            <p className="mt-1 text-sm text-muted">
+              Run your first payroll to pay a contractor and generate an on-chain proof.
+            </p>
+            <Button asChild className="mt-4">
+              <Link href="/payroll">
+                <Send size={16} /> Run payroll
+              </Link>
+            </Button>
+          </Card>
         ) : (
-          <div className="card divide-y divide-border p-0">
+          <Card className="divide-y divide-border overflow-hidden">
             {payments.map((p) => (
-              <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 p-4">
-                <span className="font-medium">{p.worker_name}</span>
-                <span className="text-muted">{p.reference}</span>
+              <div
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-surface-2/40"
+              >
+                <div className="min-w-[8rem]">
+                  <p className="font-medium">{p.worker_name}</p>
+                  <p className="text-xs text-muted">{p.reference}</p>
+                </div>
                 <span className="text-sm text-muted">
                   ${p.range_min / 100}–${p.range_max / 100} USDC
                 </span>
-                <span className="badge-verified">Verified</span>
-                <a
-                  className="text-sm text-accent hover:underline"
-                  href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  proof ↗
-                </a>
-                <a
-                  className="text-sm text-foreground hover:underline"
-                  href={`/api/receipt?id=${p.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  ⚖️ Legal Defense
-                </a>
+                <Badge variant="success">
+                  <ShieldCheck size={12} /> Verified
+                </Badge>
+                <div className="flex gap-3 text-sm">
+                  <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                    Proof <ArrowUpRight size={13} />
+                  </a>
+                  <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
+                    ⚖️ Legal Defense
+                  </a>
+                </div>
               </div>
             ))}
-          </div>
+          </Card>
         )}
       </section>
 
-      <p className="mt-6 text-xs text-muted">
-        Exact amounts are private. Each payment is backed by a zero-knowledge
-        proof, verified on-chain, that the amount is within the agreed range.
+      <p className="text-xs text-muted">
+        Exact amounts are private. Each payment is backed by a zero-knowledge proof, verified
+        on-chain, that the amount is within the agreed contractual range.
       </p>
-    </main>
+    </div>
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Stat({
+  label,
+  value,
+  accent,
+  icon,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+  icon?: React.ReactNode;
+}) {
   return (
-    <div className="card">
-      <p className="text-sm text-muted">{label}</p>
-      <p className={`mt-1 text-3xl font-bold ${accent ? 'text-primary' : 'text-foreground'}`}>
+    <Card className="p-5">
+      <div className="flex items-center gap-2 text-sm text-muted">
+        {icon}
+        {label}
+      </div>
+      <p className={`mt-2 text-3xl font-bold ${accent ? 'text-primary' : 'text-foreground'}`}>
         {value}
       </p>
-    </div>
+    </Card>
   );
 }

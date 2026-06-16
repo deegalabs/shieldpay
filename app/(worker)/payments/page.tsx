@@ -23,7 +23,7 @@ export default async function WorkerPayments() {
   const latest = payments[0];
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
+    <div>
       <h1 className="text-2xl font-bold">My payments</h1>
       {latest ? (
         <p className="mt-2 text-muted">
@@ -54,6 +54,6 @@ export default async function WorkerPayments() {
           </div>
         ))}
       </section>
-    </main>
+    </div>
   );
 }
