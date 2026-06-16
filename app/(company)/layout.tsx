@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { LayoutDashboard, Send, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, Send, Users, FileText, Settings } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { TopbarActions } from '@/components/topbar-actions';
 import { getSession } from '@/lib/auth/server';
@@ -27,6 +27,7 @@ export default async function CompanyLayout({ children }: { children: React.Reac
     { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
     { href: '/contractors', label: 'Contractors', icon: <Users size={16} /> },
     { href: '/payroll', label: 'Pay & Prove', icon: <Send size={16} /> },
+    { href: '/receipts', label: 'Receipts', icon: <FileText size={16} /> },
     { href: '/settings', label: 'Settings', icon: <Settings size={16} /> },
   ];
   return (

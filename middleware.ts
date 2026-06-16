@@ -13,6 +13,7 @@ function isCompanyPath(p: string) {
     p.startsWith('/dashboard') ||
     p.startsWith('/payroll') ||
     p.startsWith('/contractors') ||
+    p.startsWith('/receipts') ||
     p.startsWith('/settings') ||
     p.startsWith('/onboarding') ||
     p.startsWith('/api/payroll') ||
