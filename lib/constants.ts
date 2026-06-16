@@ -28,6 +28,15 @@ export const USDC = {
     'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
 } as const;
 
+/**
+ * Demo paying company shown on receipts. In production this comes from the
+ * authenticated company account; for the hackathon it is fixed demo data.
+ */
+export const COMPANY = {
+  name: 'TechStartup Ltda',
+  cnpj: '12.345.678/0001-90',
+} as const;
+
 export const CONTRACTS = {
   anchorRegistry: process.env.ANCHOR_REGISTRY_CONTRACT_ID ?? '',
   paymentVerifier: process.env.PAYMENT_VERIFIER_CONTRACT_ID ?? '',

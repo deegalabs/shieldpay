@@ -86,6 +86,15 @@ export async function listPayments(limit = 50): Promise<PaymentRow[]> {
   return rows;
 }
 
+export async function getPayment(id: string): Promise<PaymentRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<PaymentRow>(
+    `SELECT * FROM payments WHERE id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
 export async function listPaymentsForWorker(address: string): Promise<PaymentRow[]> {
   await ensureSchema();
   const { rows } = await getPool().query<PaymentRow>(

@@ -39,14 +39,14 @@ export default async function WorkerPayments() {
                 ${p.range_min / 100}–${p.range_max / 100} USDC · Verified on-chain
               </p>
             </div>
-            <a
-              className="btn-ghost"
-              href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View proof ↗
-            </a>
+            <div className="flex gap-2">
+              <a className="btn-ghost" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
+                📄 Receipt
+              </a>
+              <a className="btn-ghost" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                Proof ↗
+              </a>
+            </div>
           </div>
         ))}
       </section>

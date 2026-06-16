@@ -56,6 +56,14 @@ export default async function CompanyDashboard() {
                 >
                   proof ↗
                 </a>
+                <a
+                  className="text-sm text-foreground hover:underline"
+                  href={`/api/receipt?id=${p.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ⚖️ Legal Defense
+                </a>
               </div>
             ))}
           </div>
