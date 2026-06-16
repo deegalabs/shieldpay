@@ -9,8 +9,8 @@ export interface NavItem {
 }
 
 /**
- * Authenticated app shell: brand + sidebar nav + topbar (title, user, actions).
- * Used by the company and worker route-group layouts.
+ * Authenticated app shell: brand + sidebar nav (desktop) / top nav (mobile) +
+ * topbar (title, user, actions). Used by the company and worker layouts.
  */
 export function AppShell({
   title,
@@ -29,6 +29,7 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-screen">
+      {/* Sidebar (desktop) */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 md:flex">
         <Link href="/" className="mb-8 flex items-center gap-2 px-2">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/15 text-brand">
@@ -56,12 +57,18 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-border bg-surface/30 px-6 py-3.5 backdrop-blur">
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
-            {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
+        {/* Topbar */}
+        <header className="flex items-center justify-between gap-4 border-b border-border bg-surface/30 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link href="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/15 text-brand md:hidden">
+              <ShieldCheck size={18} />
+            </Link>
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{title}</h1>
+              {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             {user?.name && (
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-medium leading-tight">{user.name}</p>
@@ -71,7 +78,22 @@ export function AppShell({
             {actions}
           </div>
         </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 animate-fade-in p-6">{children}</main>
+
+        {/* Mobile nav (horizontal, scrollable) */}
+        <nav className="flex gap-1 overflow-x-auto border-b border-border bg-surface/20 px-3 py-2 md:hidden">
+          {nav.map((item) => (
+            <NavLink key={item.href} href={item.href}>
+              {item.icon}
+              <span className="whitespace-nowrap">{item.label}</span>
+            </NavLink>
+          ))}
+          <NavLink href="/help">
+            <HelpCircle size={16} />
+            <span className="whitespace-nowrap">Help</span>
+          </NavLink>
+        </nav>
+
+        <main className="mx-auto w-full max-w-5xl flex-1 animate-fade-in p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );

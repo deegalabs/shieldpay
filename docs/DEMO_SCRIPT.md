@@ -13,15 +13,17 @@ point — **zero-knowledge proofs let anyone verify a payment was correct withou
 revealing the private amount.**
 
 ## [0:45–1:30] The flow (hero)
-1. CFO uploads a CSV with 3 contractors.
-2. System shows the preview with validations (anchored ✅, funds ✅, in-range ✅).
-3. CFO clicks **Confirm & Pay**.
-4. Progress bar: sending → **proving** → **verifying on-chain**.
-5. Success: "3 payments verified ✅".
+1. Sign in (email / Google / passkey via Privy, or one-click **demo**) — no seed
+   phrase, no extension.
+2. Onboarding: create the company (name + tax id) → land on the dashboard.
+3. **Contractors** → the contractor's agreed range is set (e.g. $450–$550).
+4. **Pay & Prove** → pick the contractor, confirm.
+5. Progress stepper: commit → **prove** → **verify on-chain** → record.
+6. Success card: "Payment proven — Verified on-chain", with an explorer link.
 
-> On-screen callout while the bar is on "proving/verifying":
-> "A Groth16 zero-knowledge proof is generated off-chain and verified inside a
-> Stellar smart contract — proving the amount is within the agreed range without
+> On-screen callout while the stepper is on "prove / verify":
+> "A Groth16 zero-knowledge proof is generated and verified inside a Stellar
+> smart contract — proving the amount is within the agreed range without
 > revealing it."
 
 ## [1:30–2:00] The legal proof

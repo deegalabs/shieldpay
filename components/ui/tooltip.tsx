@@ -32,7 +32,10 @@ export function InfoHint({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
-        <TooltipTrigger className="cursor-help text-muted underline decoration-dotted underline-offset-2">
+        <TooltipTrigger
+          aria-label="More information"
+          className="inline-grid h-4 w-4 cursor-help place-items-center rounded-full border border-border text-[10px] text-muted hover:text-foreground"
+        >
           ?
         </TooltipTrigger>
         <TooltipContent>{children}</TooltipContent>

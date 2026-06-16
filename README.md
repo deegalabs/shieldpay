@@ -128,30 +128,43 @@ shieldpay/
 └── docs/             ARCHITECTURE · LEGAL · DEMO_SCRIPT
 ```
 
+## Authentication
+
+Seedless, no-extension auth via **Privy** (email / Google / passkey) — it
+creates a Stellar account for the user behind the scenes, so HR, payroll and
+accounting users never touch a seed phrase. A one-click **demo login** is
+available for evaluation. Auditors get a signed, expiring read-only link (no
+wallet). Sessions are signed JWTs; routes are role-gated by middleware.
+
 ## The three portals
 
-- **Company (CFO/HR)** — wallet login, CSV payroll upload with live validation,
-  one-click "Legal Defense" PDF.
-- **Worker** — wallet login, payment history, downloadable receipts for taxes.
-- **Auditor** — read-only, time-boxed link (no wallet), period table + export.
+- **Company (HR / payroll)** — onboarding wizard, contractor management (CRUD),
+  "Pay & Prove" with live progress, receipts, settings, one-click auditor link.
+- **Worker / contractor** — passwordless login, payment history scoped to their
+  address, downloadable court-grade receipts for taxes.
+- **Auditor / accountant** — read-only, time-boxed link (no wallet), period
+  table, per-row proof + receipt, CSV export.
 
-> Design rule: cryptography is invisible. No ZK/Soroban jargon in the end-user
-> UI — those terms appear only in the legal documents where they carry weight.
+> Design rule: cryptography is invisible. Plain-language UI + a Help Center
+> ([`/help`](https://web-production-f389ce.up.railway.app/help)) translate the
+> ZK concepts for non-technical users; the technical terms appear only where
+> they carry legal weight.
 
-## Status — honest work-in-progress
+## Status
 
-This is a hackathon build; we'd rather show honest WIP than a polished mystery.
+A working, deployed product (not a skeleton). End-to-end on Stellar **testnet**.
 
-- ✅ Monorepo, three-portal app skeleton, design system
-- ✅ Stellar SDK 15 integration (payments, memos, trustlines, wallet auth)
-- ✅ Circom range-proof circuit + Groth16 trusted-setup pipeline + snarkjs prover
+- ✅ Real on-chain **Groth16 / BN254** proof verification in `PaymentVerifier`
+  via `soroban_sdk::crypto::bn254` (valid proof records; tampered proof rejected)
+- ✅ Off-chain prover (Circom + snarkjs) + trusted-setup pipeline
 - ✅ Soroban contracts (`AnchorRegistry`, `PaymentVerifier`) deployed to testnet
-- ✅ **Real on-chain Groth16/BN254 pairing verification** in `PaymentVerifier`
-  via `soroban_sdk::crypto::bn254` — verified on testnet (valid proof records;
-  wrong public signals rejected with `InvalidProof`)
-- 🚧 DB persistence + receipt PDF wiring into the live flow
-- 🚧 Frontend portals wired to the live contracts (currently mock data)
-- ⏳ Mock data is used where noted (dashboards, seed identities)
+- ✅ Full app: Privy auth, company onboarding, contractor CRUD, Pay & Prove,
+  receipts (PDF), worker & auditor portals, Help Center — design-system UI
+- ✅ Postgres persistence (Railway); payments scoped per company; privacy kept
+  (exact amount never stored — only the range + commitment)
+- 🚧 Native USDC transfer in the pay flow (currently proves + records; transfer
+  is the next step) · worker-signed on-chain self-anchor (needs worker wallet)
+- 🚧 PT-BR localization of the UI/Help Center
 
 ### Live on testnet
 
