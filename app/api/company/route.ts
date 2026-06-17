@@ -19,8 +19,13 @@ export async function GET() {
 
 const Body = z.object({
   name: z.string().min(2),
+  type: z.string().optional(),
   cnpj: z.string().optional(),
   treasury_address: z.string().optional(),
+  responsible_name: z.string().optional(),
+  responsible_email: z.string().optional(),
+  auditor_contact: z.string().optional(),
+  require_invoice: z.boolean().optional(),
 });
 
 /** POST /api/company — create/update the caller's company (company role). */

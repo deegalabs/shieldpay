@@ -38,6 +38,13 @@ CREATE TABLE IF NOT EXISTS companies (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- N0: establish the organization with more than a name.
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS type TEXT;                 -- company | dao | treasury
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS responsible_name TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS responsible_email TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS auditor_contact TEXT;      -- viewing-key holder (used in N4)
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS require_invoice BOOLEAN NOT NULL DEFAULT false;
+
 -- Link payments to the paying company + denormalize payer for receipts.
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS company_id BIGINT;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS payer_name TEXT;

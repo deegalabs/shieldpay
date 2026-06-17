@@ -22,7 +22,16 @@ export default async function SettingsPage() {
       </p>
       <Card className="mt-6 p-6">
         <CompanyForm
-          defaults={{ name: company?.name ?? '', cnpj: company?.cnpj ?? '' }}
+          defaults={{
+            name: company?.name ?? '',
+            type: company?.type ?? 'company',
+            cnpj: company?.cnpj ?? '',
+            treasury_address: company?.treasury_address ?? '',
+            responsible_name: company?.responsible_name ?? '',
+            responsible_email: company?.responsible_email ?? '',
+            auditor_contact: company?.auditor_contact ?? '',
+            require_invoice: company?.require_invoice ?? false,
+          }}
           submitLabel="Save changes"
         />
       </Card>

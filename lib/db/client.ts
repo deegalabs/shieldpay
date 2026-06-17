@@ -90,6 +90,11 @@ export interface CompanyRow {
   name: string;
   cnpj: string | null;
   treasury_address: string | null;
+  type: string | null;
+  responsible_name: string | null;
+  responsible_email: string | null;
+  auditor_contact: string | null;
+  require_invoice: boolean;
   created_at: string;
 }
 
@@ -108,17 +113,39 @@ export async function upsertCompany(c: {
   name: string;
   cnpj?: string | null;
   treasury_address?: string | null;
+  type?: string | null;
+  responsible_name?: string | null;
+  responsible_email?: string | null;
+  auditor_contact?: string | null;
+  require_invoice?: boolean;
 }): Promise<CompanyRow> {
   await ensureSchema();
   const { rows } = await getPool().query<CompanyRow>(
-    `INSERT INTO companies (owner_sub, name, cnpj, treasury_address)
-     VALUES ($1,$2,$3,$4)
+    `INSERT INTO companies
+       (owner_sub, name, cnpj, treasury_address, type,
+        responsible_name, responsible_email, auditor_contact, require_invoice)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
      ON CONFLICT (owner_sub) DO UPDATE
        SET name = EXCLUDED.name,
            cnpj = COALESCE(EXCLUDED.cnpj, companies.cnpj),
-           treasury_address = COALESCE(EXCLUDED.treasury_address, companies.treasury_address)
+           treasury_address = COALESCE(EXCLUDED.treasury_address, companies.treasury_address),
+           type = COALESCE(EXCLUDED.type, companies.type),
+           responsible_name = COALESCE(EXCLUDED.responsible_name, companies.responsible_name),
+           responsible_email = COALESCE(EXCLUDED.responsible_email, companies.responsible_email),
+           auditor_contact = COALESCE(EXCLUDED.auditor_contact, companies.auditor_contact),
+           require_invoice = EXCLUDED.require_invoice
      RETURNING *`,
-    [c.owner_sub, c.name, c.cnpj ?? null, c.treasury_address ?? null],
+    [
+      c.owner_sub,
+      c.name,
+      c.cnpj ?? null,
+      c.treasury_address ?? null,
+      c.type ?? null,
+      c.responsible_name ?? null,
+      c.responsible_email ?? null,
+      c.auditor_contact ?? null,
+      c.require_invoice ?? false,
+    ],
   );
   const company = rows[0]!;
   // Backfill pre-existing demo payments (no company) to the demo company so the

@@ -58,3 +58,6 @@ circuits/**/public*.json
 
 # Local tool binaries (e.g. downloaded circom)
 /tools
+
+# Local working notes / scratch (not versioned)
+/temp
