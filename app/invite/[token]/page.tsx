@@ -69,7 +69,11 @@ export default async function InvitePage({ params }: { params: { token: string }
               </Badge>
             </p>
           </div>
-          <InviteAccept token={params.token} />
+          <InviteAccept
+            token={params.token}
+            companyAddress={invite!.company_treasury || process.env.COMPANY_PUBLIC_KEY || ''}
+            anchorContractId={process.env.ANCHOR_REGISTRY_CONTRACT_ID || ''}
+          />
         </Card>
       )}
     </div>

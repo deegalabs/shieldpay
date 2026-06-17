@@ -198,18 +198,29 @@ export async function createInvite(c: {
 export interface InviteView extends ContractorRow {
   company_name: string;
   company_type: string | null;
+  company_treasury: string | null;
 }
 
 /** Load an invite (contractor + its company) for the public acceptance page. */
 export async function getInvite(id: string): Promise<InviteView | null> {
   await ensureSchema();
   const { rows } = await getPool().query<InviteView>(
-    `SELECT c.*, co.name AS company_name, co.type AS company_type
+    `SELECT c.*, co.name AS company_name, co.type AS company_type,
+            co.treasury_address AS company_treasury
      FROM contractors c JOIN companies co ON co.id = c.company_id
      WHERE c.id = $1`,
     [id],
   );
   return rows[0] ?? null;
+}
+
+/** Record the on-chain self-anchor for an invited/active contractor (by id). */
+export async function setInviteAnchored(id: string, txHash: string): Promise<void> {
+  await ensureSchema();
+  await getPool().query(
+    `UPDATE contractors SET anchored = true, anchor_tx_hash = $2 WHERE id = $1`,
+    [id, txHash],
+  );
 }
 
 /** Accept an invite: set the collaborator's wallet and activate. */
