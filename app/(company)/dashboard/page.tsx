@@ -4,6 +4,7 @@ import {
   listPaymentsForCompany,
   companyStats,
   getCompanyByOwner,
+  listContractors,
   type PaymentRow,
 } from '@/lib/db/client';
 import { getSession } from '@/lib/auth/server';
@@ -17,14 +18,19 @@ export const dynamic = 'force-dynamic';
 export default async function CompanyDashboard() {
   let payments: PaymentRow[] = [];
   let stats = { total: 0, verified: 0, workers: 0 };
+  let pendingInvites = 0;
   try {
     const session = await getSession();
     const company = session ? await getCompanyByOwner(session.sub) : null;
     if (company) {
-      [payments, stats] = await Promise.all([
+      const [pmts, st, contractors] = await Promise.all([
         listPaymentsForCompany(company.id, 10),
         companyStats(company.id),
+        listContractors(company.id),
       ]);
+      payments = pmts;
+      stats = st;
+      pendingInvites = contractors.filter((c) => c.status === 'invited').length;
     }
   } catch {
     /* DB not reachable — empty state */
@@ -44,10 +50,24 @@ export default async function CompanyDashboard() {
             <Send size={16} /> Run payroll
           </Link>
         </Button>
-        <Button variant="ghost">
-          <UserPlus size={16} /> Add contractor
+        <Button asChild variant="ghost">
+          <Link href="/contractors/new">
+            <UserPlus size={16} /> Invite collaborator
+          </Link>
         </Button>
       </div>
+
+      {pendingInvites > 0 && (
+        <Link
+          href="/contractors"
+          className="flex items-center justify-between rounded-xl border border-warning/30 bg-warning/10 px-5 py-3 text-sm transition hover:bg-warning/15"
+        >
+          <span className="text-foreground">
+            {pendingInvites} invite{pendingInvites > 1 ? 's' : ''} pending acceptance
+          </span>
+          <span className="text-warning">Review →</span>
+        </Link>
+      )}
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">

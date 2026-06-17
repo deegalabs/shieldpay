@@ -60,7 +60,8 @@ export default function PayrollPage() {
   useEffect(() => {
     fetch('/api/contractors')
       .then((r) => (r.ok ? r.json() : { contractors: [] }))
-      .then((d) => setContractors(d.contractors ?? []))
+      // Only active collaborators (with a wallet) can be paid.
+      .then((d) => setContractors((d.contractors ?? []).filter((c: Contractor) => c.stellar_address)))
       .catch(() => setContractors([]));
   }, []);
 

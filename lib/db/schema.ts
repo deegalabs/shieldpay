@@ -66,6 +66,13 @@ CREATE TABLE IF NOT EXISTS contractors (
 );
 CREATE INDEX IF NOT EXISTS idx_contractors_company ON contractors(company_id);
 
+-- N1: invite flow. A contractor starts as 'invited' (no address yet) and
+-- becomes 'active' when they accept and provide their wallet.
+ALTER TABLE contractors ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE contractors ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE contractors ADD COLUMN IF NOT EXISTS role TEXT;
+ALTER TABLE contractors ALTER COLUMN stellar_address DROP NOT NULL;
+
 -- WebAuthn (passkey) credentials for the passkey login method.
 CREATE TABLE IF NOT EXISTS webauthn_credentials (
   id            BIGSERIAL PRIMARY KEY,

@@ -34,7 +34,9 @@ export default async function ContractorDetail({ params }: { params: { id: strin
 
   let payments: PaymentRow[] = [];
   try {
-    payments = await listPaymentsForWorker(contractor.stellar_address);
+    if (contractor.stellar_address) {
+      payments = await listPaymentsForWorker(contractor.stellar_address);
+    }
   } catch {
     /* ignore */
   }
@@ -99,7 +101,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
             contractorId={contractor.id}
             defaults={{
               name: contractor.name,
-              stellar_address: contractor.stellar_address,
+              stellar_address: contractor.stellar_address ?? '',
               minUsdc: contractor.range_min / 100,
               maxUsdc: contractor.range_max / 100,
             }}

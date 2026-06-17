@@ -166,12 +166,64 @@ export interface ContractorRow {
   company_id: string;
   name: string;
   cpf_hash: string | null;
-  stellar_address: string;
+  stellar_address: string | null;
   range_min: number;
   range_max: number;
   anchored: boolean;
   anchor_tx_hash: string | null;
+  status: string; // 'invited' | 'active'
+  email: string | null;
+  role: string | null;
   created_at: string;
+}
+
+/** Create an invited contractor (no wallet yet) — N1 invite flow. */
+export async function createInvite(c: {
+  company_id: string;
+  name: string;
+  email: string | null;
+  role: string | null;
+  range_min: number;
+  range_max: number;
+}): Promise<ContractorRow> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ContractorRow>(
+    `INSERT INTO contractors (company_id, name, email, role, range_min, range_max, status)
+     VALUES ($1,$2,$3,$4,$5,$6,'invited') RETURNING *`,
+    [c.company_id, c.name, c.email, c.role, c.range_min, c.range_max],
+  );
+  return rows[0]!;
+}
+
+export interface InviteView extends ContractorRow {
+  company_name: string;
+  company_type: string | null;
+}
+
+/** Load an invite (contractor + its company) for the public acceptance page. */
+export async function getInvite(id: string): Promise<InviteView | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<InviteView>(
+    `SELECT c.*, co.name AS company_name, co.type AS company_type
+     FROM contractors c JOIN companies co ON co.id = c.company_id
+     WHERE c.id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/** Accept an invite: set the collaborator's wallet and activate. */
+export async function acceptInvite(
+  id: string,
+  stellarAddress: string,
+): Promise<ContractorRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ContractorRow>(
+    `UPDATE contractors SET stellar_address = $2, status = 'active'
+     WHERE id = $1 AND status = 'invited' RETURNING *`,
+    [id, stellarAddress],
+  );
+  return rows[0] ?? null;
 }
 
 export async function listContractors(companyId: string): Promise<ContractorRow[]> {
