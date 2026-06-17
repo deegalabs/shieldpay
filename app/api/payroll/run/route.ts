@@ -59,7 +59,12 @@ export async function POST(req: NextRequest) {
     // for later authorized disclosure (N4).
     const viewingKey = await ensureCompanyViewingKey(company.id);
     const run = await createPayrollRun(company.id, reference);
-    const results: Array<{ workerName: string; proofId: string; txHash: string }> = [];
+    const results: Array<{
+      workerName: string;
+      proofId: string;
+      txHash: string;
+      settlementTxHash: string | null;
+    }> = [];
     let totalCents = 0;
 
     // Sequential: the company key is the source; each tx needs a fresh sequence.
@@ -72,7 +77,12 @@ export async function POST(req: NextRequest) {
         viewingKey,
       });
       totalCents += r.amountCents;
-      results.push({ workerName: l.workerName, proofId: r.proofId, txHash: r.txHash });
+      results.push({
+        workerName: l.workerName,
+        proofId: r.proofId,
+        txHash: r.txHash,
+        settlementTxHash: r.settlementTxHash,
+      });
     }
 
     await finalizePayrollRun(run.id, totalCents, results.length);
@@ -83,6 +93,7 @@ export async function POST(req: NextRequest) {
       reference,
       total: totalCents / 100,
       count: results.length,
+      settled: results.filter((r) => r.settlementTxHash).length,
       lines: results,
     });
   } catch (e) {

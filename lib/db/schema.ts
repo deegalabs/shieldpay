@@ -71,6 +71,12 @@ CREATE INDEX IF NOT EXISTS idx_runs_company ON payroll_runs(company_id);
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS viewing_key TEXT;
 ALTER TABLE payments  ADD COLUMN IF NOT EXISTS disclosure TEXT; -- sealed {amountCents, randomness}
 
+-- N5: real, recipient-visible, memo-bound on-chain settlement record. Carries a
+-- symbolic amount only (the salary stays confidential as the commitment); the
+-- proof is bound to this tx hash. Null when settlement was skipped (best-effort).
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS settlement_tx_hash TEXT;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS settlement_asset TEXT;
+
 -- Contractors managed by a company (CPF stored only as a hash).
 CREATE TABLE IF NOT EXISTS contractors (
   id              BIGSERIAL PRIMARY KEY,

@@ -66,6 +66,13 @@ export default async function WorkerPayments() {
                       📄 Receipt
                     </a>
                   </Button>
+                  {p.settlement_tx_hash && (
+                    <Button asChild variant="ghost" size="sm">
+                      <a href={`${EXPLORER_BASE}/tx/${p.settlement_tx_hash}`} target="_blank" rel="noreferrer">
+                        Settlement <ArrowUpRight size={13} />
+                      </a>
+                    </Button>
+                  )}
                   <Button asChild variant="ghost" size="sm">
                     <a href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                       Proof <ArrowUpRight size={13} />

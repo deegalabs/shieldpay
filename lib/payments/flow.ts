@@ -3,6 +3,7 @@ import { generatePaymentProof } from '@/lib/zk/prover';
 import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
 import { encodeProof, encodePublicSignals, fieldToBe32 } from '@/lib/zk/encode';
 import { recordProofOnChain } from '@/lib/stellar/soroban';
+import { settlePaymentRecord } from '@/lib/stellar/transactions';
 import { insertPayment, type CompanyRow, type PaymentRow } from '@/lib/db/client';
 import { sealWitness } from '@/lib/zk/disclosure';
 import { COMPANY } from '@/lib/constants';
@@ -20,6 +21,7 @@ export interface PaymentResult {
   amountCents: number;
   proofId: string;
   txHash: string;
+  settlementTxHash: string | null;
   payment: PaymentRow;
 }
 
@@ -56,10 +58,22 @@ export async function proveAndRecordPayment(args: {
     maxValue,
   });
 
+  // N5: settle first (best-effort, recipient-visible, amount-confidential), then
+  // bind the proof to the REAL settlement tx hash. If settlement is skipped, fall
+  // back to a random binding id so the proof is still recorded.
+  const settlement = await settlePaymentRecord({
+    companySecret: args.companySecret,
+    workerAddress: input.workerAddress,
+    reference: input.reference,
+  });
+  const paymentTxHash = settlement
+    ? Buffer.from(settlement.hash, 'hex')
+    : randomBytes(32);
+
   const { proofId, txHash } = await recordProofOnChain({
     companySecret: args.companySecret,
     workerAddressHash: createHash('sha256').update(input.workerAddress).digest(),
-    paymentTxHash: randomBytes(32),
+    paymentTxHash,
     valueCommitment: fieldToBe32(commitment),
     proofBytes: encodeProof(proof),
     publicSignalsBytes: encodePublicSignals(publicSignals),
@@ -84,7 +98,9 @@ export async function proveAndRecordPayment(args: {
     payer_cnpj: args.company?.cnpj ?? COMPANY.cnpj,
     run_id: args.runId ?? null,
     disclosure,
+    settlement_tx_hash: settlement?.hash ?? null,
+    settlement_asset: settlement?.asset ?? null,
   });
 
-  return { amountCents: value, proofId, txHash, payment };
+  return { amountCents: value, proofId, txHash, settlementTxHash: settlement?.hash ?? null, payment };
 }

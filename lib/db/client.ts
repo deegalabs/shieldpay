@@ -53,6 +53,8 @@ export interface PaymentRow {
   payer_cnpj: string | null;
   run_id: string | null;
   disclosure: string | null; // sealed witness (N4 viewing key); null if not disclosable
+  settlement_tx_hash: string | null; // N5: real recipient-visible settlement tx
+  settlement_asset: string | null;
 }
 
 export async function insertPayment(
@@ -63,8 +65,8 @@ export async function insertPayment(
     `INSERT INTO payments
        (worker_name, worker_address, reference, range_min, range_max,
         value_commitment, proof_id, tx_hash, verified, company_id, payer_name,
-        payer_cnpj, run_id, disclosure)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        payer_cnpj, run_id, disclosure, settlement_tx_hash, settlement_asset)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING *`,
     [
       p.worker_name,
@@ -81,6 +83,8 @@ export async function insertPayment(
       p.payer_cnpj,
       p.run_id,
       p.disclosure,
+      p.settlement_tx_hash,
+      p.settlement_asset,
     ],
   );
   const row = rows[0];

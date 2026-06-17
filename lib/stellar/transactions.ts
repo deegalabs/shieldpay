@@ -8,9 +8,9 @@ import {
   Account,
 } from '@stellar/stellar-sdk';
 import { createHash } from 'node:crypto';
-import { buildAnchorMemo, buildPaymentMemo } from '@/lib/constants';
+import { buildAnchorMemo, buildPaymentMemo, MEMO_PREFIX, MEMO_VERSION, NETWORK } from '@/lib/constants';
 import { usdcAsset } from './usdc';
-import { horizonServer, networkPassphrase, loadAccount } from './client';
+import { horizonServer, networkPassphrase, loadAccount, fundTestnetAccount } from './client';
 
 /**
  * Stellar transaction builders for the ShieldPay flow.
@@ -100,6 +100,66 @@ export async function buildPaymentTx(args: {
 
   tx.sign(kp);
   return { xdr: tx.toXDR(), memo, hash: tx.hash().toString('hex') };
+}
+
+/**
+ * SETTLEMENT RECORD (layer 3, confidential) — a real, recipient-visible,
+ * memo-bound on-chain transaction company → worker. It carries only a SYMBOLIC
+ * amount (1 stroop of native XLM); the actual salary stays confidential as the
+ * Poseidon commitment + ZK proof. This makes the on-chain payment trail real —
+ * destination, timestamp, memo, ledger — WITHOUT printing the amount in clear
+ * on a transparent chain. The proof is then bound to this tx's hash.
+ */
+export async function buildSettlementRecordTx(args: {
+  companySecret: string;
+  workerAddress: string;
+  reference: string;
+}): Promise<{ xdr: string; memo: string; hash: string }> {
+  const kp = Keypair.fromSecret(args.companySecret);
+  const account = await loadAccount(kp.publicKey());
+  // e.g. "SHIELDPAY|PAY|v1|JUN2026" — readable on the explorer (≤28 bytes).
+  const memo = [MEMO_PREFIX, 'PAY', MEMO_VERSION, args.reference].join('|');
+
+  const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase })
+    .addOperation(
+      Operation.payment({
+        destination: args.workerAddress,
+        asset: Asset.native(),
+        amount: '0.0000001', // symbolic — the salary is the commitment, not this
+      }),
+    )
+    .addMemo(encodeMemo(memo))
+    .setTimeout(180)
+    .build();
+
+  tx.sign(kp);
+  return { xdr: tx.toXDR(), memo, hash: tx.hash().toString('hex') };
+}
+
+/**
+ * Best-effort settlement: produce a real on-chain settlement record. On testnet
+ * an unfunded recipient is auto-funded via Friendbot so the demo always settles;
+ * any failure (invalid/placeholder address, mainnet unfunded, etc.) returns null
+ * so payroll still records the proof. Never throws.
+ */
+export async function settlePaymentRecord(args: {
+  companySecret: string;
+  workerAddress: string;
+  reference: string;
+}): Promise<{ hash: string; asset: string } | null> {
+  try {
+    try {
+      await loadAccount(args.workerAddress);
+    } catch {
+      if (NETWORK === 'testnet') await fundTestnetAccount(args.workerAddress);
+      else throw new Error('recipient account not found');
+    }
+    const { xdr, hash } = await buildSettlementRecordTx(args);
+    await submit(xdr);
+    return { hash, asset: 'XLM' };
+  } catch {
+    return null;
+  }
 }
 
 /** Submit a signed transaction and wait for Horizon confirmation. */
