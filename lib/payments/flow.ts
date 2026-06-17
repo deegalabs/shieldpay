@@ -4,6 +4,7 @@ import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
 import { encodeProof, encodePublicSignals, fieldToBe32 } from '@/lib/zk/encode';
 import { recordProofOnChain } from '@/lib/stellar/soroban';
 import { insertPayment, type CompanyRow, type PaymentRow } from '@/lib/db/client';
+import { sealWitness } from '@/lib/zk/disclosure';
 import { COMPANY } from '@/lib/constants';
 
 export interface PaymentInput {
@@ -25,13 +26,17 @@ export interface PaymentResult {
 /**
  * The core "Pay & Prove" unit, reused by single payments and payroll runs:
  * commit to the amount → Groth16 range proof → verify+record on-chain → persist.
- * The exact amount is never stored — only the commitment + the public range.
+ * The exact amount is never stored in the clear — only the commitment + the
+ * public range. When a `viewingKey` is supplied, the witness {amount, randomness}
+ * is additionally sealed under it (N4) so an authorized auditor can later reveal
+ * and re-verify the amount against the on-chain commitment.
  */
 export async function proveAndRecordPayment(args: {
   companySecret: string;
   company: CompanyRow | null;
   input: PaymentInput;
   runId?: string | null;
+  viewingKey?: string | null;
 }): Promise<PaymentResult> {
   const { input } = args;
   const value = Math.round(input.amountUsdc * 100);
@@ -60,6 +65,10 @@ export async function proveAndRecordPayment(args: {
     publicSignalsBytes: encodePublicSignals(publicSignals),
   });
 
+  const disclosure = args.viewingKey
+    ? sealWitness(args.viewingKey, { amountCents: value, randomness })
+    : null;
+
   const payment = await insertPayment({
     worker_name: input.workerName,
     worker_address: input.workerAddress,
@@ -74,6 +83,7 @@ export async function proveAndRecordPayment(args: {
     payer_name: args.company?.name ?? COMPANY.name,
     payer_cnpj: args.company?.cnpj ?? COMPANY.cnpj,
     run_id: args.runId ?? null,
+    disclosure,
   });
 
   return { amountCents: value, proofId, txHash, payment };

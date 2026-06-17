@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/server';
-import { getCompanyByOwner } from '@/lib/db/client';
+import { getCompanyByOwner, ensureCompanyViewingKey } from '@/lib/db/client';
 import { proveAndRecordPayment } from '@/lib/payments/flow';
 import { EXPLORER_BASE } from '@/lib/constants';
 
@@ -29,10 +29,12 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     const company = session ? await getCompanyByOwner(session.sub) : null;
+    const viewingKey = company ? await ensureCompanyViewingKey(company.id) : null;
     const { proofId, txHash } = await proveAndRecordPayment({
       companySecret,
       company,
       input: parsed.data,
+      viewingKey,
     });
     return NextResponse.json({
       ok: true,

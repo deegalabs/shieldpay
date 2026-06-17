@@ -65,6 +65,12 @@ ALTER TABLE payments ADD COLUMN IF NOT EXISTS run_id BIGINT;
 CREATE INDEX IF NOT EXISTS idx_payments_run ON payments(run_id);
 CREATE INDEX IF NOT EXISTS idx_runs_company ON payroll_runs(company_id);
 
+-- N4: selective disclosure ("viewing key"). The company holds a viewing key;
+-- with it an authorized auditor can reveal AND re-verify exact amounts against
+-- the on-chain commitments. The chain/public view still only sees commitments.
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS viewing_key TEXT;
+ALTER TABLE payments  ADD COLUMN IF NOT EXISTS disclosure TEXT; -- sealed {amountCents, randomness}
+
 -- Contractors managed by a company (CPF stored only as a hash).
 CREATE TABLE IF NOT EXISTS contractors (
   id              BIGSERIAL PRIMARY KEY,

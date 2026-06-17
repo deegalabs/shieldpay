@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/server';
-import { getCompanyByOwner, createPayrollRun, finalizePayrollRun } from '@/lib/db/client';
+import {
+  getCompanyByOwner,
+  createPayrollRun,
+  finalizePayrollRun,
+  ensureCompanyViewingKey,
+} from '@/lib/db/client';
 import { proveAndRecordPayment } from '@/lib/payments/flow';
 
 export const runtime = 'nodejs';
@@ -50,6 +55,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Ensure the company viewing key once so each payment's amount is sealed
+    // for later authorized disclosure (N4).
+    const viewingKey = await ensureCompanyViewingKey(company.id);
     const run = await createPayrollRun(company.id, reference);
     const results: Array<{ workerName: string; proofId: string; txHash: string }> = [];
     let totalCents = 0;
@@ -61,6 +69,7 @@ export async function POST(req: NextRequest) {
         company,
         input: { ...l, reference },
         runId: run.id,
+        viewingKey,
       });
       totalCents += r.amountCents;
       results.push({ workerName: l.workerName, proofId: r.proofId, txHash: r.txHash });

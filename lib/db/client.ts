@@ -52,6 +52,7 @@ export interface PaymentRow {
   payer_name: string | null;
   payer_cnpj: string | null;
   run_id: string | null;
+  disclosure: string | null; // sealed witness (N4 viewing key); null if not disclosable
 }
 
 export async function insertPayment(
@@ -62,8 +63,8 @@ export async function insertPayment(
     `INSERT INTO payments
        (worker_name, worker_address, reference, range_min, range_max,
         value_commitment, proof_id, tx_hash, verified, company_id, payer_name,
-        payer_cnpj, run_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        payer_cnpj, run_id, disclosure)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      RETURNING *`,
     [
       p.worker_name,
@@ -79,6 +80,7 @@ export async function insertPayment(
       p.payer_name,
       p.payer_cnpj,
       p.run_id,
+      p.disclosure,
     ],
   );
   const row = rows[0];
@@ -156,6 +158,7 @@ export interface CompanyRow {
   responsible_email: string | null;
   auditor_contact: string | null;
   require_invoice: boolean;
+  viewing_key: string | null;
   created_at: string;
 }
 
@@ -166,6 +169,42 @@ export async function getCompanyByOwner(ownerSub: string): Promise<CompanyRow | 
     [ownerSub],
   );
   return rows[0] ?? null;
+}
+
+export async function getCompanyById(id: string): Promise<CompanyRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<CompanyRow>(
+    `SELECT * FROM companies WHERE id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * Return the company's viewing key, generating + persisting one on first use
+ * (N4). The key never leaves the server except inside a company-minted,
+ * expiring disclosure link.
+ */
+export async function ensureCompanyViewingKey(companyId: string): Promise<string> {
+  await ensureSchema();
+  const existing = await getPool().query<{ viewing_key: string | null }>(
+    `SELECT viewing_key FROM companies WHERE id = $1`,
+    [companyId],
+  );
+  const current = existing.rows[0]?.viewing_key;
+  if (current) return current;
+  const { newViewingKey } = await import('@/lib/zk/disclosure');
+  const key = newViewingKey();
+  await getPool().query(
+    `UPDATE companies SET viewing_key = $2 WHERE id = $1 AND viewing_key IS NULL`,
+    [companyId, key],
+  );
+  // Re-read in case of a race (another request set it first).
+  const after = await getPool().query<{ viewing_key: string | null }>(
+    `SELECT viewing_key FROM companies WHERE id = $1`,
+    [companyId],
+  );
+  return after.rows[0]?.viewing_key ?? key;
 }
 
 /** Create or update the caller's company (upsert by owner). */
