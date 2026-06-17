@@ -83,6 +83,60 @@ export default function PrivyStellarTest() {
     }
   }
 
+  async function step5Anchor() {
+    setBusy('anchor');
+    try {
+      const sdk: any = await import('@stellar/stellar-sdk');
+      const { rpc, Contract, TransactionBuilder, Networks, Address, nativeToScVal, Keypair, xdr } = sdk;
+      const ANCHOR = 'CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI';
+      const COMPANY = 'GCLQSBBXPQLGWCPC7ZQNKDDHRI4JUMUHFWY534BXWIF45HI3XLU6U2SM';
+      const server = new rpc.Server('https://soroban-testnet.stellar.org');
+
+      add('… funding (friendbot) + loading account');
+      await fetch(`https://friendbot.stellar.org/?addr=${encodeURIComponent(addr)}`).catch(() => {});
+      const account = await server.getAccount(addr);
+
+      const contract = new Contract(ANCHOR);
+      const contractHash = new Uint8Array(32).fill(7); // dummy doc hash for the test
+      const op = contract.call(
+        'anchor',
+        new Address(addr).toScVal(),
+        new Address(COMPANY).toScVal(),
+        nativeToScVal(Buffer.from(contractHash), { type: 'bytes' }),
+        nativeToScVal('CPF:test|CONTRACT:dev', { type: 'string' }),
+      );
+
+      let tx = new TransactionBuilder(account, { fee: '1000000', networkPassphrase: Networks.TESTNET })
+        .addOperation(op)
+        .setTimeout(120)
+        .build();
+
+      add('… simulating + preparing (Soroban)');
+      tx = await server.prepareTransaction(tx);
+
+      const hashHex = ('0x' + tx.hash().toString('hex')) as `0x${string}`;
+      const { signature } = await signRawHash({ address: addr, chainType: 'stellar', hash: hashHex });
+      const sigBuf = Buffer.from(signature.replace(/^0x/, ''), 'hex');
+      tx.signatures.push(
+        new xdr.DecoratedSignature({ hint: Keypair.fromPublicKey(addr).signatureHint(), signature: sigBuf }),
+      );
+
+      const sent = await server.sendTransaction(tx);
+      add(`… sent ${sent.hash.slice(0, 12)}…, polling`);
+      let got = await server.getTransaction(sent.hash);
+      for (let i = 0; got.status === 'NOT_FOUND' && i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        got = await server.getTransaction(sent.hash);
+      }
+      if (got.status === 'SUCCESS') add(`✅ ANCHOR on-chain via Privy! tx ${sent.hash.slice(0, 18)}…`);
+      else add(`❌ anchor status: ${got.status}`);
+    } catch (e: any) {
+      add(`❌ anchor: ${String(e?.message || e)}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <main className="mx-auto max-w-xl px-6 py-12">
       <h1 className="text-2xl font-bold">Privy + Stellar — validation</h1>
@@ -100,6 +154,9 @@ export default function PrivyStellarTest() {
         </Button>
         <Button className="w-full" variant="ghost" disabled={!addr || !!busy} onClick={step4Payment}>
           4. Sign + submit a testnet payment (decisive)
+        </Button>
+        <Button className="w-full" variant="ghost" disabled={!addr || !!busy} onClick={step5Anchor}>
+          5. Sign + submit a Soroban anchor (N2 decisive)
         </Button>
       </Card>
 
