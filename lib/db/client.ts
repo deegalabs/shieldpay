@@ -51,6 +51,7 @@ export interface PaymentRow {
   company_id: string | null;
   payer_name: string | null;
   payer_cnpj: string | null;
+  run_id: string | null;
 }
 
 export async function insertPayment(
@@ -60,8 +61,9 @@ export async function insertPayment(
   const { rows } = await getPool().query<PaymentRow>(
     `INSERT INTO payments
        (worker_name, worker_address, reference, range_min, range_max,
-        value_commitment, proof_id, tx_hash, verified, company_id, payer_name, payer_cnpj)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        value_commitment, proof_id, tx_hash, verified, company_id, payer_name,
+        payer_cnpj, run_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
      RETURNING *`,
     [
       p.worker_name,
@@ -76,11 +78,70 @@ export async function insertPayment(
       p.company_id,
       p.payer_name,
       p.payer_cnpj,
+      p.run_id,
     ],
   );
   const row = rows[0];
   if (!row) throw new Error('insert returned no row');
   return row;
+}
+
+// ── Payroll runs (N3) ──────────────────────────────────────────────────
+export interface PayrollRunRow {
+  id: string;
+  company_id: string;
+  reference: string;
+  total_cents: string; // bigint as string
+  payment_count: number;
+  created_at: string;
+}
+
+export async function createPayrollRun(companyId: string, reference: string): Promise<PayrollRunRow> {
+  await ensureSchema();
+  const { rows } = await getPool().query<PayrollRunRow>(
+    `INSERT INTO payroll_runs (company_id, reference) VALUES ($1,$2) RETURNING *`,
+    [companyId, reference],
+  );
+  return rows[0]!;
+}
+
+export async function finalizePayrollRun(
+  id: string,
+  totalCents: number,
+  count: number,
+): Promise<void> {
+  await ensureSchema();
+  await getPool().query(
+    `UPDATE payroll_runs SET total_cents = $2, payment_count = $3 WHERE id = $1`,
+    [id, totalCents, count],
+  );
+}
+
+export async function getPayrollRun(id: string, companyId: string): Promise<PayrollRunRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<PayrollRunRow>(
+    `SELECT * FROM payroll_runs WHERE id = $1 AND company_id = $2`,
+    [id, companyId],
+  );
+  return rows[0] ?? null;
+}
+
+export async function listPayrollRuns(companyId: string, limit = 20): Promise<PayrollRunRow[]> {
+  await ensureSchema();
+  const { rows } = await getPool().query<PayrollRunRow>(
+    `SELECT * FROM payroll_runs WHERE company_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [companyId, limit],
+  );
+  return rows;
+}
+
+export async function listPaymentsForRun(runId: string): Promise<PaymentRow[]> {
+  await ensureSchema();
+  const { rows } = await getPool().query<PaymentRow>(
+    `SELECT * FROM payments WHERE run_id = $1 ORDER BY created_at ASC`,
+    [runId],
+  );
+  return rows;
 }
 
 // ── Companies ──────────────────────────────────────────────────────────

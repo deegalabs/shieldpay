@@ -51,6 +51,20 @@ ALTER TABLE payments ADD COLUMN IF NOT EXISTS payer_name TEXT;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS payer_cnpj TEXT;
 CREATE INDEX IF NOT EXISTS idx_payments_company ON payments(company_id);
 
+-- N3: confidential payroll runs (batch). Individual amounts stay private
+-- (commitment per payment); the run stores the total the company proves.
+CREATE TABLE IF NOT EXISTS payroll_runs (
+  id            BIGSERIAL PRIMARY KEY,
+  company_id    BIGINT NOT NULL,
+  reference     TEXT NOT NULL,
+  total_cents   BIGINT NOT NULL DEFAULT 0,
+  payment_count INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS run_id BIGINT;
+CREATE INDEX IF NOT EXISTS idx_payments_run ON payments(run_id);
+CREATE INDEX IF NOT EXISTS idx_runs_company ON payroll_runs(company_id);
+
 -- Contractors managed by a company (CPF stored only as a hash).
 CREATE TABLE IF NOT EXISTS contractors (
   id              BIGSERIAL PRIMARY KEY,

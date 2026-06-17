@@ -5,7 +5,9 @@ import {
   companyStats,
   getCompanyByOwner,
   listContractors,
+  listPayrollRuns,
   type PaymentRow,
+  type PayrollRunRow,
 } from '@/lib/db/client';
 import { getSession } from '@/lib/auth/server';
 import { EXPLORER_BASE } from '@/lib/constants';
@@ -19,18 +21,21 @@ export default async function CompanyDashboard() {
   let payments: PaymentRow[] = [];
   let stats = { total: 0, verified: 0, workers: 0 };
   let pendingInvites = 0;
+  let runs: PayrollRunRow[] = [];
   try {
     const session = await getSession();
     const company = session ? await getCompanyByOwner(session.sub) : null;
     if (company) {
-      const [pmts, st, contractors] = await Promise.all([
+      const [pmts, st, contractors, prs] = await Promise.all([
         listPaymentsForCompany(company.id, 10),
         companyStats(company.id),
         listContractors(company.id),
+        listPayrollRuns(company.id, 5),
       ]);
       payments = pmts;
       stats = st;
       pendingInvites = contractors.filter((c) => c.status === 'invited').length;
+      runs = prs;
     }
   } catch {
     /* DB not reachable — empty state */
@@ -67,6 +72,29 @@ export default async function CompanyDashboard() {
           </span>
           <span className="text-warning">Review →</span>
         </Link>
+      )}
+
+      {runs.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+            Recent payroll runs
+          </h2>
+          <Card className="divide-y divide-border overflow-hidden">
+            {runs.map((r) => (
+              <Link
+                key={r.id}
+                href={`/payroll/${r.id}`}
+                className="flex items-center justify-between px-5 py-3.5 transition hover:bg-surface-2/40"
+              >
+                <div>
+                  <p className="font-medium">{r.reference}</p>
+                  <p className="text-xs text-muted">{r.payment_count} payments · total proven</p>
+                </div>
+                <span className="font-semibold">${(Number(r.total_cents) / 100).toFixed(2)} USDC</span>
+              </Link>
+            ))}
+          </Card>
+        </section>
       )}
 
       <section>

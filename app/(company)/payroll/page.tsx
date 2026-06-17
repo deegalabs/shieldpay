@@ -1,22 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Send, ShieldCheck, ArrowUpRight, Check, Loader2, Lock } from 'lucide-react';
-import { DEMO_WORKER } from '@/lib/constants';
+import { Send, Plus, Trash2, Loader2, Lock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-
-interface PayrollForm {
-  workerName: string;
-  workerAddress: string;
-  amountUsdc: number;
-  minUsdc: number;
-  maxUsdc: number;
-  reference: string;
-}
 
 interface Contractor {
   id: string;
@@ -26,218 +15,168 @@ interface Contractor {
   range_max: number;
   anchored: boolean;
 }
-
-interface PayrollResult {
-  ok: boolean;
-  workerName: string;
-  reference: string;
-  range: { min: number; max: number };
-  proofId: string;
-  onChain: { txHash: string; explorerUrl: string; verified: boolean };
+interface Line {
+  contractorId: string;
+  amount: string;
 }
 
-const STAGES = [
-  'Committing to the amount',
-  'Generating the zero-knowledge proof',
-  'Verifying the proof on-chain',
-  'Recording the result',
-];
-
 export default function PayrollPage() {
-  const [form, setForm] = useState<PayrollForm>({
-    workerName: DEMO_WORKER.name,
-    workerAddress: DEMO_WORKER.address,
-    amountUsdc: 500,
-    minUsdc: 450,
-    maxUsdc: 550,
-    reference: 'MAY2026',
-  });
-  const [stage, setStage] = useState(-1);
-  const [result, setResult] = useState<PayrollResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [reference, setReference] = useState('JUN2026');
+  const [lines, setLines] = useState<Line[]>([{ contractorId: '', amount: '' }]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/contractors')
       .then((r) => (r.ok ? r.json() : { contractors: [] }))
-      // Only active collaborators (with a wallet) can be paid.
       .then((d) => setContractors((d.contractors ?? []).filter((c: Contractor) => c.stellar_address)))
       .catch(() => setContractors([]));
   }, []);
 
-  function selectContractor(id: string) {
-    const c = contractors.find((x) => x.id === id);
-    if (!c) return;
-    setForm((f) => ({
-      ...f,
-      workerName: c.name,
-      workerAddress: c.stellar_address,
-      minUsdc: c.range_min / 100,
-      maxUsdc: c.range_max / 100,
-      amountUsdc: Math.round((c.range_min + c.range_max) / 2 / 100),
-    }));
+  const byId = (id: string) => contractors.find((c) => c.id === id);
+  const total = lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+
+  function setLine(i: number, patch: Partial<Line>) {
+    setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
 
-  const running = stage >= 0 && !result && !error;
-  const set = (k: keyof PayrollForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm({ ...form, [k]: e.target.type === 'number' ? Number(e.target.value) : e.target.value });
-
   async function run() {
-    setResult(null);
+    const built = lines
+      .map((l) => {
+        const c = byId(l.contractorId);
+        if (!c) return null;
+        const amount = Number(l.amount);
+        return {
+          workerName: c.name,
+          workerAddress: c.stellar_address,
+          minUsdc: c.range_min / 100,
+          maxUsdc: c.range_max / 100,
+          amountUsdc: amount,
+        };
+      })
+      .filter(Boolean) as any[];
+
+    if (built.length === 0) return setError('Add at least one collaborator with an amount.');
+    for (const b of built) {
+      if (!(b.amountUsdc > 0) || b.amountUsdc < b.minUsdc || b.amountUsdc > b.maxUsdc) {
+        return setError(`${b.workerName}: amount must be within $${b.minUsdc}–$${b.maxUsdc}.`);
+      }
+    }
+
+    setBusy(true);
     setError(null);
-    setStage(0);
-    const timers = [700, 1600, 2800].map((ms, i) => setTimeout(() => setStage(i + 1), ms));
     try {
-      const res = await fetch('/api/payroll', {
+      const res = await fetch('/api/payroll/run', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ reference, lines: built }),
       });
       const data = await res.json();
-      timers.forEach(clearTimeout);
-      if (!res.ok) {
-        setError(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
-        setStage(-1);
-        return;
-      }
-      setStage(STAGES.length);
-      setResult(data);
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+      window.location.href = `/payroll/${data.runId}`;
     } catch (e) {
-      timers.forEach(clearTimeout);
-      setError(String(e));
-      setStage(-1);
+      setError(String(e instanceof Error ? e.message : e));
+      setBusy(false);
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Pay &amp; Prove</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Run payroll</h1>
         <p className="mt-1 text-sm text-muted">
-          Pay a contractor within their agreed range and generate a mathematical, on-chain proof —
-          without revealing the exact amount.
+          Pay your team in one run. Each amount stays private on-chain; only the range is public and
+          the total is yours to prove.
         </p>
       </div>
 
-      <Card className="space-y-4 p-6">
-        {contractors.length > 0 && (
-          <div>
-            <Label htmlFor="pick">Select a contractor</Label>
-            <select
-              id="pick"
-              className="input"
-              defaultValue=""
-              onChange={(e) => selectContractor(e.target.value)}
-            >
-              <option value="" disabled>
-                Choose from your contractors…
-              </option>
-              {contractors.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} — ${c.range_min / 100}–${c.range_max / 100} USDC{c.anchored ? ' ✓' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div>
-          <Label htmlFor="name">Contractor</Label>
-          <Input id="name" value={form.workerName} onChange={set('workerName')} />
-        </div>
-        <div>
-          <Label htmlFor="addr">Stellar address</Label>
-          <Input id="addr" className="font-mono text-xs" value={form.workerAddress} onChange={set('workerAddress')} />
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <Label htmlFor="amt">Amount (USDC)</Label>
-            <Input id="amt" type="number" value={form.amountUsdc} onChange={set('amountUsdc')} />
-          </div>
-          <div>
-            <Label htmlFor="min">Min</Label>
-            <Input id="min" type="number" value={form.minUsdc} onChange={set('minUsdc')} />
-          </div>
-          <div>
-            <Label htmlFor="max">Max</Label>
-            <Input id="max" type="number" value={form.maxUsdc} onChange={set('maxUsdc')} />
-          </div>
-        </div>
-        <div>
-          <Label htmlFor="ref">Reference</Label>
-          <Input id="ref" value={form.reference} onChange={set('reference')} />
-        </div>
-
-        <Button className="w-full" size="lg" onClick={run} disabled={running}>
-          {running ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          {running ? 'Processing…' : 'Pay & Prove'}
-        </Button>
-        <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
-          <Lock size={12} /> The exact amount never leaves the server — only the range is public.
-        </p>
-      </Card>
-
-      {stage >= 0 && !result && !error && (
-        <Card className="space-y-3 p-6">
-          {STAGES.map((s, i) => (
-            <div key={s} className="flex items-center gap-3 text-sm">
-              <span
-                className={
-                  'grid h-6 w-6 place-items-center rounded-full ' +
-                  (i < stage
-                    ? 'bg-primary/15 text-primary'
-                    : i === stage
-                      ? 'bg-brand/15 text-brand'
-                      : 'bg-surface-2 text-muted')
-                }
-              >
-                {i < stage ? <Check size={13} /> : i === stage ? <Loader2 size={13} className="animate-spin" /> : i + 1}
-              </span>
-              <span className={i <= stage ? 'text-foreground' : 'text-muted'}>{s}</span>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {error && (
-        <Card className="border-danger/40 p-6">
-          <p className="font-medium text-danger">Could not complete</p>
-          <p className="mt-1 text-sm text-muted">{error}</p>
-        </Card>
-      )}
-
-      {result && (
-        <Card className="space-y-3 p-6">
-          <div className="flex items-center justify-between">
-            <p className="font-semibold">Payment proven</p>
-            <Badge variant="success">
-              <ShieldCheck size={12} /> Verified on-chain
-            </Badge>
-          </div>
-          <Row label="Contractor" value={result.workerName} />
-          <Row label="Reference" value={result.reference} />
-          <Row label="Proven range" value={`$${result.range.min} – $${result.range.max} USDC`} />
-          <Row label="On-chain proof id" value={`#${result.proofId}`} />
-          <p className="pt-1 text-sm text-muted">
-            The Stellar network mathematically verified the amount is within the agreed range. The
-            exact figure stays private.
-          </p>
-          <Button asChild variant="ghost" className="w-full">
-            <a href={result.onChain.explorerUrl} target="_blank" rel="noreferrer">
-              View proof on Stellar Explorer <ArrowUpRight size={14} />
-            </a>
+      {contractors.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="font-medium">No active collaborators yet</p>
+          <p className="mt-1 text-sm text-muted">Invite collaborators and have them accept before running payroll.</p>
+          <Button asChild className="mt-4">
+            <a href="/contractors/new">Invite collaborator</a>
           </Button>
         </Card>
-      )}
-    </div>
-  );
-}
+      ) : (
+        <>
+          <Card className="space-y-4 p-6">
+            <div>
+              <Label htmlFor="ref">Reference (e.g. month)</Label>
+              <Input id="ref" value={reference} onChange={(e) => setReference(e.target.value)} />
+            </div>
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between border-b border-border pb-2 text-sm last:border-0">
-      <span className="text-muted">{label}</span>
-      <span className="font-medium">{value}</span>
+            <div className="space-y-3">
+              {lines.map((l, i) => {
+                const c = byId(l.contractorId);
+                return (
+                  <div key={i} className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor={`c${i}`}>Collaborator</Label>
+                      <select
+                        id={`c${i}`}
+                        className="input"
+                        value={l.contractorId}
+                        onChange={(e) => setLine(i, { contractorId: e.target.value })}
+                      >
+                        <option value="">Choose…</option>
+                        {contractors.map((ct) => (
+                          <option key={ct.id} value={ct.id}>
+                            {ct.name} (${ct.range_min / 100}–${ct.range_max / 100}){ct.anchored ? ' ✓' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-28">
+                      <Label htmlFor={`a${i}`}>Amount</Label>
+                      <Input
+                        id={`a${i}`}
+                        inputMode="decimal"
+                        value={l.amount}
+                        onChange={(e) => setLine(i, { amount: e.target.value })}
+                        placeholder={c ? `${c.range_min / 100}-${c.range_max / 100}` : 'USDC'}
+                      />
+                    </div>
+                    {lines.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+              <Button variant="ghost" size="sm" onClick={() => setLines((ls) => [...ls, { contractorId: '', amount: '' }])}>
+                <Plus size={14} /> Add collaborator
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border pt-4 text-sm">
+              <span className="text-muted">Run total (visible to you)</span>
+              <span className="text-lg font-bold">${total.toFixed(2)} USDC</span>
+            </div>
+
+            <Button className="w-full" size="lg" onClick={run} disabled={busy}>
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {busy ? 'Proving & recording on-chain…' : 'Run payroll & prove'}
+            </Button>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
+              <Lock size={12} /> Each individual amount is hidden on-chain (commitment). This may take
+              a few seconds per collaborator.
+            </p>
+          </Card>
+
+          {error && (
+            <Card className="border-danger/40 p-4">
+              <p className="text-sm text-danger">{error}</p>
+            </Card>
+          )}
+        </>
+      )}
     </div>
   );
 }
