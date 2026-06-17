@@ -71,8 +71,13 @@ export default async function InvitePage({ params }: { params: { token: string }
           </div>
           <InviteAccept
             token={params.token}
-            companyAddress={invite!.company_treasury || process.env.COMPANY_PUBLIC_KEY || ''}
+            companyAddress={
+              /^G[A-Z2-7]{55}$/.test(invite!.company_treasury || '')
+                ? invite!.company_treasury!
+                : process.env.COMPANY_PUBLIC_KEY || ''
+            }
             anchorContractId={process.env.ANCHOR_REGISTRY_CONTRACT_ID || ''}
+            defaultName={invite!.name}
           />
         </Card>
       )}

@@ -223,16 +223,23 @@ export async function setInviteAnchored(id: string, txHash: string): Promise<voi
   );
 }
 
-/** Accept an invite: set the collaborator's wallet and activate. */
+/** Accept an invite: set the collaborator's wallet + identity, and activate.
+ * Idempotent: re-accepting an already-active invite updates the data (lets a
+ * collaborator retry the on-chain anchor). */
 export async function acceptInvite(
   id: string,
-  stellarAddress: string,
+  data: { stellarAddress: string; cpfHash?: string | null; name?: string | null },
 ): Promise<ContractorRow | null> {
   await ensureSchema();
   const { rows } = await getPool().query<ContractorRow>(
-    `UPDATE contractors SET stellar_address = $2, status = 'active'
-     WHERE id = $1 AND status = 'invited' RETURNING *`,
-    [id, stellarAddress],
+    `UPDATE contractors
+       SET stellar_address = $2,
+           status = 'active',
+           cpf_hash = COALESCE($3, cpf_hash),
+           name = COALESCE($4, name)
+     WHERE id = $1 AND status IN ('invited', 'active')
+     RETURNING *`,
+    [id, data.stellarAddress, data.cpfHash ?? null, data.name ?? null],
   );
   return rows[0] ?? null;
 }

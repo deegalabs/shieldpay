@@ -5,26 +5,34 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useCreateWallet, useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 /**
  * Collaborator-side invite acceptance — N2.
- * Privy login → embedded Stellar wallet → accept (set wallet, activate) →
- * on-chain self-anchor (AnchorRegistry.anchor, signed by the collaborator's own
- * Privy wallet as the tx source) → record anchored.
+ * Collect identity (legal/tax ID + name + declaration) → Privy embedded Stellar
+ * wallet → accept (store wallet + cpf_hash, activate) → on-chain self-anchor
+ * (AnchorRegistry.anchor, signed by the collaborator's own wallet as tx source;
+ * the anchor metadata binds their ID hash to the address) → record anchored.
  */
 export function InviteAccept({
   token,
   companyAddress,
   anchorContractId,
+  defaultName,
 }: {
   token: string;
   companyAddress: string;
   anchorContractId: string;
+  defaultName: string;
 }) {
   const { ready, authenticated, login, user } = usePrivy();
   const { createWallet } = useCreateWallet();
   const { signRawHash } = useSignRawHash();
 
+  const [name, setName] = useState(defaultName);
+  const [cpf, setCpf] = useState('');
+  const [declared, setDeclared] = useState(false);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -39,16 +47,15 @@ export function InviteAccept({
     return wallet.address;
   }
 
-  async function anchorOnChain(addr: string): Promise<string> {
+  async function anchorOnChain(addr: string, cpfHash: string): Promise<string> {
     const sdk: any = await import('@stellar/stellar-sdk');
     const { rpc, Contract, TransactionBuilder, Networks, Address, nativeToScVal, Keypair, xdr } = sdk;
     const server = new rpc.Server('https://soroban-testnet.stellar.org');
 
-    // Testnet: ensure the wallet has XLM for fees.
     await fetch(`https://friendbot.stellar.org/?addr=${encodeURIComponent(addr)}`).catch(() => {});
     const account = await server.getAccount(addr);
 
-    const metadata = `SHIELDPAY|ANCHOR|v1|${companyAddress}`;
+    const metadata = `SHIELDPAY|ANCHOR|v1|org:${companyAddress}|cpf:${cpfHash}`;
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(metadata));
     const contractHash = Buffer.from(new Uint8Array(digest));
 
@@ -85,23 +92,27 @@ export function InviteAccept({
   }
 
   async function run() {
+    if (name.trim().length < 2 || cpf.trim().length < 3 || !declared) {
+      setError('Fill in your name and ID, and accept the declaration.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       setStep('Setting up your wallet…');
       const addr = await getStellarWallet();
 
-      setStep('Accepting the invite…');
+      setStep('Confirming your details…');
       const acc = await fetch('/api/invite/accept', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token, stellar_address: addr }),
+        body: JSON.stringify({ token, stellar_address: addr, cpf, name }),
       });
       const accData = await acc.json();
-      if (!acc.ok && acc.status !== 409) throw new Error(accData.error || 'accept failed');
+      if (!acc.ok) throw new Error(accData.error?.formErrors?.join(', ') || accData.error || 'accept failed');
 
-      setStep('Anchoring your identity on-chain (sign in your wallet)…');
-      const txHash = await anchorOnChain(addr);
+      setStep('Anchoring your identity on-chain (approve in your wallet)…');
+      const txHash = await anchorOnChain(addr, accData.cpf_hash);
 
       setStep('Finishing…');
       await fetch('/api/invite/anchored', {
@@ -109,11 +120,9 @@ export function InviteAccept({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token, tx_hash: txHash }),
       });
-
       setDone(true);
     } catch (e: any) {
       const msg = String(e?.message || e);
-      // Already anchored on a previous run still counts as success for the demo.
       if (/AlreadyAnchored|#1\b/.test(msg)) setDone(true);
       else setError(msg);
     } finally {
@@ -141,10 +150,32 @@ export function InviteAccept({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="name">Your full name</Label>
+        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div>
+        <Label htmlFor="cpf">Your legal/tax ID (CPF)</Label>
+        <Input id="cpf" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
+        <p className="mt-1 text-xs text-muted">Stored only as a hash — never in plaintext.</p>
+      </div>
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 accent-[hsl(var(--brand))]"
+          checked={declared}
+          onChange={(e) => setDeclared(e.target.checked)}
+        />
+        <span className="text-muted">
+          I declare that the wallet created for me and the ID above are mine, and I authorize
+          receiving payments at this address.
+        </span>
+      </label>
+
       {!authenticated ? (
         <Button className="w-full" size="lg" disabled={!ready} onClick={login}>
-          Sign in to accept
+          Sign in to continue
         </Button>
       ) : (
         <Button className="w-full" size="lg" disabled={busy} onClick={run}>

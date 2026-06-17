@@ -29,19 +29,22 @@ export function ContractorForm({
     name: defaults?.name ?? '',
     cpf: defaults?.cpf ?? '',
     stellar_address: defaults?.stellar_address ?? '',
-    minUsdc: defaults?.minUsdc ?? 0,
-    maxUsdc: defaults?.maxUsdc ?? 0,
+    min: defaults?.minUsdc != null ? String(defaults.minUsdc) : '',
+    max: defaults?.maxUsdc != null ? String(defaults.maxUsdc) : '',
   });
   const [busy, setBusy] = useState(false);
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setF({ ...f, [k]: e.target.type === 'number' ? Number(e.target.value) : e.target.value });
+    setF({ ...f, [k]: e.target.value });
 
   async function save() {
+    const minUsdc = Number(f.min);
+    const maxUsdc = Number(f.max);
     if (f.name.trim().length < 2 || !f.stellar_address.startsWith('G')) {
-      toast.error('Name and a valid Stellar address (G…) are required');
-      return;
+      return toast.error('Name and a valid Stellar address (G…) are required');
     }
+    if (!(maxUsdc > 0) || minUsdc < 0 || minUsdc > maxUsdc) return toast.error('Enter a valid range');
+
     setBusy(true);
     try {
       const res = await fetch(
@@ -49,7 +52,13 @@ export function ContractorForm({
         {
           method: contractorId ? 'PATCH' : 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(f),
+          body: JSON.stringify({
+            name: f.name,
+            cpf: f.cpf || undefined,
+            stellar_address: f.stellar_address,
+            minUsdc,
+            maxUsdc,
+          }),
         },
       );
       const data = await res.json();
@@ -69,12 +78,6 @@ export function ContractorForm({
         <Label htmlFor="name">Full name</Label>
         <Input id="name" value={f.name} onChange={set('name')} placeholder="João Silva" />
       </div>
-      {!contractorId && (
-        <div>
-          <Label htmlFor="cpf">CPF (stored only as a hash)</Label>
-          <Input id="cpf" value={f.cpf} onChange={set('cpf')} placeholder="123.456.789-00" />
-        </div>
-      )}
       <div>
         <Label htmlFor="addr">Stellar address</Label>
         <Input id="addr" className="font-mono text-sm" value={f.stellar_address} onChange={set('stellar_address')} placeholder="G…" />
@@ -82,11 +85,11 @@ export function ContractorForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="min">Min (USDC/mo)</Label>
-          <Input id="min" type="number" value={f.minUsdc} onChange={set('minUsdc')} />
+          <Input id="min" inputMode="decimal" value={f.min} onChange={set('min')} placeholder="450" />
         </div>
         <div>
           <Label htmlFor="max">Max (USDC/mo)</Label>
-          <Input id="max" type="number" value={f.maxUsdc} onChange={set('maxUsdc')} />
+          <Input id="max" inputMode="decimal" value={f.max} onChange={set('max')} placeholder="550" />
         </div>
       </div>
       <Button className="w-full" disabled={busy} onClick={save}>
