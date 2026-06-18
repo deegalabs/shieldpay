@@ -135,7 +135,7 @@ export default async function CompanyDashboard() {
                     Proof <ArrowUpRight size={13} />
                   </a>
                   <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
-                    ⚖️ Legal Defense
+                    📄 Receipt
                   </a>
                 </div>
               </div>

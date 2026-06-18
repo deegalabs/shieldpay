@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {
   ShieldCheck,
   Globe,
-  Scale,
+  KeyRound,
   ArrowRight,
   Check,
   FileCheck,
@@ -28,8 +28,8 @@ export default function HomePage() {
             <a href="#how" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
               How it works
             </a>
-            <a href="#legal" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
-              Legal shield
+            <a href="#audit" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
+              Confidential
             </a>
             <Link href="/help" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
               Help
@@ -50,15 +50,15 @@ export default function HomePage() {
           <Lock size={12} /> Built on Stellar + Zero-Knowledge
         </Badge>
         <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-6xl">
-          Pay anyone.{' '}
+          Pay your team.{' '}
           <span className="bg-gradient-to-r from-brand to-primary bg-clip-text text-transparent">
-            Prove it forever.
+            Keep the amounts private.
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted">
-          ShieldPay pays contractors in native USDC on Stellar and automatically generates a
-          court-grade, on-chain proof of payment — a mathematical receipt no one can dispute,
-          without revealing the exact amount.
+          Confidential payroll for DAOs and Web3 teams. ShieldPay pays contributors in native USDC
+          on Stellar with a real on-chain settlement, while a zero-knowledge proof keeps each
+          amount private — and lets you disclose it selectively to an auditor under a viewing key.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
@@ -91,7 +91,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-5xl px-6">
           <h2 className="text-center text-3xl font-bold tracking-tight">How it works</h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-muted">
-            Three steps from payroll to an irrefutable, independently verifiable receipt.
+            Three steps from payroll to a private, independently verifiable receipt.
           </p>
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             {STEPS.map((s, i) => (
@@ -107,21 +107,22 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Legal */}
-      <section id="legal" className="mx-auto max-w-5xl px-6 py-20">
+      {/* Confidential / selective disclosure */}
+      <section id="audit" className="mx-auto max-w-5xl px-6 py-20">
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
             <Badge variant="success" className="mb-4">
-              <Scale size={12} /> Court-grade proof
+              <KeyRound size={12} /> Selective disclosure
             </Badge>
-            <h2 className="text-3xl font-bold tracking-tight">The receipt you show a judge</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Auditable without going public</h2>
             <p className="mt-4 text-muted">
-              A blockchain transfer alone proves nothing in court. ShieldPay chains a signed
-              contract, an on-chain identity anchor, the payment, and a zero-knowledge proof into
-              a single plain-language PDF — the evidence a labor court actually accepts.
+              On a transparent chain, a normal transfer reveals the amount. ShieldPay keeps each
+              amount as a commitment plus a range proof, and lets you reveal it only to an
+              authorized auditor under a viewing key — who re-derives the same commitment the
+              Stellar contract verified, so the disclosed figure is provably the one on-chain.
             </p>
             <ul className="mt-6 space-y-2 text-sm">
-              {LEGAL.map((l) => (
+              {DISCLOSURE.map((l) => (
                 <li key={l} className="flex items-start gap-2">
                   <Check size={16} className="mt-0.5 text-primary" /> {l}
                 </li>
@@ -133,13 +134,15 @@ export default function HomePage() {
               <FileCheck size={16} /> Payment Proof — May/2026
             </div>
             <div className="mt-4 space-y-2 text-sm">
-              <Row k="Payer" v="TechStartup Ltda" />
-              <Row k="Recipient" v="João Silva" />
+              <Row k="Payer" v="Acme DAO" />
+              <Row k="Recipient" v="0xJoão · GARR…PUKK" />
               <Row k="Proven range" v="$450 – $550 USDC" />
+              <Row k="Exact amount" v="Private 🔒" />
               <Row k="Status" v="Verified on-chain" verified />
             </div>
             <div className="mt-5 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted">
-              Mathematically verified by the Stellar network. The exact amount is never disclosed.
+              Mathematically verified by the Stellar network. The exact amount stays private —
+              revealed only to an auditor you authorize with a viewing key.
             </div>
           </Card>
         </div>
@@ -148,9 +151,9 @@ export default function HomePage() {
       {/* CTA */}
       <section className="mx-auto max-w-4xl px-6 pb-24 text-center">
         <Card className="p-10">
-          <h2 className="text-3xl font-bold tracking-tight">Pay with proof, today</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Pay privately, prove publicly</h2>
           <p className="mx-auto mt-3 max-w-lg text-muted">
-            Set up your company in minutes. No crypto wallet or seed phrase required.
+            Set up your team in minutes. No crypto wallet or seed phrase required.
           </p>
           <Button asChild size="lg" className="mt-6">
             <Link href="/login">
@@ -177,20 +180,20 @@ function Row({ k, v, verified }: { k: string; v: string; verified?: boolean }) {
 }
 
 const FEATURES = [
-  { icon: <Globe size={20} />, title: 'Global payouts', body: 'Pay contractors anywhere in native USDC. Settlement in 3–5 seconds, fractions of a cent in fees.' },
-  { icon: <ShieldCheck size={20} />, title: 'Mathematical proof', body: 'Every payment is backed by a zero-knowledge proof verified on-chain — provable without revealing the exact amount.' },
-  { icon: <Scale size={20} />, title: 'Legal shield', body: 'One click generates a court-ready PDF binding identity, payment, and proof into an irrefutable record.' },
+  { icon: <Globe size={20} />, title: 'Global USDC payouts', body: 'Pay contributors anywhere in native USDC on Stellar. Settles in 3–5 seconds, fractions of a cent in fees.' },
+  { icon: <Lock size={20} />, title: 'Private by default', body: 'Every payment carries a zero-knowledge proof — the public sees only the agreed range, never the exact amount.' },
+  { icon: <KeyRound size={20} />, title: 'Selective disclosure', body: 'Hand an auditor a viewing key to reveal and re-verify exact amounts against the on-chain commitments — without ever making them public.' },
 ];
 
 const STEPS = [
-  { title: 'Run payroll', body: 'Pick a contractor and pay within their agreed contractual range — by form or CSV.' },
-  { title: 'Prove on-chain', body: 'A zero-knowledge proof is generated and verified inside a Stellar smart contract.' },
-  { title: 'Get the receipt', body: 'Download a court-grade PDF with a QR code anyone can use to re-verify the proof.' },
+  { title: 'Run payroll', body: 'Pay your whole team in one confidential run, each within their agreed range.' },
+  { title: 'Prove & settle on-chain', body: 'A zero-knowledge proof is verified inside a Stellar smart contract, and a real, recipient-visible settlement is posted — without the amount.' },
+  { title: 'Disclose on your terms', body: 'Share a read-only audit link, or a viewing-key link that reveals and re-verifies amounts for an authorized auditor.' },
 ];
 
-const LEGAL = [
-  'Identity anchored on-chain (address ↔ legal identity)',
-  'Payment recorded with a structured, timestamped memo',
-  'Zero-knowledge proof of in-range payment, verified by the network',
-  'Plain-language PDF + QR for instant third-party verification',
+const DISCLOSURE = [
+  'Exact amounts never public — only the agreed range is on-chain',
+  'Real, recipient-visible settlement, bound to the proof',
+  'Viewing key reveals & re-verifies amounts for an auditor',
+  'Reconciled run total, provable to a third party',
 ];

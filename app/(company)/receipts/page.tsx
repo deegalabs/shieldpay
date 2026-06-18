@@ -22,7 +22,7 @@ export default async function ReceiptsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Receipts</h1>
         <p className="text-sm text-muted">
-          Court-grade payment proofs. Each PDF binds the payment to an on-chain, re-verifiable proof.
+          Verifiable payment proofs. Each PDF binds the payment to an on-chain, re-verifiable proof — the exact amount stays private.
         </p>
       </div>
 

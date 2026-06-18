@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/receipt?id=<paymentId>
- * The "Legal Defense" document: a court-grade PDF for a recorded payment proof.
+ * The verifiable receipt: a plain-language PDF for a recorded payment proof.
  */
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id');

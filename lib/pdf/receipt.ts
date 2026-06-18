@@ -2,15 +2,15 @@ import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 
 /**
- * Court-grade payment receipt ("Comprovante Judicial").
+ * Verifiable payment receipt.
  *
- * Binds, in plain language a non-technical judge can read, the proof trail:
- * payer, recipient, reference, the proven contractual range, the on-chain
- * zero-knowledge proof id, the Stellar transaction that verified it, and a QR
- * code to independently re-verify on the public explorer.
+ * Binds, in plain language a non-technical reader (auditor, accountant) can
+ * read, the proof trail: payer, recipient, reference, the proven contractual
+ * range, the on-chain zero-knowledge proof id, the Stellar transaction that
+ * verified it, and a QR code to independently re-verify on the public explorer.
  *
  * The exact amount is intentionally absent — the proof attests range membership
- * without disclosing the figure.
+ * without disclosing the figure (revealed only under a viewing key).
  */
 export interface ReceiptData {
   companyName: string;
