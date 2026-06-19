@@ -1,570 +1,719 @@
-# CLAUDE.md — ShieldPay: Payroll & Payment Proof on Stellar + ZK
+# CLAUDE.md: ShieldPay, Payroll and Payment Proof on Stellar + ZK
 
-> Documento de contexto completo para desenvolvimento com Claude Code / Cursor.
-> Gerado em: 15 de junho de 2026.
-> Hackathon: Stellar Hacks ZK — Deadline: 29 de junho de 2026, 12h (horário do Pacífico).
+> Full context document for development with Claude Code and Cursor.
+> Created: June 15, 2026.
+> Hackathon: Stellar Hacks ZK. Deadline: June 29, 2026, 12:00 (Pacific time).
 
 ---
 
-## 1. IDENTIDADE DO PROJETO
+## 0. DEVELOPMENT RULES (READ EVERY TIME)
 
-### Nome
-**ShieldPay** — Payroll & Payment Proof on Stellar
+These rules apply to both developers and to any AI agent working in the
+repository. They take priority over the rest of this document when there is a
+conflict.
+
+**Principle.** This is a hackathon entry, but it is a project that can become a
+real product. Treat it as a real product from the start: code, security, data,
+and documentation at production standard, with no shortcuts that cannot be
+sustained later.
+
+### 0.1 Language
+
+- Everything inside the repository is in English: code, comments, identifiers,
+  commit messages, documentation, sample data, and config.
+- If we ever support multiple languages, it stays at the web app layer (UI copy
+  through i18n). For now the whole repo is English only.
+
+### 0.2 Code standards
+
+Summary of what is already defined in the project. Match the style of the
+surrounding code.
+
+- **Runtime:** Node 22 (`.nvmrc`). **TypeScript** with `strict` and
+  `noUncheckedIndexedAccess`. Path aliases `@/`, `@/lib`, `@/components`.
+- **Files:** `kebab-case` names (`company-form.tsx`, `nav-link.tsx`).
+- **Components:** Server Component by default. `'use client'` only when needed,
+  on the first line. UI primitives follow the shadcn pattern (`forwardRef`,
+  `displayName`, variants in an `as const` object, classes via `cn()`).
+- **Styling:** use semantic Tailwind tokens (`bg-surface`, `text-foreground`,
+  `bg-brand`), never raw colors. Fintech palette (slate, emerald, amber, red,
+  indigo). No neon green or hacker aesthetic. Cryptography is invisible in the
+  end-user UI.
+- **API routes:** always `export const runtime = 'nodejs'`. Validate every input
+  with `zod` at the top of the file. Handler order: authentication, authorization
+  by role or owner, logic, `try/catch`. Status codes: 400 validation, 401 no
+  session, 403 wrong role, 404 not found, 422 business rule, 503 database down.
+- **Database:** SQL is always parameterized, never concatenated. The exact amount
+  of a payment is never stored in clear text, only the commitment and the range.
+- **ZK and contracts:** the circuit runtime artifacts stay versioned. Rust
+  contracts have tests in `src/test.rs` and pass `cargo test`.
+- **Comments:** docstrings in `lib/` explain the why, not the what.
+
+### 0.3 Commits
+
+- Format `type(scope): description`. Types: `feat`, `fix`, `chore`, `docs`.
+- Message is simple, in English, imperative, with the real feature detail.
+- **No AI co-author.** Do not add a `Co-Authored-By` line for Claude or any other
+  tool. Commits belong to the human developers.
+- One commit per coherent change. Do not mix unrelated features.
+
+### 0.4 Security audit
+
+- Run the audit whenever possible, especially before publishing the repository,
+  before each deploy, and when touching authentication, authorization, or fund
+  movement.
+- **Document the result in `SECURITY_AUDIT.md`** (root, git-ignored, internal).
+  Each round records the date, what was tested, the findings by severity, and the
+  status of each one. Open findings stay internal until they are fixed.
+- `SECURITY.md` at root is the **public policy** (how to report, scope), with no
+  detail of open issues. Responsible disclosure.
+- Minimum checklist: secrets out of the code, input validated, SQL parameterized,
+  routes protected by session and owner, errors that do not leak internals,
+  dependencies with no critical vulnerability.
+
+### 0.5 Writing documentation and text
+
+- Write as a human for humans. Clear, objective, and coherent.
+- **Nothing invented.** Only state what the code, the history, or the brief
+  support. If something is partial or deferred, say so honestly.
+- **Do not use em-dashes (the long dash).** Use periods, commas, colons, or
+  parentheses.
+- Avoid unnecessary jargon. Technical language appears only where it carries
+  weight.
+
+### 0.6 Verify before finishing
+
+- Run `npm run typecheck` and `npm run build` and make sure they pass.
+- For changes to contracts or the circuit, run `cargo test` and `npm run zk:prove`.
+
+> Positioning note. Sections 1 to 18 below were written for the original framing
+> (Brazilian labor compliance and court-grade proof). The product was later
+> repositioned to Web3-native confidential payroll (recipient visible, amount
+> hidden, selective disclosure). The README and the project brief carry the
+> current positioning. Keep that in mind when reading the background below.
+
+---
+
+## 1. PROJECT IDENTITY
+
+### Name
+**ShieldPay**, Payroll and Payment Proof on Stellar
 
 ### Tagline
-> "Pague qualquer pessoa no mundo. Prove matematicamente que pagou. Proteja sua empresa para sempre."
+> "Pay anyone in the world. Prove mathematically that you paid. Protect your company forever."
 
-### O que é
-ShieldPay é uma plataforma web de pagamento e quitação verificável construída sobre Stellar + Soroban + ZK Proofs. Permite que empresas, DAOs e contratantes paguem prestadores de serviço e funcionários em USDC nativo da Stellar, gerando automaticamente uma prova matemática on-chain (ZK proof verificável no Soroban) que funciona como comprovante jurídico irrefutável de pagamento.
+### What it is
+ShieldPay is a web platform for verifiable payment and settlement built on
+Stellar + Soroban + ZK Proofs. It lets companies, DAOs, and contractors pay
+service providers and employees in native Stellar USDC, automatically generating
+a mathematical on-chain proof (a ZK proof verifiable in Soroban) that works as an
+irrefutable record of payment.
 
-### O que NÃO é
-- Não é um sistema de folha de pagamento CLT completo (a CLT exige pagamento em Real; isso está em processo de mudança via PL 2.324/2026, mas ainda não aprovado).
-- Não é uma blockchain privada. Stellar é transparente por padrão — a privacidade aqui é seletiva, via ZK range proofs.
-- Não é equivalente ao pool blindado da Zcash. Não prometemos invisibilidade total de transações.
+### What it is not
+- It is not a full Brazilian CLT payroll system (CLT requires payment in Reais;
+  this is in the process of changing through bill PL 2.324/2026, but it is not
+  approved yet).
+- It is not a private blockchain. Stellar is transparent by default. Privacy here
+  is selective, through ZK range proofs.
+- It is not equivalent to a Zcash shielded pool. We do not promise total
+  transaction invisibility.
 
-### Casos de uso reais (onde funciona hoje, sem nova legislação)
-1. **Prestadores de serviço / Freelancers / Contratos PJ** — sem CLT, pagamento em USDC é válido por acordo contratual.
-2. **Empresas Web3 nativas** que já remuneram colaboradores em cripto por acordo mútuo documentado.
-3. **Pagamentos internacionais** — empresa no exterior pagando pessoa no Brasil ou vice-versa, onde CLT não se aplica.
-4. **DAOs pagando contribuidores** — sem vínculo CLT, com necessidade de prova de quitação.
-
----
-
-## 2. CONTEXTO JURÍDICO (CRÍTICO — LER ANTES DE CODAR)
-
-### Por que isso importa mais do que a tecnologia
-
-O Gemini e o Gemini-documento original entenderam o problema de negócio, mas ignoraram a camada jurídica que torna o produto real. Esta seção é o resultado de pesquisa em jurisprudência do TST, CLT e doutrina trabalhista brasileira.
-
-### O que a lei brasileira exige como prova de pagamento (Art. 464 da CLT)
-
-O Tribunal Superior do Trabalho consolidou dois e apenas dois meios de prova válidos para quitação de salário:
-
-**Caminho A:** Recibo (holerite) **assinado pelo empregado** — física ou digitalmente.
-
-**Caminho B:** **Comprovante de depósito bancário** na conta cujo CPF seja o do trabalhador contratado — sem necessidade de assinatura adicional.
-
-**Consequência direta:** Um recibo sem assinatura do empregado, desacompanhado de comprovante de depósito bancário identificado, tem **valor probatório zero** no TST. O ônus da prova é sempre do empregador.
-
-### O problema da Web3 com o Caminho B
-
-Blockchain não tem CPF. Um pagamento em USDC de `GABCDE...` para `GXYZ123...` não prova para nenhum juiz que o João da Silva recebeu R$ 5.000. Falta o vínculo entre identidade legal e endereço on-chain.
-
-### Como o ShieldPay resolve isso (os 5 documentos da defesa jurídica)
-
-Para que a empresa esteja blindada em qualquer processo, o sistema gera e armazena automaticamente:
-
-**Documento 1 — Contrato de Prestação de Serviço (off-chain)**
-- Assinado digitalmente (validade jurídica pelo Marco Civil Digital / ICP-Brasil ou DocuSign)
-- Contém: nome completo, CPF, CNPJ da empresa, valor, periodicidade, objeto do serviço
-- **Campo obrigatório:** "O prestador declara que o endereço Stellar `GABCDE...` é de sua exclusiva propriedade e autoriza recebimento de pagamentos neste endereço."
-- Referência legal: Art. 104 do Código Civil (validade dos contratos digitais)
-
-**Documento 2 — Transação de Ancoragem de Identidade (on-chain Stellar)**
-- O próprio prestador assina uma transação de 0 XLM da sua carteira para si mesmo
-- Memo obrigatório: `SHIELDPAY|ANCHOR|CPF:12345678900|CONTRACT:42|DATE:2026-06-01`
-- **Efeito jurídico:** Prova criptográfica de que o dono daquele endereço Stellar declarou ser o portador daquele CPF. Imutável, com timestamp blockchain.
-- Isso cria o vínculo endereço↔identidade que o juiz precisa.
-
-**Documento 3 — Transação de Pagamento (on-chain Stellar)**
-- USDC nativo enviado para o endereço do prestador
-- Memo estruturado: `SHIELDPAY|PAY|CONTRACT:42|REF:MAI2026|USDC:500.00`
-- **Efeito jurídico:** Equivalente ao comprovante de depósito bancário (Caminho B do Art. 464 CLT), desde que combinado com o Documento 2 que vincula o endereço ao CPF.
-
-**Documento 4 — ZK Proof de Quitação (on-chain Soroban)**
-- Prova matemática verificável que atesta: "O endereço X recebeu um valor dentro do range contratual no bloco Y"
-- Não revela o valor exato — apenas que está dentro do acordado (ex: entre $400 e $600 USDC)
-- Verificável por qualquer terceiro (juiz, auditor, contador) sem precisar confiar na empresa
-- Registrada no contrato Soroban como `verified: true` com hash do pagamento
-
-**Documento 5 — PDF de Comprovante Judicial (off-chain gerado pelo sistema)**
-- Gerado automaticamente após cada pagamento
-- Contém: dados do contrato, hash da ancoragem, hash do pagamento, resultado da ZK proof, QR code para verificação instantânea, link do explorador Stellar
-- Linguagem acessível para juízes não-técnicos: "Este documento é uma prova matemática gerada pela rede blockchain Stellar de que o valor foi depositado no endereço do destinatário no bloco X. O código de verificação pode ser validado em [URL]."
-
-### O que o holerite eletrônico moderno precisa ter (jurisprudência 2025-2026)
-
-Pesquisa em decisões recentes do TST e doutrina de compliance RH confirmou que um holerite digital tem força probatória quando contém:
-- Hash e carimbo de tempo (timestamp) do documento
-- Trilha de auditoria: quem enviou, quando foi disponibilizado, quando foi acessado
-- Prova de ciência: aceite rastreável ou confirmação de recebimento
-- Comprovante de depósito ou transferência vinculado
-
-O ShieldPay automatiza todos esses elementos via blockchain.
-
-### Status legislativo do pagamento em cripto no Brasil
-
-- **PL 957/2025:** Propõe permitir pagamento de até 50% do salário em criptomoedas, com acordo escrito entre as partes. Em tramitação na Câmara.
-- **PL 2.324/2026 (Partido NOVO):** Propõe alterar CLT para permitir salários em cripto por acordo contratual. Apresentado em maio de 2026, em tramitação.
-- **Marco Legal das Criptomoedas (Lei 14.478/2022):** Reconhece ativos virtuais como meio de pagamento. Em vigor desde 2023.
-- **Situação atual:** Pagamento de salário CLT em cripto ainda tem risco jurídico. Para PJ/prestador de serviço, é válido hoje por acordo contratual.
+### Real use cases (where it works today, with no new law)
+1. **Service providers, freelancers, contractor agreements (PJ):** with no CLT
+   bond, payment in USDC is valid by contractual agreement.
+2. **Web3-native companies** that already pay collaborators in crypto by mutual
+   documented agreement.
+3. **Cross-border payments:** a company abroad paying a person in Brazil or vice
+   versa, where CLT does not apply.
+4. **DAOs paying contributors:** with no CLT bond, with a need for proof of
+   settlement.
 
 ---
 
-## 3. CONTEXTO TÉCNICO STELLAR (ESTADO REAL EM JUNHO 2026)
+## 2. LEGAL CONTEXT (CRITICAL, READ BEFORE CODING)
 
-### Protocolos relevantes
+### Why this matters more than the technology
 
-**Protocol 25 "X-Ray" (mainnet: 22 janeiro 2026)**
-- Introduziu host functions nativas para BN254 (curva elíptica padrão de ZK apps) e Poseidon/Poseidon2 (hash otimizado para ZK circuits)
-- Permite verificação eficiente de zk-SNARKs no Soroban
-- Feature parity com Ethereum EIP-196 e EIP-197
+The product has a legal layer that makes it real, not just a technical demo. This
+section is the result of research into Brazilian labor jurisprudence (TST), the
+CLT, and labor doctrine.
 
-**Protocol 26 "Yardstick" (mainnet: 6 maio 2026)**
-- Adicionou 9 novas host functions: MSM BN254, aritmética de campo escalar (add, subtract, multiply, power, inverse), verificações de pertinência à curva para BLS12-381 e BN254
-- Move aritmética ZK pesada para a camada host — verificação de provas Noir significativamente mais barata
-- Permite que SAC (Stellar Asset Contract) crie trustlines ilimitadas para G-accounts
+### What Brazilian law requires as proof of payment (Art. 464 CLT)
 
-### ZK na Stellar: o que está disponível e funciona
+The Superior Labor Court has consolidated two, and only two, valid forms of proof
+for salary settlement:
 
-**Noir + UltraHonk no Soroban:**
-- Repositório: `indextree/ultrahonk_soroban_contract`
-- Status: Funciona em localnet com `--limits unlimited`. Otimização para testnet/mainnet em andamento (integração com precompiles BN254 do Protocol 26 reduzirá custo significativamente).
-- **Risco real:** O verifier UltraHonk ainda pode exceder budget em testnet sem as otimizações de precompile. Monitorar.
+**Path A:** A payslip **signed by the employee**, physically or digitally.
 
-**Groth16 via Circom no Soroban (alternativa mais segura):**
-- Repositório: `stellar/soroban-examples/groth16_verifier`
-- Status: Funciona comprovadamente em testnet e mainnet
-- Custo: Menor que UltraHonk (provas menores)
-- Tutorial: `jamesbachini.com/circom-on-stellar/`
-- **Recomendação:** Para o hackathon, Groth16 é o caminho mais seguro se UltraHonk apresentar problemas de budget
+**Path B:** A **bank deposit receipt** into an account whose tax id belongs to
+the contracted worker, with no extra signature required.
 
-**Noir + Groth16 backend (melhor dos dois mundos):**
-- Repositório: `jamesbachini.com/noir-groth16/`
-- Escreve circuits em Noir (mais legível), gera artefatos Groth16, verifica no Soroban
-- Tutorial E2E disponível
+**Direct consequence:** A payslip without the employee's signature, unaccompanied
+by an identified bank deposit, has **zero evidentiary value** at the TST. The
+burden of proof is always on the employer.
 
-### Stablecoins disponíveis na Stellar (mainnet, junho 2026)
-- **USDC** (Circle) — nativo desde 2021, maior volume
-- **EURC** (Circle) — euro digital
-- **YLDS** (Figure) — yield-bearing dollar
-- **MGUSD** (Bridge/MoneyGram) — lançado 2 junho 2026
+### The Web3 problem with Path B
 
-**Recomendação para o projeto:** USDC. Maior liquidez, maior reconhecimento, SAC-level support no Soroban.
+A blockchain has no tax id. A USDC payment from `GABCDE...` to `GXYZ123...` proves
+to no judge that a specific person received a given amount. The link between legal
+identity and on-chain address is missing.
 
-### Recursos de desenvolvimento confirmados
+### How ShieldPay solves it (the five documents of the legal defense)
+
+So the company is protected in any dispute, the system generates and stores
+automatically:
+
+**Document 1, service agreement (off-chain)**
+- Digitally signed (legal validity through the Brazilian Digital Civil Framework /
+  ICP-Brasil or DocuSign).
+- Contains: full name, tax id, company tax id, amount, frequency, service object.
+- **Required field:** "The provider declares that the Stellar address `GABCDE...`
+  is their exclusive property and authorizes receiving payments at this address."
+- Legal reference: Art. 104 of the Civil Code (validity of digital contracts).
+
+**Document 2, identity anchor transaction (on-chain Stellar)**
+- The provider signs a 0 XLM transaction from their wallet to themselves.
+- Required memo: `SHIELDPAY|ANCHOR|CPF:12345678900|CONTRACT:42|DATE:2026-06-01`.
+- **Legal effect:** Cryptographic proof that the owner of that Stellar address
+  declared they hold that tax id. Immutable, with a blockchain timestamp.
+- This creates the address to identity link the judge needs.
+
+**Document 3, payment transaction (on-chain Stellar)**
+- Native USDC sent to the provider's address.
+- Structured memo: `SHIELDPAY|PAY|CONTRACT:42|REF:MAY2026|USDC:500.00`.
+- **Legal effect:** Equivalent to the bank deposit receipt (Path B of Art. 464
+  CLT), as long as it is combined with Document 2 that binds the address to the
+  tax id.
+
+**Document 4, ZK proof of settlement (on-chain Soroban)**
+- A verifiable mathematical proof that attests: "address X received an amount
+  within the contractual range at block Y."
+- Does not reveal the exact amount, only that it is within what was agreed (for
+  example, between $400 and $600 USDC).
+- Verifiable by any third party (judge, auditor, accountant) without trusting the
+  company.
+- Recorded in the Soroban contract as `verified: true` with the payment hash.
+
+**Document 5, court receipt PDF (off-chain, generated by the system)**
+- Generated automatically after each payment.
+- Contains: contract data, anchor hash, payment hash, ZK proof result, QR code
+  for instant verification, Stellar explorer link.
+- Plain language for non-technical judges: "This document is a mathematical proof
+  generated by the Stellar blockchain network that the amount was deposited into
+  the recipient's address at block X. The verification code can be validated at
+  [URL]."
+
+### What a modern electronic payslip needs (2025 to 2026 jurisprudence)
+
+Research into recent TST decisions and HR compliance doctrine confirmed that a
+digital payslip has evidentiary force when it contains:
+- Hash and timestamp of the document.
+- Audit trail: who sent it, when it was made available, when it was accessed.
+- Proof of awareness: traceable acceptance or confirmation of receipt.
+- Deposit or transfer receipt that is linked.
+
+ShieldPay automates all these elements through the blockchain.
+
+### Legislative status of crypto salary payment in Brazil
+
+- **PL 957/2025:** Proposes allowing up to 50% of salary to be paid in
+  cryptocurrencies, with a written agreement between the parties. In progress in
+  the Chamber.
+- **PL 2.324/2026 (NOVO party):** Proposes amending the CLT to allow crypto
+  salaries by contractual agreement. Filed in May 2026, in progress.
+- **Crypto Legal Framework (Law 14.478/2022):** Recognizes virtual assets as a
+  means of payment. In force since 2023.
+- **Current situation:** Crypto CLT salary payment still has legal risk. For PJ /
+  service providers, it is valid today by contractual agreement.
+
+---
+
+## 3. STELLAR TECHNICAL CONTEXT (REAL STATE IN JUNE 2026)
+
+### Relevant protocols
+
+**Protocol 25 "X-Ray" (mainnet: January 22, 2026)**
+- Introduced native host functions for BN254 (the standard elliptic curve of ZK
+  apps) and Poseidon/Poseidon2 (a hash optimized for ZK circuits).
+- Enables efficient zk-SNARK verification in Soroban.
+- Feature parity with Ethereum EIP-196 and EIP-197.
+
+**Protocol 26 "Yardstick" (mainnet: May 6, 2026)**
+- Added 9 new host functions: BN254 MSM, scalar field arithmetic (add, subtract,
+  multiply, power, inverse), and curve membership checks for BLS12-381 and BN254.
+- Moves heavy ZK arithmetic to the host layer, making Noir proof verification
+  significantly cheaper.
+- Lets the SAC (Stellar Asset Contract) create unlimited trustlines for
+  G-accounts.
+
+### ZK on Stellar: what is available and works
+
+**Noir + UltraHonk on Soroban:**
+- Repository: `indextree/ultrahonk_soroban_contract`.
+- Status: Works on localnet with `--limits unlimited`. Optimization for testnet
+  and mainnet is in progress (integration with the Protocol 26 BN254 precompiles
+  will reduce cost significantly).
+- **Real risk:** The UltraHonk verifier can still exceed the budget on testnet
+  without the precompile optimizations. Monitor.
+
+**Groth16 via Circom on Soroban (safer alternative):**
+- Repository: `stellar/soroban-examples/groth16_verifier`.
+- Status: Proven to work on testnet and mainnet.
+- Cost: Lower than UltraHonk (smaller proofs).
+- Tutorial: `jamesbachini.com/circom-on-stellar/`.
+- **Recommendation:** For the hackathon, Groth16 is the safer path if UltraHonk
+  presents budget problems.
+
+**Noir + Groth16 backend (best of both worlds):**
+- Repository: `jamesbachini.com/noir-groth16/`.
+- Write circuits in Noir (more readable), generate Groth16 artifacts, verify in
+  Soroban.
+- End-to-end tutorial available.
+
+### Stablecoins available on Stellar (mainnet, June 2026)
+- **USDC** (Circle): native since 2021, highest volume.
+- **EURC** (Circle): digital euro.
+- **YLDS** (Figure): yield-bearing dollar.
+- **MGUSD** (Bridge/MoneyGram): launched June 2, 2026.
+
+**Recommendation for the project:** USDC. Highest liquidity, highest recognition,
+SAC-level support in Soroban.
+
+### Confirmed development resources
 
 ```
 Stellar SDK JS:     @stellar/stellar-sdk
 Soroban Rust SDK:   soroban-sdk
-Noir:               nargo (linguagem ZK)
-Barretenberg:       bb (backend de provas Noir)
-Verifier Soroban:   indextree/ultrahonk_soroban_contract
-Groth16 Verifier:   stellar/soroban-examples/groth16_verifier
-Explorer testnet:   stellar.expert/explorer/testnet
-Friendbot:          friendbot.stellar.org (faucet testnet)
-RPC testnet:        https://soroban-testnet.stellar.org
+Noir:               nargo (ZK language)
+Barretenberg:       bb (Noir proving backend)
+Soroban verifier:   indextree/ultrahonk_soroban_contract
+Groth16 verifier:   stellar/soroban-examples/groth16_verifier
+Testnet explorer:   stellar.expert/explorer/testnet
+Friendbot:          friendbot.stellar.org (testnet faucet)
+Testnet RPC:        https://soroban-testnet.stellar.org
 ```
 
 ---
 
-## 4. ARQUITETURA DO SISTEMA
+## 4. SYSTEM ARCHITECTURE
 
-### Visão geral das camadas
+### Layer overview
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  CAMADA 5 — DOCUMENTO JURÍDICO                              │
-│  PDF gerado off-chain com trilha completa de prova          │
+│  LAYER 5, LEGAL DOCUMENT                                     │
+│  PDF generated off-chain with a full proof trail            │
 └───────────────────────────┬─────────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────────┐
-│  CAMADA 4 — ZK PROOF (Soroban)                             │
-│  Contrato verifier registra: "pagamento válido ✅"          │
-│  Não revela valor exato — range proof apenas               │
+│  LAYER 4, ZK PROOF (Soroban)                                │
+│  Verifier contract records: "valid payment ✅"               │
+│  Does not reveal the exact amount, range proof only          │
 └───────────────────────────┬─────────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────────┐
-│  CAMADA 3 — PAGAMENTO (Stellar on-chain)                   │
-│  USDC → endereço do prestador                              │
-│  Memo: SHIELDPAY|PAY|CONTRACT:X|REF:Y|USDC:Z              │
+│  LAYER 3, PAYMENT (Stellar on-chain)                        │
+│  USDC to the provider address                               │
+│  Memo: SHIELDPAY|PAY|CONTRACT:X|REF:Y|USDC:Z                │
 └───────────────────────────┬─────────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────────┐
-│  CAMADA 2 — ANCORAGEM DE IDENTIDADE (Stellar on-chain)     │
-│  Prestador assina tx 0 XLM com memo CPF + contrato         │
-│  Vincula endereço ↔ identidade legal                       │
+│  LAYER 2, IDENTITY ANCHOR (Stellar on-chain)                │
+│  Provider signs a 0 XLM tx with a tax id + contract memo    │
+│  Binds address to legal identity                            │
 └───────────────────────────┬─────────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────────┐
-│  CAMADA 1 — CONTRATO (off-chain)                           │
-│  Assinatura digital do contrato de prestação               │
-│  Endereço Stellar declarado pelo prestador                 │
+│  LAYER 1, CONTRACT (off-chain)                              │
+│  Digital signature of the service agreement                 │
+│  Stellar address declared by the provider                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Fluxo completo de um pagamento
+### Full flow of a payment
 
 ```
-1. ONBOARDING DO PRESTADOR
-   Empresa convida prestador → prestador preenche dados (nome, CPF, endereço Stellar)
-   → Sistema gera contrato PDF → ambos assinam digitalmente
-   → Prestador executa "transação de ancoragem" da própria carteira (auto-assinada)
-   → Sistema confirma ancoragem on-chain
+1. PROVIDER ONBOARDING
+   Company invites provider, provider fills in data (name, tax id, Stellar
+   address), the system generates the contract PDF, both sign digitally,
+   the provider runs the "anchor transaction" from their own wallet
+   (self-signed), the system confirms the anchor on-chain.
 
-2. DISPARO DE PAGAMENTO
-   CFO faz upload de CSV [nome, endereço, valor, referência]
-   → Sistema valida endereços ancorados
-   → Sistema gera ZK proof off-chain para cada pagamento
-   → Sistema envia USDC + memo para cada endereço
-   → Sistema submete ZK proof ao Soroban para verificação on-chain
-   → Soroban registra: verified=true, payment_hash, block_number
+2. PAYMENT TRIGGER
+   CFO uploads a CSV [name, address, amount, reference],
+   the system validates anchored addresses,
+   the system generates a ZK proof off-chain for each payment,
+   the system sends USDC + memo to each address,
+   the system submits the ZK proof to Soroban for on-chain verification,
+   Soroban records: verified=true, payment_hash, block_number.
 
-3. GERAÇÃO DE COMPROVANTE
-   Após confirmação on-chain (3-5 segundos na Stellar):
-   → Sistema gera PDF automaticamente por pagamento
-   → PDF inclui: dados do contrato, tx hash ancoragem, tx hash pagamento,
-     resultado ZK proof, QR code verificador, URL explorador
-   → PDF fica disponível no painel da empresa e no portal do prestador
+3. RECEIPT GENERATION
+   After on-chain confirmation (3 to 5 seconds on Stellar):
+   the system generates a PDF automatically per payment,
+   the PDF includes: contract data, anchor tx hash, payment tx hash,
+   ZK proof result, verifier QR code, explorer URL,
+   the PDF is available in the company panel and the provider portal.
 
-4. PORTAL DO PRESTADOR
-   Prestador acessa via Stellar Wallet Auth (assina mensagem com carteira)
-   → Vê histórico de recebimentos
-   → Acessa PDF de cada pagamento
-   → Pode baixar todos os comprovantes para declaração de IR
+4. PROVIDER PORTAL
+   The provider signs in through Stellar Wallet Auth (signs a message with their
+   wallet), sees the payment history, accesses the PDF of each payment, and can
+   download all receipts for tax filing.
 
-5. PORTAL DO AUDITOR
-   Empresa gera link temporário (expira em 30 dias) para auditor/contador
-   → Auditor vê tabela de pagamentos do período selecionado
-   → Vê hashes e resultados ZK verificados
-   → Exporta relatório fiscal em PDF/CSV
-   → NÃO vê saldo atual da empresa, NÃO tem acesso para movimentar fundos
+5. AUDITOR PORTAL
+   The company generates a temporary link (expires in 30 days) for an
+   auditor/accountant, the auditor sees the table of payments for the selected
+   period, sees the verified ZK hashes and results, exports a fiscal report in
+   PDF/CSV. The auditor does NOT see the company's current balance and has NO
+   access to move funds.
 ```
 
-### ZK Circuit: o que precisa provar
+### ZK Circuit: what it needs to prove
 
-**Inputs públicos (visíveis on-chain):**
-- Hash do endereço do destinatário (não o endereço em si)
-- Hash do memo de referência do pagamento
-- Número do bloco Stellar
-- Commitment do valor (não o valor)
+**Public inputs (visible on-chain):**
+- Hash of the recipient address (not the address itself).
+- Hash of the payment reference memo.
+- Stellar block number.
+- Commitment of the amount (not the amount).
 
-**Inputs privados (witness, nunca on-chain):**
-- Valor real do pagamento em USDC
-- Endereço completo do destinatário
-- Chave do range contratual [valor_min, valor_max]
+**Private inputs (witness, never on-chain):**
+- Real payment amount in USDC.
+- Full recipient address.
+- Contractual range key [min_value, max_value].
 
-**O que o circuit prova:**
-1. `valor_pago >= valor_minimo_contratual` (range proof lower bound)
-2. `valor_pago <= valor_maximo_contratual` (range proof upper bound)
-3. `hash(endereco_destinatario) == endereco_hash_publico` (binding)
-4. `hash(valor_pago) == commitment_valor` (commitment opening)
+**What the circuit proves:**
+1. `amount_paid >= contractual_minimum` (range proof lower bound).
+2. `amount_paid <= contractual_maximum` (range proof upper bound).
+3. `hash(recipient_address) == public_address_hash` (binding).
+4. `hash(amount_paid) == amount_commitment` (commitment opening).
 
-**Output:** `proof_valid: bool` registrado no Soroban
+**Output:** `proof_valid: bool` recorded in Soroban.
 
-**Nota técnica:** Para o hackathon, o circuit pode ser simplificado para apenas o range proof básico. A binding do endereço pode ser feita off-chain no MVP e evoluir para on-chain em produção.
+**Technical note:** For the hackathon, the circuit can be simplified to just the
+range proof. The address binding can be done off-chain in the MVP and evolve to
+on-chain in production.
 
 ---
 
-## 5. STACK TECNOLÓGICA
+## 5. TECH STACK
 
-### Frontend (Portais Web)
+### Frontend (Web Portals)
 ```
 Framework:     Next.js 14+ (App Router)
-Linguagem:     TypeScript
+Language:      TypeScript
 Styling:       Tailwind CSS
-Componentes:   shadcn/ui
-Stellar SDK:   @stellar/stellar-sdk (para transações e wallet auth)
-PDF geração:   jsPDF ou react-pdf
-Estado:        Zustand
-Formulários:   react-hook-form + zod
+Components:    shadcn/ui
+Stellar SDK:   @stellar/stellar-sdk (for transactions and wallet auth)
+PDF gen:       jsPDF or react-pdf
+State:         Zustand
+Forms:         react-hook-form + zod
 ```
 
 ### ZK Layer
 ```
-Linguagem circuit:   Noir (preferencial) ou Circom (fallback mais seguro)
-Backend provas:      Barretenberg (bb) para Noir
-Verifier on-chain:   Contrato Soroban (Rust)
-Referência:          indextree/ultrahonk_soroban_contract (Noir/UltraHonk)
+Circuit language:    Noir (preferred) or Circom (safer fallback)
+Proof backend:       Barretenberg (bb) for Noir
+On-chain verifier:   Soroban contract (Rust)
+Reference:           indextree/ultrahonk_soroban_contract (Noir/UltraHonk)
                      stellar/soroban-examples/groth16_verifier (Circom/Groth16)
-Geração de provas:   Off-chain (Node.js script ou WASM no browser)
+Proof generation:    Off-chain (Node.js script or WASM in the browser)
 ```
 
-### Contratos Soroban (Rust)
+### Soroban Contracts (Rust)
 ```
 SDK:           soroban-sdk
-Contratos:
-  - PaymentVerifier: registra e armazena ZK proofs verificadas
-  - AnchorRegistry: registra ancoragens de identidade (endereço ↔ contrato)
+Contracts:
+  - PaymentVerifier: records and stores verified ZK proofs
+  - AnchorRegistry: records identity anchors (address to contract)
 Target:        wasm32v1-none
 Deploy:        stellar contract deploy --network testnet
 ```
 
 ### Backend / Scripts
 ```
-Runtime:       Node.js (TypeScript) ou scripts Rust
-Database:      PostgreSQL (metadados off-chain) ou Supabase para MVP rápido
-Autenticação:  Stellar Wallet Auth (sign message com chave privada da carteira)
+Runtime:       Node.js (TypeScript) or Rust scripts
+Database:      PostgreSQL (off-chain metadata) or Supabase for a fast MVP
+Auth:          Stellar Wallet Auth (sign message with the wallet private key)
 CSV parsing:   papaparse
 ```
 
-### Infraestrutura
+### Infrastructure
 ```
-Deploy frontend:  Vercel
-RPC Stellar:      Soroban RPC testnet → mainnet
-Storage PDFs:     IPFS (hash no contrato) ou S3 para MVP
+Frontend deploy:  Vercel
+Stellar RPC:      Soroban RPC testnet to mainnet
+PDF storage:      IPFS (hash in the contract) or S3 for the MVP
 ```
 
 ---
 
-## 6. ESTRUTURA DE PASTAS DO PROJETO
+## 6. PROJECT FOLDER STRUCTURE
 
 ```
 shieldpay/
-├── CLAUDE.md                    ← este arquivo
-├── README.md                    ← documentação pública do hackathon
+├── CLAUDE.md                    <- this file
+├── README.md                    <- public hackathon documentation
 │
-├── circuits/                    ← ZK circuits
+├── circuits/                    <- ZK circuits
 │   ├── payment_proof/
 │   │   ├── src/
-│   │   │   └── main.nr          ← circuit Noir principal
+│   │   │   └── main.nr          <- main Noir circuit
 │   │   ├── Nargo.toml
-│   │   └── target/              ← artefatos compilados (gitignore)
+│   │   └── target/              <- compiled artifacts (gitignore)
 │   └── scripts/
-│       ├── build_circuits.sh    ← compila e gera VK
-│       └── generate_proof.ts    ← gera proof para um pagamento
+│       ├── build_circuits.sh    <- compiles and generates the VK
+│       └── generate_proof.ts    <- generates a proof for a payment
 │
-├── contracts/                   ← Contratos Soroban (Rust)
+├── contracts/                   <- Soroban contracts (Rust)
 │   ├── payment_verifier/
 │   │   ├── src/
-│   │   │   └── lib.rs           ← contrato verificador de ZK proofs
+│   │   │   └── lib.rs           <- ZK proof verifier contract
 │   │   └── Cargo.toml
 │   ├── anchor_registry/
 │   │   ├── src/
-│   │   │   └── lib.rs           ← contrato de ancoragem identidade
+│   │   │   └── lib.rs           <- identity anchor contract
 │   │   └── Cargo.toml
 │   └── deploy/
-│       ├── deploy.sh            ← script de deploy testnet
-│       └── addresses.json       ← endereços dos contratos deployados
+│       ├── deploy.sh            <- testnet deploy script
+│       └── addresses.json       <- deployed contract addresses
 │
-├── app/                         ← Next.js frontend
-│   ├── (company)/               ← Portal da Empresa (CFO/RH)
+├── app/                         <- Next.js frontend
+│   ├── (company)/               <- Company Portal (CFO/HR)
 │   │   ├── dashboard/
-│   │   ├── employees/           ← gestão de prestadores
-│   │   ├── payroll/             ← disparo de pagamentos
-│   │   └── receipts/            ← histórico e comprovantes
-│   ├── (worker)/                ← Portal do Prestador
+│   │   ├── employees/           <- provider management
+│   │   ├── payroll/             <- payment trigger
+│   │   └── receipts/            <- history and receipts
+│   ├── (worker)/                <- Provider Portal
 │   │   ├── login/
 │   │   ├── payments/
 │   │   └── documents/
-│   ├── (auditor)/               ← Portal do Auditor
-│   │   ├── [token]/             ← acesso via link temporário
+│   ├── (auditor)/               <- Auditor Portal
+│   │   ├── [token]/             <- access through a temporary link
 │   │   └── export/
 │   └── api/
-│       ├── anchor/              ← endpoint de ancoragem
-│       ├── pay/                 ← endpoint de pagamento
-│       ├── proof/               ← endpoint de geração de proof
-│       └── verify/              ← endpoint de verificação
+│       ├── anchor/              <- anchor endpoint
+│       ├── pay/                 <- payment endpoint
+│       ├── proof/               <- proof generation endpoint
+│       └── verify/              <- verification endpoint
 │
 ├── lib/
 │   ├── stellar/
-│   │   ├── client.ts            ← cliente Stellar SDK
-│   │   ├── transactions.ts      ← builders de transações
-│   │   ├── auth.ts              ← wallet authentication
-│   │   └── usdc.ts              ← helpers USDC
+│   │   ├── client.ts            <- Stellar SDK client
+│   │   ├── transactions.ts      <- transaction builders
+│   │   ├── auth.ts              <- wallet authentication
+│   │   └── usdc.ts              <- USDC helpers
 │   ├── zk/
-│   │   ├── prover.ts            ← geração de provas off-chain
-│   │   └── types.ts             ← tipos TypeScript para provas
+│   │   ├── prover.ts            <- off-chain proof generation
+│   │   └── types.ts             <- TypeScript types for proofs
 │   ├── pdf/
-│   │   └── receipt.ts           ← gerador de PDF de comprovante
+│   │   └── receipt.ts           <- receipt PDF generator
 │   └── db/
-│       └── schema.ts            ← schema do banco de dados
+│       └── schema.ts            <- database schema
 │
 ├── scripts/
-│   ├── setup.sh                 ← setup completo do ambiente
-│   ├── test_flow.ts             ← teste do fluxo completo E2E
-│   └── seed.ts                  ← dados de teste
+│   ├── setup.sh                 <- full environment setup
+│   ├── test_flow.ts             <- full end-to-end flow test
+│   └── seed.ts                  <- test data
 │
 └── docs/
-    ├── ARCHITECTURE.md          ← diagrama de arquitetura detalhado
-    ├── LEGAL.md                 ← contexto jurídico completo
-    └── DEMO_SCRIPT.md           ← roteiro do vídeo de demonstração
+    ├── ARCHITECTURE.md          <- detailed architecture diagram
+    ├── LEGAL.md                 <- full legal context
+    └── DEMO_SCRIPT.md           <- demo video script
 ```
 
 ---
 
-## 7. OS TRÊS PORTAIS: ESPECIFICAÇÃO DE UX
+## 7. THE THREE PORTALS: UX SPECIFICATION
 
-### Princípio de design geral
-**Regra de ouro:** A criptografia deve ser invisível. Nenhum termo técnico (ZK proof, Soroban, BN254) aparece na interface do usuário final. Esses termos existem apenas nos documentos de comprovante jurídico onde são necessários.
+### General design principle
+**Golden rule:** Cryptography must be invisible. No technical term (ZK proof,
+Soroban, BN254) appears in the end-user interface. These terms exist only in the
+legal receipt documents where they are needed.
 
-**Estilo visual:** Fintech Premium Tradicional — referências: Stripe Dashboard, Deel, QuickBooks.
+**Visual style:** Traditional Premium Fintech. References: Stripe Dashboard, Deel,
+QuickBooks.
 
-**Paleta:**
-- Fundo / painéis: `#0F172A` (slate-900) e `#1E293B` (slate-800)
-- Texto principal: `#F8FAFC` (slate-50)
-- Ação primária / sucesso: `#10B981` (emerald-500)
-- Aviso: `#F59E0B` (amber-500)
-- Erro: `#EF4444` (red-500)
+**Palette:**
+- Background / panels: `#0F172A` (slate-900) and `#1E293B` (slate-800)
+- Main text: `#F8FAFC` (slate-50)
+- Primary action / success: `#10B981` (emerald-500)
+- Warning: `#F59E0B` (amber-500)
+- Error: `#EF4444` (red-500)
 - Accent: `#6366F1` (indigo-500)
 
-**NÃO usar:** Neon verde, estética hacker/cyberpunk, fundos pretos com texto verde. Isso afasta CFOs.
+**Do NOT use:** Neon green, hacker/cyberpunk aesthetic, black backgrounds with
+green text. That drives CFOs away.
 
 ---
 
-### Portal 1 — Empresa (CFO / RH)
+### Portal 1, Company (CFO / HR)
 
-**Autenticação:** Stellar Wallet Auth — empresa conecta carteira corporativa (Freighter, xBull) e assina mensagem de login. Sem email/senha.
+**Authentication:** Stellar Wallet Auth. The company connects a corporate wallet
+(Freighter, xBull) and signs a login message. No email/password.
 
-**Tela: Dashboard**
+**Screen: Dashboard**
 ```
 ┌─────────────────────────────────────────────────┐
-│ ShieldPay              [Empresa XPTO] [Carteira] │
+│ ShieldPay              [Company XPTO] [Wallet]   │
 ├─────────────────────────────────────────────────┤
 │                                                  │
-│  Balanço Operacional          Pago este mês     │
+│  Operating Balance            Paid this month   │
 │  ┌──────────────────┐         ┌───────────────┐ │
 │  │  $ 12,450 USDC   │         │  $ 8,200 USDC │ │
 │  └──────────────────┘         └───────────────┘ │
 │                                                  │
-│  Prestadores ativos: 12    Pagamentos pendentes: 0 │
+│  Active providers: 12    Pending payments: 0    │
 │                                                  │
-│  [▶ Pagar Folha]  [+ Novo Prestador]            │
+│  [▶ Run Payroll]  [+ New Provider]              │
 │                                                  │
-│  Últimos pagamentos                              │
+│  Latest payments                                 │
 │  ┌──────────────────────────────────────────┐   │
-│  │ João Silva    Mai/2026   $ 500 USDC  ✅  │   │
-│  │ Maria Souza   Mai/2026   $ 750 USDC  ✅  │   │
+│  │ Jane Doe     May/2026   $ 500 USDC   ✅  │   │
+│  │ Alice Smith  May/2026   $ 750 USDC   ✅  │   │
 │  │ ...                                       │   │
 │  └──────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
 ```
 
-**Tela: Pagar Folha**
+**Screen: Run Payroll**
 ```
-1. Upload CSV ou preenchimento manual
-   Formato CSV: nome, endereço_stellar, valor_usdc, referência
-   
-2. Validação automática:
-   ✅ Endereço ancorado (identidade vinculada)
-   ✅ USDC suficiente na carteira
-   ✅ Valor dentro do range contratual
+1. Upload CSV or manual entry
+   CSV format: name, stellar_address, usdc_amount, reference
 
-3. Preview da folha com total
-   "12 pagamentos — Total: $ 8,200 USDC"
-   
-4. Botão [Confirmar e Pagar]
-   → Abre carteira para assinatura
-   → Barra de progresso: "Enviando... Verificando... Registrando prova..."
-   → Tela de sucesso: "12 pagamentos confirmados ✅"
-   → "Comprovantes gerados e disponíveis"
+2. Automatic validation:
+   ✅ Anchored address (identity linked)
+   ✅ Enough USDC in the wallet
+   ✅ Amount within the contractual range
+
+3. Payroll preview with total
+   "12 payments, Total: $ 8,200 USDC"
+
+4. [Confirm and Pay] button
+   Opens the wallet for signature,
+   Progress bar: "Sending... Verifying... Recording proof...",
+   Success screen: "12 payments confirmed ✅",
+   "Receipts generated and available".
 ```
 
-**Tela: Prestador individual**
+**Screen: Individual provider**
 ```
-João Silva — CPF: 123.456.789-00
-Endereço Stellar: GABCDE... [verificado ✅]
-Valor contratual: $450 – $550 USDC/mês
+Jane Doe, tax id: 123.456.789-00
+Stellar address: GABCDE... [verified ✅]
+Contractual amount: $450 to $550 USDC/month
 
-Histórico:
+History:
 ┌────────────────────────────────────────────────┐
-│ Maio/2026    $ 500 USDC    ✅ Verificado       │
-│              [📄 Ver Comprovante] [⚖️ Defesa Jurídica] │
-│ Abril/2026   $ 500 USDC    ✅ Verificado       │
-│              [📄 Ver Comprovante] [⚖️ Defesa Jurídica] │
+│ May/2026     $ 500 USDC    ✅ Verified         │
+│              [📄 View Receipt] [⚖️ Legal Defense] │
+│ April/2026   $ 500 USDC    ✅ Verified         │
+│              [📄 View Receipt] [⚖️ Legal Defense] │
 └────────────────────────────────────────────────┘
 ```
 
-**Botão "⚖️ Defesa Jurídica"** — gera em 1 clique o PDF completo de comprovante judicial com linguagem acessível para tribunal, contendo todos os 5 documentos de prova encadeados.
+**"⚖️ Legal Defense" button:** generates in one click the full court-receipt PDF
+with accessible language for a tribunal, containing all five chained proof
+documents.
 
 ---
 
-### Portal 2 — Prestador / Trabalhador
+### Portal 2, Provider / Worker
 
-**Autenticação:** Stellar Wallet Auth — prestador conecta a mesma carteira cujo endereço foi ancorado. Sistema verifica automaticamente que é o dono do endereço.
+**Authentication:** Stellar Wallet Auth. The provider connects the same wallet
+whose address was anchored. The system automatically verifies they own the
+address.
 
-**Tela: Meus Recebimentos**
+**Screen: My Payments**
 ```
-Olá, João Silva
+Hello, Jane Doe
 
-Último recebimento: $ 500 USDC — Maio/2026 ✅
+Last payment: $ 500 USDC, May/2026 ✅
 
-Seus pagamentos:
+Your payments:
 ┌─────────────────────────────────────────┐
-│ Mai/2026   $ 500 USDC   ✅ Recebido    │
-│            [📄 Comprovante] [📥 Baixar] │
-│ Abr/2026   $ 500 USDC   ✅ Recebido    │
-│            [📄 Comprovante] [📥 Baixar] │
+│ May/2026   $ 500 USDC   ✅ Received     │
+│            [📄 Receipt] [📥 Download]    │
+│ Apr/2026   $ 500 USDC   ✅ Received     │
+│            [📄 Receipt] [📥 Download]    │
 └─────────────────────────────────────────┘
 
-[📦 Baixar todos para IR]
+[📦 Download all for tax filing]
 ```
 
-**Tela: Comprovante individual**
+**Screen: Individual receipt**
 
-Exibe o "holerite digital" formatado com:
-- Empresa pagadora + CNPJ
-- Prestador + CPF
-- Referência do pagamento (mês/ano, objeto do contrato)
-- Status: "Pagamento verificado matematicamente ✅"
-- QR code para validação pública
-- [Baixar PDF]
+Shows the "digital payslip" formatted with:
+- Paying company + tax id
+- Provider + tax id
+- Payment reference (month/year, contract object)
+- Status: "Payment verified mathematically ✅"
+- QR code for public validation
+- [Download PDF]
 
 ---
 
-### Portal 3 — Auditor / Contador
+### Portal 3, Auditor / Accountant
 
-**Acesso:** Link temporário gerado pela empresa com expiração configurável (30/60/90 dias). Sem necessidade de carteira cripto.
+**Access:** Temporary link generated by the company with a configurable expiry
+(30/60/90 days). No crypto wallet needed.
 
-**Tela: Visão do Auditor**
+**Screen: Auditor View**
 ```
-Auditoria — Empresa XPTO Ltda
-Período: Janeiro/2026 – Março/2026
-Gerado em: 15/06/2026 | Expira em: 15/07/2026
+Audit, Company XPTO Ltda
+Period: January/2026 to March/2026
+Generated on: 06/15/2026 | Expires on: 07/15/2026
 
-Resumo do período:
-Total pago: $ 24,600 USDC
-Prestadores: 12
-Pagamentos: 36
+Period summary:
+Total paid: $ 24,600 USDC
+Providers: 12
+Payments: 36
 
-Tabela de transações:
+Transaction table:
 ┌──────────────────────────────────────────────────────────┐
-│ Data       Prestador    Referência   Hash TX    Status   │
-│ 31/01      João S.      Jan/2026     abc123...  ✅ Verif │
-│ 28/02      João S.      Fev/2026     def456...  ✅ Verif │
+│ Date       Provider     Reference    Tx Hash    Status   │
+│ 01/31      Jane D.      Jan/2026     abc123...  ✅ Verif │
+│ 02/28      Jane D.      Feb/2026     def456...  ✅ Verif │
 │ ...                                                       │
 └──────────────────────────────────────────────────────────┘
 
-[📊 Exportar Relatório Fiscal CSV] [📄 Exportar PDF Completo]
+[📊 Export Fiscal Report CSV] [📄 Export Full PDF]
 
-⚠️ Este acesso é somente leitura. Nenhuma operação financeira
-pode ser realizada por este portal.
+⚠️ This access is read-only. No financial operation can be
+performed through this portal.
 ```
 
-**O auditor NÃO vê:** saldo atual da empresa, pagamentos fora do período, informações de outras empresas.
+**The auditor does NOT see:** the company's current balance, payments outside the
+period, information from other companies.
 
 ---
 
-## 8. CONTRATOS SOROBAN: ESPECIFICAÇÃO
+## 8. SOROBAN CONTRACTS: SPECIFICATION
 
-### Contrato 1: `AnchorRegistry`
+### Contract 1: `AnchorRegistry`
 
 ```rust
-// Registra o vínculo entre endereço Stellar e metadados de contrato
-// O prestador chama este contrato ao aceitar o onboarding
+// Records the link between a Stellar address and contract metadata.
+// The provider calls this contract when accepting onboarding.
 
 pub struct AnchorRegistry;
 
 #[contractimpl]
 impl AnchorRegistry {
-    // Prestador registra seu próprio endereço + hash dos metadados do contrato
-    // Só pode ser chamado pela própria conta (self-anchor)
+    // The provider registers their own address + a hash of the contract metadata.
+    // Can only be called by the account itself (self-anchor).
     pub fn anchor(
         env: Env,
-        worker_address: Address,    // endereço do prestador
-        contract_hash: BytesN<32>,  // hash SHA256 do contrato PDF
-        company_address: Address,   // endereço da empresa contratante
+        worker_address: Address,    // provider address
+        contract_hash: BytesN<32>,  // SHA256 hash of the contract PDF
+        company_address: Address,   // hiring company address
         metadata: String,           // "CPF:123|CONTRACT:42|DATE:2026-06-01"
     ) -> Result<(), Error>
 
-    // Verifica se endereço está ancorado para uma empresa específica
+    // Checks whether an address is anchored for a specific company.
     pub fn is_anchored(
         env: Env,
         worker_address: Address,
         company_address: Address,
     ) -> bool
 
-    // Retorna metadados da ancoragem
+    // Returns the anchor metadata.
     pub fn get_anchor(
         env: Env,
         worker_address: Address,
@@ -575,49 +724,49 @@ impl AnchorRegistry {
 pub struct AnchorData {
     contract_hash: BytesN<32>,
     metadata: String,
-    anchored_at_ledger: u32,  // ledger Stellar da ancoragem
+    anchored_at_ledger: u32,  // Stellar ledger of the anchor
     anchored_at_timestamp: u64,
 }
 ```
 
-### Contrato 2: `PaymentVerifier`
+### Contract 2: `PaymentVerifier`
 
 ```rust
-// Registra ZK proofs verificadas de pagamentos
-// A empresa chama este contrato após cada pagamento
+// Records verified ZK proofs of payments.
+// The company calls this contract after each payment.
 
 pub struct PaymentVerifier;
 
 #[contractimpl]
 impl PaymentVerifier {
-    // Inicializa contrato com a verification key do circuit ZK
+    // Initializes the contract with the ZK circuit verification key.
     pub fn initialize(env: Env, vk_bytes: Bytes) -> Result<(), Error>
 
-    // Verifica e registra uma ZK proof de pagamento
-    // Retorna: ID único do registro de prova
+    // Verifies and records a ZK proof of payment.
+    // Returns: unique ID of the proof record.
     pub fn verify_and_record(
         env: Env,
-        company_address: Address,        // empresa pagadora (deve ser caller)
-        worker_address_hash: BytesN<32>, // hash do endereço do prestador
-        payment_tx_hash: BytesN<32>,     // hash da transação Stellar de pagamento
-        value_commitment: BytesN<32>,    // Pedersen commitment do valor
-        proof: Bytes,                    // ZK proof serializada
-        public_inputs: Vec<Val>,         // inputs públicos do circuit
-    ) -> Result<u64, Error>             // retorna proof_id
+        company_address: Address,        // paying company (must be caller)
+        worker_address_hash: BytesN<32>, // hash of the provider address
+        payment_tx_hash: BytesN<32>,     // hash of the Stellar payment tx
+        value_commitment: BytesN<32>,    // Pedersen commitment of the amount
+        proof: Bytes,                    // serialized ZK proof
+        public_inputs: Vec<Val>,         // public inputs of the circuit
+    ) -> Result<u64, Error>             // returns proof_id
 
-    // Verifica se um pagamento específico tem proof registrada
+    // Checks whether a specific payment has a recorded proof.
     pub fn is_verified(
         env: Env,
         payment_tx_hash: BytesN<32>,
     ) -> bool
 
-    // Retorna dados completos de uma proof
+    // Returns the full data of a proof.
     pub fn get_proof_record(
         env: Env,
         proof_id: u64,
     ) -> Option<ProofRecord>
 
-    // Lista proofs de uma empresa em um período
+    // Lists proofs for a company in a period.
     pub fn list_by_company(
         env: Env,
         company_address: Address,
@@ -632,7 +781,7 @@ pub struct ProofRecord {
     worker_address_hash: BytesN<32>,
     payment_tx_hash: BytesN<32>,
     value_commitment: BytesN<32>,
-    verified: bool,               // sempre true se está gravado
+    verified: bool,               // always true if recorded
     verified_at_ledger: u32,
     verified_at_timestamp: u64,
 }
@@ -640,35 +789,35 @@ pub struct ProofRecord {
 
 ---
 
-## 9. ZK CIRCUIT: ESPECIFICAÇÃO (NOIR)
+## 9. ZK CIRCUIT: SPECIFICATION (NOIR)
 
 ```noir
 // circuits/payment_proof/src/main.nr
-// Circuit: prova que um pagamento está dentro do range contratual
+// Circuit: proves that a payment is within the contractual range.
 
-// Inputs privados (witness — nunca revelados on-chain)
+// Private inputs (witness, never revealed on-chain)
 fn main(
-    value: u64,                    // valor real do pagamento em USDC centavos
-    value_randomness: Field,       // randomness para o Pedersen commitment
-    worker_address_bytes: [u8; 32], // endereço Stellar do prestador
-    address_randomness: Field,     // randomness para hash do endereço
-    
-    // Inputs públicos (visíveis on-chain)
-    value_commitment: pub Field,   // Pedersen commitment do valor
-    worker_address_hash: pub Field, // hash do endereço do prestador  
-    min_value: pub u64,            // valor mínimo contratual
-    max_value: pub u64,            // valor máximo contratual
-    payment_tx_hash: pub Field,    // hash da tx Stellar (binding)
+    value: u64,                    // real payment amount in USDC cents
+    value_randomness: Field,       // randomness for the Pedersen commitment
+    worker_address_bytes: [u8; 32], // provider Stellar address
+    address_randomness: Field,     // randomness for the address hash
+
+    // Public inputs (visible on-chain)
+    value_commitment: pub Field,   // Pedersen commitment of the amount
+    worker_address_hash: pub Field, // hash of the provider address
+    min_value: pub u64,            // contractual minimum
+    max_value: pub u64,            // contractual maximum
+    payment_tx_hash: pub Field,    // hash of the Stellar tx (binding)
 ) {
-    // Constraint 1: range proof — valor dentro do range contratual
+    // Constraint 1: range proof, amount within the contractual range
     assert(value >= min_value);
     assert(value <= max_value);
-    
-    // Constraint 2: commitment binding — valor corresponde ao commitment
+
+    // Constraint 2: commitment binding, amount matches the commitment
     let computed_commitment = pedersen_commitment(value as Field, value_randomness);
     assert(computed_commitment == value_commitment);
-    
-    // Constraint 3: address binding — endereço corresponde ao hash público
+
+    // Constraint 3: address binding, address matches the public hash
     let computed_address_hash = poseidon2_hash(
         worker_address_bytes.map(|b| b as Field)
     );
@@ -676,301 +825,347 @@ fn main(
 }
 ```
 
-**Nota de implementação:** Para MVP do hackathon, simplificar para apenas range proof (Constraints 1) e verificar address binding off-chain no backend. Isso reduz complexidade do circuit e risco de problemas com budget Soroban.
+**Implementation note:** For the hackathon MVP, simplify to just the range proof
+(Constraint 1) and verify the address binding off-chain in the backend. This
+reduces circuit complexity and the risk of Soroban budget problems.
 
 ---
 
-## 10. MEMO PROTOCOL: FORMATO PADRONIZADO
+## 10. MEMO PROTOCOL: STANDARD FORMAT
 
-### Transação de Ancoragem (assinada pelo prestador)
+### Anchor transaction (signed by the provider)
 ```
 SHIELDPAY|ANCHOR|v1|{company_stellar_address}|{contract_id}|{cpf_hash}
 ```
-Exemplo:
+Example:
 ```
 SHIELDPAY|ANCHOR|v1|GCOMPANY...|42|a3f2b1...
 ```
-- `cpf_hash`: SHA256 do CPF sem pontuação (privacidade parcial — não expõe CPF mas permite verificação)
-- Máximo 28 bytes no campo memo Stellar — usar memo_hash para strings longas
+- `cpf_hash`: SHA256 of the tax id without punctuation (partial privacy, does not
+  expose the tax id but allows verification).
+- Maximum 28 bytes in the Stellar memo field. Use memo_hash for long strings.
 
-### Transação de Pagamento (enviada pela empresa)
+### Payment transaction (sent by the company)
 ```
 SHIELDPAY|PAY|v1|{contract_id}|{reference}|{proof_id}
 ```
-Exemplo:
+Example:
 ```
-SHIELDPAY|PAY|v1|42|MAI2026|789
+SHIELDPAY|PAY|v1|42|MAY2026|789
 ```
-- `proof_id`: ID retornado pelo contrato PaymentVerifier após verificação da ZK proof
+- `proof_id`: the ID returned by the PaymentVerifier contract after verifying the
+  ZK proof.
 
 ---
 
-## 11. DADOS MOCK PARA DESENVOLVIMENTO E DEMO
+## 11. MOCK DATA FOR DEVELOPMENT AND DEMO
 
-### Empresa de exemplo
+### Example company
 ```
-Nome:           TechStartup Ltda
-CNPJ:           12.345.678/0001-90
-Endereço Stellar: GCOMPANY... (gerar no setup)
-Saldo mock:     15,000 USDC
-```
-
-### Prestadores de exemplo
-```
-Prestador 1:
-  Nome:      João Silva
-  CPF:       123.456.789-00
-  Endereço:  GWORKER1... 
-  Contrato:  $450–$550 USDC/mês
-  Status:    Ancorado ✅
-
-Prestador 2:
-  Nome:      Maria Souza
-  CPF:       987.654.321-00
-  Endereço:  GWORKER2...
-  Contrato:  $700–$800 USDC/mês
-  Status:    Ancorado ✅
-
-Prestador 3:
-  Nome:      Pedro Santos
-  CPF:       111.222.333-44
-  Endereço:  GWORKER3...
-  Contrato:  $300–$400 USDC/mês
-  Status:    Ancorado ✅
+Name:           Acme DAO
+Tax id:         12.345.678/0001-90
+Stellar address: GCOMPANY... (generate in setup)
+Mock balance:   15,000 USDC
 ```
 
-### CSV de exemplo para demo
+### Example providers
+```
+Provider 1:
+  Name:      Jane Doe
+  Tax id:    123.456.789-00
+  Address:   GWORKER1...
+  Contract:  $450 to $550 USDC/month
+  Status:    Anchored ✅
+
+Provider 2:
+  Name:      Alice Smith
+  Tax id:    987.654.321-00
+  Address:   GWORKER2...
+  Contract:  $700 to $800 USDC/month
+  Status:    Anchored ✅
+
+Provider 3:
+  Name:      Bob Johnson
+  Tax id:    111.222.333-44
+  Address:   GWORKER3...
+  Contract:  $300 to $400 USDC/month
+  Status:    Anchored ✅
+```
+
+### Example CSV for the demo
 ```csv
-nome,endereco_stellar,valor_usdc,referencia
-João Silva,GWORKER1...,500.00,MAI2026
-Maria Souza,GWORKER2...,750.00,MAI2026
-Pedro Santos,GWORKER3...,350.00,MAI2026
+name,stellar_address,usdc_amount,reference
+Jane Doe,GWORKER1...,500.00,MAY2026
+Alice Smith,GWORKER2...,750.00,MAY2026
+Bob Johnson,GWORKER3...,350.00,MAY2026
 ```
 
 ---
 
-## 12. ROTEIRO DE DESENVOLVIMENTO (13 DIAS)
+## 12. DEVELOPMENT ROADMAP (13 DAYS)
 
-### Fase 1 — Fundação ZK (Dias 1–3)
-**Objetivo:** Circuit funcionando e verificador deployado na testnet
+### Phase 1, ZK Foundation (Days 1 to 3)
+**Goal:** Working circuit and verifier deployed to testnet.
 
-- [ ] Setup ambiente: Nargo, bb, Rust, stellar-cli, Node.js
-- [ ] Escrever circuit Noir de range proof (versão simplificada para MVP)
-- [ ] Compilar circuit e gerar verification key (VK)
-- [ ] Adaptar `indextree/ultrahonk_soroban_contract` para o VK do projeto
-- [ ] Deploy do verifier na testnet Stellar
-- [ ] Teste E2E: gerar proof off-chain → submeter → verificar on-chain ✅
-- [ ] **Fallback:** Se UltraHonk exceder budget, migrar para Groth16 via Circom
+- [ ] Set up environment: Nargo, bb, Rust, stellar-cli, Node.js.
+- [ ] Write the Noir range proof circuit (simplified version for the MVP).
+- [ ] Compile the circuit and generate the verification key (VK).
+- [ ] Adapt `indextree/ultrahonk_soroban_contract` to the project VK.
+- [ ] Deploy the verifier to Stellar testnet.
+- [ ] End-to-end test: generate proof off-chain, submit, verify on-chain ✅.
+- [ ] **Fallback:** If UltraHonk exceeds the budget, migrate to Groth16 via Circom.
 
-### Fase 2 — Contratos de Negócio (Dias 4–5)
-**Objetivo:** AnchorRegistry e PaymentVerifier deployados e testados
+### Phase 2, Business Contracts (Days 4 to 5)
+**Goal:** AnchorRegistry and PaymentVerifier deployed and tested.
 
-- [ ] Implementar `AnchorRegistry` em Rust/Soroban
-- [ ] Implementar `PaymentVerifier` em Rust/Soroban (wrapper do verifier ZK)
-- [ ] Testes unitários dos contratos
-- [ ] Deploy testnet dos dois contratos
-- [ ] Script de teste: ancoragem → pagamento USDC → proof → registro
+- [ ] Implement `AnchorRegistry` in Rust/Soroban.
+- [ ] Implement `PaymentVerifier` in Rust/Soroban (wrapper of the ZK verifier).
+- [ ] Unit tests for the contracts.
+- [ ] Testnet deploy of both contracts.
+- [ ] Test script: anchor, USDC payment, proof, record.
 
-### Fase 3 — Backend e Integrações (Dias 6–7)
-**Objetivo:** API funcional conectando frontend aos contratos
+### Phase 3, Backend and Integrations (Days 6 to 7)
+**Goal:** Functional API connecting the frontend to the contracts.
 
-- [ ] Endpoint `/api/anchor` — processa ancoragem de prestador
-- [ ] Endpoint `/api/pay` — orquestra pagamento + proof + registro
-- [ ] Endpoint `/api/verify` — consulta status de pagamento
-- [ ] Gerador de proof off-chain (Node.js chamando bb)
-- [ ] Integração Stellar SDK: construção de transações USDC com memo
-- [ ] Database schema + migrations (PostgreSQL ou Supabase)
+- [ ] `/api/anchor` endpoint, processes provider anchoring.
+- [ ] `/api/pay` endpoint, orchestrates payment + proof + record.
+- [ ] `/api/verify` endpoint, queries payment status.
+- [ ] Off-chain proof generator (Node.js calling bb).
+- [ ] Stellar SDK integration: building USDC transactions with a memo.
+- [ ] Database schema + migrations (PostgreSQL or Supabase).
 
-### Fase 4 — Frontend Portal Empresa (Dias 8–9)
-**Objetivo:** Portal CFO funcional para demo
+### Phase 4, Company Portal Frontend (Days 8 to 9)
+**Goal:** Functional CFO portal for the demo.
 
-- [ ] Layout base + sistema de design (Tailwind + shadcn)
-- [ ] Stellar Wallet Auth (Freighter)
-- [ ] Dashboard com saldo e histórico
-- [ ] Upload CSV + validação + preview
-- [ ] Fluxo de pagamento com feedback de progresso
-- [ ] Histórico de pagamentos com status
+- [ ] Base layout + design system (Tailwind + shadcn).
+- [ ] Stellar Wallet Auth (Freighter).
+- [ ] Dashboard with balance and history.
+- [ ] CSV upload + validation + preview.
+- [ ] Payment flow with progress feedback.
+- [ ] Payment history with status.
 
-### Fase 5 — Portais Prestador e Auditor + PDF (Dias 10–11)
-**Objetivo:** Portais secundários + comprovante jurídico
+### Phase 5, Provider and Auditor Portals + PDF (Days 10 to 11)
+**Goal:** Secondary portals + legal receipt.
 
-- [ ] Portal do prestador: login, histórico, download
-- [ ] Portal do auditor: acesso por link, tabela, exportação
-- [ ] Gerador de PDF: comprovante judicial completo
-- [ ] PDF inclui: todos os hashes, resultado ZK, QR code, linguagem para juízes
+- [ ] Provider portal: login, history, download.
+- [ ] Auditor portal: link access, table, export.
+- [ ] PDF generator: full court receipt.
+- [ ] PDF includes: all hashes, ZK result, QR code, language for judges.
 
-### Fase 6 — Demo e Entrega (Dias 12–13)
-**Objetivo:** Projeto pronto para submissão
+### Phase 6, Demo and Delivery (Days 12 to 13)
+**Goal:** Project ready for submission.
 
-- [ ] Teste E2E completo do fluxo: onboarding → pagamento → comprovante → auditoria
-- [ ] README.md completo com setup instructions
-- [ ] Gravação do vídeo de demonstração (2–3 minutos)
-- [ ] Deploy frontend (Vercel)
-- [ ] Submissão no DoraHacks
-
----
-
-## 13. ROTEIRO DO VÍDEO DE DEMONSTRAÇÃO (2–3 MIN)
-
-### Estrutura narrativa
-
-**[0:00–0:20] O problema (gancho emocional)**
-"Sua empresa pagou o prestador. Ele diz que não recebeu. Como você prova em tribunal?"
-
-**[0:20–0:45] O contexto (por que blockchain)**
-Mostrar brevemente: blockchain é imutável, timestamps são irrefutáveis, ZK proofs são verificáveis por qualquer pessoa.
-
-**[0:45–1:30] Demo do fluxo (hero feature)**
-1. CFO faz upload do CSV com 3 prestadores
-2. Sistema mostra preview com validações
-3. CFO clica "Confirmar e Pagar"
-4. Barra de progresso: enviando → provando → verificando
-5. Tela de sucesso: "3 pagamentos verificados ✅"
-
-**[1:30–2:00] A prova jurídica**
-1. Clicar em "⚖️ Defesa Jurídica" para João Silva
-2. PDF abre com trilha completa
-3. Mostrar QR code → link do explorador Stellar → "Verificado on-chain"
-4. "Isso é o que você mostra para o juiz."
-
-**[2:00–2:20] Portal do prestador**
-1. João Silva acessa seu portal
-2. Vê recebimento de Mai/2026 ✅
-3. Baixa comprovante para declaração de IR
-
-**[2:20–2:40] Portal do auditor**
-1. Empresa gera link temporário para contador
-2. Contador vê tabela do trimestre
-3. Exporta CSV/PDF para Receita Federal
-
-**[2:40–3:00] Fechamento**
-"ShieldPay: pagamento em cripto com proteção jurídica real. Construído na Stellar + ZK Proofs."
+- [ ] Full end-to-end test of the flow: onboarding, payment, receipt, audit.
+- [ ] Complete README.md with setup instructions.
+- [ ] Record the demo video (2 to 3 minutes).
+- [ ] Deploy frontend (Vercel).
+- [ ] Submit on DoraHacks.
 
 ---
 
-## 14. DECISÕES TÉCNICAS E TRADE-OFFS DOCUMENTADOS
+## 13. DEMO VIDEO SCRIPT (2 TO 3 MIN)
 
-### Decisão 1: Noir vs Circom para os circuits
+### Narrative structure
 
-**Escolha: Noir (primária) com Circom como fallback**
+**[0:00 to 0:20] The problem (emotional hook)**
+"Your company paid the provider. They claim they did not receive it. How do you
+prove it in court?"
 
-Prós Noir:
-- Sintaxe próxima a Rust — Daniel já tem experiência
-- Circuit mais legível e maintainable
-- Backend UltraHonk disponível para Soroban (indextree)
+**[0:20 to 0:45] The context (why blockchain)**
+Show briefly: the blockchain is immutable, timestamps are irrefutable, ZK proofs
+are verifiable by anyone.
 
-Contras Noir:
-- Provas UltraHonk maiores e potencialmente mais caras
-- Verifier Soroban ainda em estágio de otimização (pode exceder budget)
+**[0:45 to 1:30] Flow demo (hero feature)**
+1. The CFO uploads the CSV with 3 providers.
+2. The system shows a preview with validations.
+3. The CFO clicks "Confirm and Pay".
+4. Progress bar: sending, proving, verifying.
+5. Success screen: "3 payments verified ✅".
 
-Fallback Circom:
-- Groth16 é comprovadamente funcional na Stellar mainnet
-- Provas menores e mais baratas
-- Curva de aprendizado maior para escrever o circuit
+**[1:30 to 2:00] The legal proof**
+1. Click "⚖️ Legal Defense" for Jane Doe.
+2. The PDF opens with the full trail.
+3. Show the QR code, the Stellar explorer link, "Verified on-chain".
+4. "This is what you show the judge."
 
-**Decisão:** Começar com Noir. No Dia 2, fazer teste de budget no testnet. Se `ExceededLimit`, migrar para Circom + Groth16 imediatamente.
+**[2:00 to 2:20] Provider portal**
+1. Jane Doe accesses her portal.
+2. Sees the May/2026 payment ✅.
+3. Downloads the receipt for tax filing.
 
-### Decisão 2: Privacidade — range proof vs valor exato
+**[2:20 to 2:40] Auditor portal**
+1. The company generates a temporary link for the accountant.
+2. The accountant sees the quarter table.
+3. Exports CSV/PDF for the tax authority.
 
-**Escolha: Range proof (valor dentro do range contratual)**
-
-Justificativa: O valor exato de cada contrato fica visível na blockchain mesmo com Stellar. A ZK proof não oculta o valor exato da transação — ela prova que o valor está dentro do range acordado sem revelar exatamente quanto.
-
-**Limitação honesta:** Qualquer pessoa que observe a blockchain vê que `GCOMPANY...` enviou USDC para `GWORKER...`. Não vemos o valor exato via ZK, mas a transação em si é pública.
-
-**O que isso significa para o produto:** A privacidade aqui é de range, não absoluta. O valor comercialmente sensível (ex: "João ganha exatamente $500/mês") fica protegido. O fato de que a empresa pagou o João não.
-
-### Decisão 3: Ancoragem de identidade — on-chain vs off-chain
-
-**Escolha: On-chain via `AnchorRegistry`**
-
-Justificativa: A ancoragem precisa ser imutável e verificável independentemente do sistema ShieldPay. Se o sistema sair do ar, a prova na blockchain continua válida.
-
-**Trade-off:** O CPF não deve ir em texto puro na blockchain. Usar `cpf_hash = SHA256(cpf_sem_pontuacao)`. Isso permite verificação (empresa pode provar que o hash corresponde ao CPF via apresentação em tribunal) sem expor o CPF publicamente.
-
-### Decisão 4: Database off-chain vs tudo on-chain
-
-**Escolha: Híbrido — dados críticos on-chain, metadados off-chain**
-
-On-chain (Soroban): proofs ZK verificadas, registros de ancoragem
-Off-chain (PostgreSQL): dados de prestadores, histórico de pagamentos, PDFs gerados, links de auditores
-
-Justificativa: Custo de storage on-chain na Stellar é real. Metadados que não precisam de imutabilidade ficam off-chain. O que precisa ser verificável e irrefutável fica on-chain.
-
-### Decisão 5: Autenticação sem senha
-
-**Escolha: Stellar Wallet Auth (sign message)**
-
-Fluxo:
-1. Backend gera challenge: `shieldpay_auth_{timestamp}_{nonce}`
-2. Usuário assina com carteira (Freighter para browser)
-3. Backend verifica assinatura com `stellar-sdk.Keypair.verify()`
-4. JWT emitido com 24h de validade
-
-Vantagem: Zero armazenamento de senha. A prova de identidade é a mesma chave que controla os fundos.
+**[2:40 to 3:00] Closing**
+"ShieldPay: crypto payment with real legal protection. Built on Stellar + ZK
+Proofs."
 
 ---
 
-## 15. ERROS COMUNS E COMO EVITAR
+## 14. TECHNICAL DECISIONS AND DOCUMENTED TRADE-OFFS
 
-### Stellar-específicos
+### Decision 1: Noir vs Circom for the circuits
 
-**Memo field limit:** Campo memo Stellar tem limite de 28 bytes (memo_text) ou 32 bytes (memo_hash). O protocolo de memo definido usa hash quando exceder.
+**Choice: Noir (primary) with Circom as a fallback**
 
-**Trustlines USDC:** Contas Stellar precisam estabelecer trustline para USDC antes de receber. O onboarding do prestador deve verificar e instruir sobre isso.
+Noir pros:
+- Syntax close to Rust, the team has experience.
+- More readable and maintainable circuit.
+- UltraHonk backend available for Soroban (indextree).
 
-**Budget Soroban:** `--limits unlimited` só funciona em localnet. Testar SEMPRE no testnet antes de assumir que funciona.
+Noir cons:
+- Larger UltraHonk proofs, potentially more expensive.
+- The Soroban verifier is still being optimized (may exceed the budget).
 
-**Sequence numbers:** Transações Stellar têm sequence number. Em pagamentos batch, construir e assinar todas as transações antes de submeter, ou usar fee bump transactions.
+Circom fallback:
+- Groth16 is proven to work on Stellar mainnet.
+- Smaller and cheaper proofs.
+- Steeper learning curve to write the circuit.
 
-### ZK-específicos
+**Decision:** Start with Noir. On Day 2, run a budget test on testnet. If
+`ExceededLimit`, migrate to Circom + Groth16 immediately.
 
-**Proof format mismatch:** Versões diferentes do Nargo/bb geram proofs em formatos incompatíveis. Fixar versões no início: `nargo v1.0.0-beta.9` e `bb v0.87.0`.
+### Decision 2: Privacy, range proof vs exact amount
 
-**Witness vs public inputs:** Confundir o que é privado e o que é público invalida o modelo de privacidade. Revisar sempre o circuit antes de deploy.
+**Choice: Range proof (amount within the contractual range)**
 
-**VK size:** Verification keys podem ser grandes. Armazenar no contrato no `initialize()` e não passá-la em cada `verify_proof()`.
+Rationale: The exact amount of each contract is visible on the blockchain even
+with Stellar. The ZK proof does not hide the exact transaction amount, it proves
+the amount is within the agreed range without revealing exactly how much.
 
-### Jurídico-específicos
+**Honest limitation:** Anyone watching the blockchain sees that `GCOMPANY...` sent
+USDC to `GWORKER...`. We do not see the exact amount through ZK, but the
+transaction itself is public.
 
-**Não confundir prestador PJ com CLT:** O produto funciona hoje para PJ. Para CLT, precisa do PL 2.324/2026 ou similar ser aprovado. O README deve deixar isso claro.
+**What this means for the product:** Privacy here is range-based, not absolute.
+The commercially sensitive value (for example, "Jane earns exactly $500/month")
+is protected. The fact that the company paid Jane is not.
 
-**PDF não substitui o contrato:** O PDF de comprovante prova o pagamento, mas o contrato de prestação de serviços assinado é que estabelece o acordo. Os dois são necessários para blindagem completa.
+### Decision 3: Identity anchoring, on-chain vs off-chain
+
+**Choice: On-chain through `AnchorRegistry`**
+
+Rationale: The anchor needs to be immutable and verifiable independently of the
+ShieldPay system. If the system goes down, the blockchain proof remains valid.
+
+**Trade-off:** The tax id should not go in plain text on the blockchain. Use
+`cpf_hash = SHA256(tax_id_without_punctuation)`. This allows verification (the
+company can prove the hash matches the tax id by presenting it in court) without
+exposing the tax id publicly.
+
+### Decision 4: Off-chain database vs everything on-chain
+
+**Choice: Hybrid, critical data on-chain, metadata off-chain**
+
+On-chain (Soroban): verified ZK proofs, anchor records.
+Off-chain (PostgreSQL): provider data, payment history, generated PDFs, auditor
+links.
+
+Rationale: On-chain storage cost on Stellar is real. Metadata that does not need
+immutability stays off-chain. What needs to be verifiable and irrefutable stays
+on-chain.
+
+### Decision 5: Passwordless authentication
+
+**Choice: Stellar Wallet Auth (sign message)**
+
+Flow:
+1. Backend generates a challenge: `shieldpay_auth_{timestamp}_{nonce}`.
+2. User signs with their wallet (Freighter for the browser).
+3. Backend verifies the signature with `stellar-sdk.Keypair.verify()`.
+4. JWT issued with 24h validity.
+
+Advantage: Zero password storage. The proof of identity is the same key that
+controls the funds.
 
 ---
 
-## 16. CONTEXTO ADICIONAL: POR QUE A STELLAR É A BLOCKCHAIN CERTA AQUI
+## 15. COMMON ERRORS AND HOW TO AVOID THEM
 
-### Vantagens reais da Stellar para este caso de uso
+### Stellar-specific
 
-**USDC nativo:** Não é USDC bridgeado de outra chain. É USDC emitido diretamente pela Circle na Stellar. Sem risco de bridge. Aceito globalmente.
+**Memo field limit:** The Stellar memo field has a limit of 28 bytes (memo_text)
+or 32 bytes (memo_hash). The defined memo protocol uses a hash when it exceeds
+this.
 
-**Finalidade em 3–5 segundos:** Pagamentos trabalhistas têm caráter urgente. Stellar confirma em segundos, não em minutos ou horas.
+**USDC trustlines:** Stellar accounts need to establish a trustline for USDC
+before receiving it. Provider onboarding should check this and instruct about it.
 
-**Custo por transação:** Frações de centavo por operação. Pagamentos batch de 100 prestadores custam menos de $0.01 total em fees.
+**Soroban budget:** `--limits unlimited` only works on localnet. ALWAYS test on
+testnet before assuming it works.
 
-**Infraestrutura de pagamento real:** Stellar tem MoneyGram (170+ países, 470k locais), Bitso (América Latina), Airtm — o USDC pode ser sacado em BRL via rede de anchors existente.
+**Sequence numbers:** Stellar transactions have a sequence number. In batch
+payments, build and sign all transactions before submitting, or use fee bump
+transactions.
 
-**ZK ready:** Protocol 25 e 26 entregaram as primitivas criptográficas necessárias na camada host. Não estamos workaroundando limitações — estamos usando features desenhadas para isso.
+### ZK-specific
 
-### Fit com o hackathon
+**Proof format mismatch:** Different versions of Nargo/bb generate proofs in
+incompatible formats. Pin versions from the start: `nargo v1.0.0-beta.9` and
+`bb v0.87.0`.
 
-O briefing do hackathon diz explicitamente: "projetos que aplicam ZK a casos de uso práticos são uma combinação perfeita e especialmente bem-vindos."
+**Witness vs public inputs:** Confusing what is private and what is public
+invalidates the privacy model. Always review the circuit before deploy.
 
-ShieldPay usa ZK para resolver um problema que afeta qualquer empresa que pague alguém — não é um experimento acadêmico. É um produto com mercado real, em produção potencial no dia seguinte ao hackathon.
+**VK size:** Verification keys can be large. Store them in the contract in
+`initialize()` and do not pass them in each `verify_proof()`.
+
+### Legal-specific
+
+**Do not confuse a PJ provider with CLT:** The product works today for PJ. For
+CLT, it needs PL 2.324/2026 or similar to be approved. The README should make
+this clear.
+
+**The PDF does not replace the contract:** The receipt PDF proves the payment, but
+the signed service agreement is what establishes the deal. Both are needed for
+full protection.
 
 ---
 
-## 17. REFERÊNCIAS E LINKS ÚTEIS
+## 16. ADDITIONAL CONTEXT: WHY STELLAR IS THE RIGHT BLOCKCHAIN HERE
+
+### Real advantages of Stellar for this use case
+
+**Native USDC:** Not USDC bridged from another chain. It is USDC issued directly
+by Circle on Stellar. No bridge risk. Accepted globally.
+
+**Finality in 3 to 5 seconds:** Labor payments are urgent. Stellar confirms in
+seconds, not minutes or hours.
+
+**Cost per transaction:** Fractions of a cent per operation. Batch payments to 100
+providers cost less than $0.01 in total fees.
+
+**Real payment infrastructure:** Stellar has MoneyGram (170+ countries, 470k
+locations), Bitso (Latin America), Airtm. USDC can be cashed out to local currency
+through the existing anchor network.
+
+**ZK ready:** Protocol 25 and 26 delivered the necessary cryptographic primitives
+at the host layer. We are not working around limitations, we are using features
+designed for this.
+
+### Fit with the hackathon
+
+The hackathon briefing says explicitly: "projects that apply ZK to practical use
+cases are a perfect match and especially welcome."
+
+ShieldPay uses ZK to solve a problem that affects any company that pays anyone. It
+is not an academic experiment. It is a product with a real market, with potential
+production the day after the hackathon.
+
+---
+
+## 17. REFERENCES AND USEFUL LINKS
 
 ### Stellar
-- Docs ZK: https://developers.stellar.org/docs/build/apps/zk
+- ZK docs: https://developers.stellar.org/docs/build/apps/zk
 - Protocol 25: https://stellar.org/blog/developers/announcing-stellar-x-ray-protocol-25
 - Protocol 26: https://stellar.org/blog/foundation-news/stellar-yardstick-protocol-26-upgrade-guide
 - Soroban docs: https://developers.stellar.org/docs/build/smart-contracts/overview
 - Stellar SDK JS: https://stellar.github.io/js-stellar-sdk/
 
-### ZK na Stellar
+### ZK on Stellar
 - UltraHonk Soroban: https://github.com/indextree/ultrahonk_soroban_contract
 - Groth16 Verifier: https://github.com/stellar/soroban-examples/tree/main/groth16_verifier
 - Tutorial Noir+Stellar: https://jamesbachini.com/noir-on-stellar/
@@ -987,35 +1182,35 @@ ShieldPay usa ZK para resolver um problema que afeta qualquer empresa que pague 
 
 ### Hackathon
 - DoraHacks: https://dorahacks.io/hackathon/stellar-hacks-zk/detail
-- Discord Stellar Dev: https://discord.gg/stellardev (canal #zk-chat)
+- Stellar Dev Discord: https://discord.gg/stellardev (channel #zk-chat)
 - Telegram: https://t.me/+e898qibDUVExODkx
 
-### Jurídico (referências)
-- Art. 464 CLT (prova de pagamento): guiatrabalhista.com.br
-- Holerite eletrônico validade: factorialhr.com.br/blog/recibo-de-pagamento-de-salario/
-- PL 2.324/2026 (cripto em salários): livecoins.com.br
+### Legal (references)
+- Art. 464 CLT (proof of payment): guiatrabalhista.com.br
+- Electronic payslip validity: factorialhr.com.br/blog/recibo-de-pagamento-de-salario/
+- PL 2.324/2026 (crypto in salaries): livecoins.com.br
 
 ---
 
-## 18. GLOSSÁRIO PARA O CLAUDE CODE
+## 18. GLOSSARY
 
-Quando eu pedir para implementar algo, use estas definições:
+When asked to implement something, use these definitions:
 
-| Termo | Significado no projeto |
+| Term | Meaning in the project |
 |---|---|
-| Anchor / Ancoragem | Transação on-chain que vincula endereço Stellar a dados de contrato |
-| Company | Empresa contratante (paga os prestadores) |
-| Worker / Prestador | Pessoa física ou PJ que recebe pelo serviço |
-| Auditor | Contador ou fiscal com acesso somente-leitura temporário |
-| PaymentRecord | Registro de um pagamento: tx hash + proof id + metadata |
-| ZK Proof | Prova matemática de que o pagamento está dentro do range contratual |
-| ProofRecord | Registro on-chain no PaymentVerifier de uma ZK proof verificada |
-| Comprovante Judicial | PDF gerado com trilha completa de prova para uso em tribunal |
-| Range Contratual | [min_value, max_value] definido no contrato de prestação |
-| Memo Protocol | Formato padronizado de memo Stellar para transações ShieldPay |
+| Anchor | On-chain transaction that binds a Stellar address to contract data |
+| Company | Hiring company (pays the providers) |
+| Worker / Provider | Person or PJ entity that receives payment for the service |
+| Auditor | Accountant or auditor with temporary read-only access |
+| PaymentRecord | Record of a payment: tx hash + proof id + metadata |
+| ZK Proof | Mathematical proof that the payment is within the contractual range |
+| ProofRecord | On-chain record in the PaymentVerifier of a verified ZK proof |
+| Court Receipt | PDF generated with a full proof trail for use in a tribunal |
+| Contractual Range | [min_value, max_value] defined in the service agreement |
+| Memo Protocol | Standard Stellar memo format for ShieldPay transactions |
 
 ---
 
-*Fim do CLAUDE.md — ShieldPay v1.0*
-*Última atualização: 15 de junho de 2026*
-*Próxima ação: Setup do ambiente e implementação do circuit ZK (Fase 1)*
+*End of CLAUDE.md, ShieldPay v1.0*
+*Last update: June 19, 2026 (translated to English, dev rules added in section 0)*
+*Next action: address the open security findings in `SECURITY_AUDIT.md` (Phase 0).*
