@@ -158,7 +158,7 @@ export function InviteAccept({
       <div>
         <Label htmlFor="cpf">Your legal/tax ID (CPF)</Label>
         <Input id="cpf" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
-        <p className="mt-1 text-xs text-muted">Stored only as a hash — never in plaintext.</p>
+        <p className="mt-1 text-xs text-muted">Stored only as a hash, never in plaintext.</p>
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input
@@ -183,7 +183,7 @@ export function InviteAccept({
         </Button>
       )}
       <p className="text-center text-xs text-muted">
-        A secure Stellar wallet is created for you — no seed phrase. You keep full control; the
+        A secure Stellar wallet is created for you, no seed phrase. You keep full control; the
         organization never holds your keys.
       </p>
       {error && (

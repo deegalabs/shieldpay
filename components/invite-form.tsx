@@ -53,7 +53,7 @@ export function InviteForm() {
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted">
-          Invite created. Send this link to <span className="text-foreground">{f.email}</span> —
+          Invite created. Send this link to <span className="text-foreground">{f.email}</span>,
           they accept, a wallet is created for them, and they anchor their identity.
         </p>
         <div className="flex items-center gap-2">
@@ -63,7 +63,7 @@ export function InviteForm() {
           </Button>
         </div>
         <p className="text-xs text-muted">
-          (Automatic email delivery is coming next — for now, share the link.)
+          (Automatic email delivery is coming next, for now, share the link.)
         </p>
         <Button asChild className="w-full">
           <a href="/contractors">Back to collaborators</a>
@@ -76,7 +76,7 @@ export function InviteForm() {
     <div className="space-y-4">
       <div>
         <Label htmlFor="name">Full name</Label>
-        <Input id="name" value={f.name} onChange={set('name')} placeholder="João Silva" />
+        <Input id="name" value={f.name} onChange={set('name')} placeholder="Jane Doe" />
       </div>
       <div>
         <Label htmlFor="email">Email</Label>
@@ -100,7 +100,7 @@ export function InviteForm() {
         {busy ? 'Creating…' : 'Create invite link'}
       </Button>
       <p className="text-xs text-muted">
-        The ID/CPF and wallet are provided by the collaborator when they accept — you never handle
+        The ID/CPF and wallet are provided by the collaborator when they accept, you never handle
         their keys.
       </p>
     </div>

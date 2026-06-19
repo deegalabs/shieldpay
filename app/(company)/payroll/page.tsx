@@ -60,7 +60,7 @@ export default function PayrollPage() {
     if (built.length === 0) return setError('Add at least one collaborator with an amount.');
     for (const b of built) {
       if (!(b.amountUsdc > 0) || b.amountUsdc < b.minUsdc || b.amountUsdc > b.maxUsdc) {
-        return setError(`${b.workerName}: amount must be within $${b.minUsdc}–$${b.maxUsdc}.`);
+        return setError(`${b.workerName}: amount must be within $${b.minUsdc}-$${b.maxUsdc}.`);
       }
     }
 
@@ -123,7 +123,7 @@ export default function PayrollPage() {
                         <option value="">Choose…</option>
                         {contractors.map((ct) => (
                           <option key={ct.id} value={ct.id}>
-                            {ct.name} (${ct.range_min / 100}–${ct.range_max / 100}){ct.anchored ? ' ✓' : ''}
+                            {ct.name} (${ct.range_min / 100}-${ct.range_max / 100}){ct.anchored ? ' ✓' : ''}
                           </option>
                         ))}
                       </select>

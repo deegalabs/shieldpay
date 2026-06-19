@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Help Center — ShieldPay',
+  title: 'Help Center | ShieldPay',
   description: 'How ShieldPay works, step-by-step guides, glossary, and FAQ.',
 };
 
@@ -42,7 +42,7 @@ export default function HelpPage() {
         </Badge>
         <h1 className="text-4xl font-bold tracking-tight">Everything you need to know</h1>
         <p className="mt-3 text-lg text-muted">
-          ShieldPay pays your team in USDC and keeps the amounts private — provably. Confidential
+          ShieldPay pays your team in USDC and keeps the amounts private, provably. Confidential
           payroll for DAOs and Web3 teams. No crypto knowledge required.
         </p>
 
@@ -59,7 +59,7 @@ export default function HelpPage() {
         <Section id="how" icon={<ShieldCheck size={18} />} title="How ShieldPay works">
           <p>
             When you pay a contributor, ShieldPay does four things automatically. Together they form
-            a chain of evidence that holds up to any audit — while keeping the amount private.
+            a chain of evidence that holds up to any audit, while keeping the amount private.
           </p>
           <ol className="mt-4 space-y-3">
             {CHAIN.map((c, i) => (
@@ -76,7 +76,7 @@ export default function HelpPage() {
           </ol>
           <p className="mt-4 rounded-lg border border-border bg-surface-2/40 p-3 text-sm">
             <strong className="text-foreground">The key idea:</strong> the proof confirms the
-            payment was within the agreed contractual range — <em>without revealing the exact
+            payment was within the agreed contractual range, <em>without revealing the exact
             amount</em>. The salary stays private; the fact that you paid correctly is public and
             verifiable.
           </p>
@@ -106,7 +106,7 @@ export default function HelpPage() {
         {/* Receipt */}
         <Section id="receipt" icon={<FileCheck size={18} />} title="Understanding your receipt">
           <p>
-            Each payment generates a one-page PDF — the “Payment Proof”. It is written in plain
+            Each payment generates a one-page PDF, the “Payment Proof”. It is written in plain
             language a non-technical reader (an auditor, an accountant) can understand, and it contains:
           </p>
           <ul className="mt-3 space-y-1.5 text-sm text-muted">
@@ -116,7 +116,7 @@ export default function HelpPage() {
             <li>• A QR code that opens the public blockchain explorer to re-verify it instantly.</li>
           </ul>
           <p className="mt-3 text-sm">
-            Anyone can scan the QR or open the explorer link to confirm the proof independently —
+            Anyone can scan the QR or open the explorer link to confirm the proof independently,
             they don’t have to trust ShieldPay or the company.
           </p>
         </Section>
@@ -147,7 +147,7 @@ export default function HelpPage() {
 
         <Card className="mt-12 p-8 text-center">
           <h2 className="text-2xl font-bold">Ready to try it?</h2>
-          <p className="mx-auto mt-2 max-w-md text-muted">Set up your company in minutes — no wallet or seed phrase needed.</p>
+          <p className="mx-auto mt-2 max-w-md text-muted">Set up your company in minutes, no wallet or seed phrase needed.</p>
           <Button asChild size="lg" className="mt-5">
             <Link href="/login">
               Get started <ArrowRight size={16} />
@@ -194,10 +194,10 @@ const JUMP = [
 ];
 
 const CHAIN = [
-  { title: 'Identity anchor', body: 'The contributor’s identity is linked to their payment address on-chain, so a payment can be tied to a real recipient — useful for compliance and audits.' },
-  { title: 'Confidential settlement', body: 'A real, recipient-visible transaction is posted on Stellar with a structured, timestamped memo — without the exact amount in the clear.' },
+  { title: 'Identity anchor', body: 'The contributor’s identity is linked to their payment address on-chain, so a payment can be tied to a real recipient | useful for compliance and audits.' },
+  { title: 'Confidential settlement', body: 'A real, recipient-visible transaction is posted on Stellar with a structured, timestamped memo | without the exact amount in the clear.' },
   { title: 'Zero-knowledge proof', body: 'A mathematical proof that the amount was within the agreed range is generated and verified inside a Stellar smart contract.' },
-  { title: 'Verifiable receipt', body: 'A plain-language PDF bundles everything, with a QR code anyone can use to re-verify it — and a viewing key can disclose the exact amount to an authorized auditor.' },
+  { title: 'Verifiable receipt', body: 'A plain-language PDF bundles everything, with a QR code anyone can use to re-verify it | and a viewing key can disclose the exact amount to an authorized auditor.' },
 ];
 
 const GUIDES = [
@@ -207,7 +207,7 @@ const GUIDES = [
     steps: [
       'Sign in and set up your organization (name and type).',
       'Invite contributors; they accept and a wallet is created for them.',
-      'Open “Run payroll”, add your team, confirm — each amount stays private.',
+      'Open “Run payroll”, add your team, confirm, each amount stays private.',
       'Share a read-only or a viewing-key audit link.',
     ],
   },
@@ -215,7 +215,7 @@ const GUIDES = [
     icon: <User size={16} className="text-brand" />,
     title: 'For contributors',
     steps: [
-      'Sign in with email, Google, or a passkey — no seed phrase.',
+      'Sign in with email, Google, or a passkey, no seed phrase.',
       'See each payment you received, marked “verified”.',
       'Open the recipient-visible settlement, or download the receipt PDF.',
     ],
@@ -234,18 +234,18 @@ const GUIDES = [
 const GLOSSARY = [
   { term: 'USDC', def: 'A digital dollar (stablecoin). 1 USDC ≈ 1 US dollar. It’s what gets paid to the contractor.' },
   { term: 'Stellar', def: 'A fast, low-cost public payment network. Transfers settle in seconds for fractions of a cent.' },
-  { term: 'On-chain', def: 'Recorded on the public blockchain — permanent, timestamped, and verifiable by anyone.' },
+  { term: 'On-chain', def: 'Recorded on the public blockchain, permanent, timestamped, and verifiable by anyone.' },
   { term: 'Zero-knowledge proof', def: 'A way to prove a statement is true (e.g. “the amount is within range”) without revealing the underlying data (the exact amount).' },
   { term: 'Range proof', def: 'The specific proof ShieldPay uses: it shows the payment was between the agreed minimum and maximum, keeping the figure private.' },
-  { term: 'Identity anchor', def: 'A record linking a contributor’s identity to their payment address on-chain — useful for compliance and audits.' },
-  { term: 'Viewing key', def: 'A secret the company holds. It lets an authorized auditor reveal and re-verify exact amounts against the on-chain commitments — without making them public.' },
-  { term: 'Smart contract (Soroban)', def: 'A small program on Stellar that checks the proof and records the result — no company can fake it.' },
+  { term: 'Identity anchor', def: 'A record linking a contributor’s identity to their payment address on-chain, useful for compliance and audits.' },
+  { term: 'Viewing key', def: 'A secret the company holds. It lets an authorized auditor reveal and re-verify exact amounts against the on-chain commitments, without making them public.' },
+  { term: 'Smart contract (Soroban)', def: 'A small program on Stellar that checks the proof and records the result, no company can fake it.' },
 ];
 
 const FAQ = [
   { q: 'Do I need a crypto wallet or seed phrase?', a: 'No. You sign in with email, Google, or a passkey. A secure account is created for you behind the scenes.' },
-  { q: 'Is the exact salary public?', a: 'No. Only the agreed range is public. The exact amount never leaves the server and is not stored — that’s the whole point of the zero-knowledge proof.' },
-  { q: 'How does an auditor verify a receipt?', a: 'They scan the QR code or open the explorer link in the PDF. The Stellar network confirms the proof independently — no need to trust the company. With a viewing-key link, they can also reveal and re-verify the exact amounts.' },
-  { q: 'Can someone reveal the exact amount?', a: 'Only with the company’s viewing key. The company can issue a viewing-key audit link that reveals exact amounts to an authorized auditor and re-derives the same commitment the chain verified — so the figure is provably the real one, without ever being public.' },
+  { q: 'Is the exact salary public?', a: 'No. Only the agreed range is public. The exact amount never leaves the server and is not stored, that’s the whole point of the zero-knowledge proof.' },
+  { q: 'How does an auditor verify a receipt?', a: 'They scan the QR code or open the explorer link in the PDF. The Stellar network confirms the proof independently, no need to trust the company. With a viewing-key link, they can also reveal and re-verify the exact amounts.' },
+  { q: 'Can someone reveal the exact amount?', a: 'Only with the company’s viewing key. The company can issue a viewing-key audit link that reveals exact amounts to an authorized auditor and re-derives the same commitment the chain verified, so the figure is provably the real one, without ever being public.' },
   { q: 'What happens if ShieldPay goes away?', a: 'The proofs and settlements live on the public Stellar blockchain, independently of ShieldPay. They remain verifiable.' },
 ];

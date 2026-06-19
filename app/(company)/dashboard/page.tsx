@@ -125,7 +125,7 @@ export default async function CompanyDashboard() {
                   <p className="text-xs text-muted">{p.reference}</p>
                 </div>
                 <span className="text-sm text-muted">
-                  ${p.range_min / 100}–${p.range_max / 100} USDC
+                  ${p.range_min / 100}-${p.range_max / 100} USDC
                 </span>
                 <Badge variant="success">
                   <ShieldCheck size={12} /> Verified

@@ -58,7 +58,7 @@ export default function HomePage() {
         <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted">
           Confidential payroll for DAOs and Web3 teams. ShieldPay pays contributors in native USDC
           on Stellar with a real on-chain settlement, while a zero-knowledge proof keeps each
-          amount private — and lets you disclose it selectively to an auditor under a viewing key.
+          amount private, and lets you disclose it selectively to an auditor under a viewing key.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
@@ -118,7 +118,7 @@ export default function HomePage() {
             <p className="mt-4 text-muted">
               On a transparent chain, a normal transfer reveals the amount. ShieldPay keeps each
               amount as a commitment plus a range proof, and lets you reveal it only to an
-              authorized auditor under a viewing key — who re-derives the same commitment the
+              authorized auditor under a viewing key, who re-derives the same commitment the
               Stellar contract verified, so the disclosed figure is provably the one on-chain.
             </p>
             <ul className="mt-6 space-y-2 text-sm">
@@ -131,17 +131,17 @@ export default function HomePage() {
           </div>
           <Card className="p-6">
             <div className="flex items-center gap-2 text-sm text-muted">
-              <FileCheck size={16} /> Payment Proof — May/2026
+              <FileCheck size={16} /> Payment Proof, May/2026
             </div>
             <div className="mt-4 space-y-2 text-sm">
               <Row k="Payer" v="Acme DAO" />
-              <Row k="Recipient" v="0xJoão · GARR…PUKK" />
-              <Row k="Proven range" v="$450 – $550 USDC" />
+              <Row k="Recipient" v="Jane · GARR…PUKK" />
+              <Row k="Proven range" v="$450 to $550 USDC" />
               <Row k="Exact amount" v="Private 🔒" />
               <Row k="Status" v="Verified on-chain" verified />
             </div>
             <div className="mt-5 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted">
-              Mathematically verified by the Stellar network. The exact amount stays private —
+              Mathematically verified by the Stellar network. The exact amount stays private,
               revealed only to an auditor you authorize with a viewing key.
             </div>
           </Card>
@@ -180,19 +180,19 @@ function Row({ k, v, verified }: { k: string; v: string; verified?: boolean }) {
 }
 
 const FEATURES = [
-  { icon: <Globe size={20} />, title: 'Global USDC payouts', body: 'Pay contributors anywhere in native USDC on Stellar. Settles in 3–5 seconds, fractions of a cent in fees.' },
-  { icon: <Lock size={20} />, title: 'Private by default', body: 'Every payment carries a zero-knowledge proof — the public sees only the agreed range, never the exact amount.' },
-  { icon: <KeyRound size={20} />, title: 'Selective disclosure', body: 'Hand an auditor a viewing key to reveal and re-verify exact amounts against the on-chain commitments — without ever making them public.' },
+  { icon: <Globe size={20} />, title: 'Global USDC payouts', body: 'Pay contributors anywhere in native USDC on Stellar. Settles in 3-5 seconds, fractions of a cent in fees.' },
+  { icon: <Lock size={20} />, title: 'Private by default', body: 'Every payment carries a zero-knowledge proof | the public sees only the agreed range, never the exact amount.' },
+  { icon: <KeyRound size={20} />, title: 'Selective disclosure', body: 'Hand an auditor a viewing key to reveal and re-verify exact amounts against the on-chain commitments | without ever making them public.' },
 ];
 
 const STEPS = [
   { title: 'Run payroll', body: 'Pay your whole team in one confidential run, each within their agreed range.' },
-  { title: 'Prove & settle on-chain', body: 'A zero-knowledge proof is verified inside a Stellar smart contract, and a real, recipient-visible settlement is posted — without the amount.' },
+  { title: 'Prove & settle on-chain', body: 'A zero-knowledge proof is verified inside a Stellar smart contract, and a real, recipient-visible settlement is posted | without the amount.' },
   { title: 'Disclose on your terms', body: 'Share a read-only audit link, or a viewing-key link that reveals and re-verifies amounts for an authorized auditor.' },
 ];
 
 const DISCLOSURE = [
-  'Exact amounts never public — only the agreed range is on-chain',
+  'Exact amounts never public, only the agreed range is on-chain',
   'Real, recipient-visible settlement, bound to the proof',
   'Viewing key reveals & re-verifies amounts for an auditor',
   'Reconciled run total, provable to a third party',

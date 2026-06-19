@@ -65,7 +65,7 @@ export default async function InvitePage({ params }: { params: { token: string }
             <p className="mt-1 flex items-center gap-2">
               <span className="text-muted">Agreed range:</span>
               <Badge variant="brand">
-                ${invite!.range_min / 100}–${invite!.range_max / 100} USDC/mo
+                ${invite!.range_min / 100}-${invite!.range_max / 100} USDC/mo
               </Badge>
             </p>
           </div>

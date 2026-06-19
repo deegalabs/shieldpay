@@ -33,13 +33,13 @@ export const USDC = {
  * authenticated company account; for the hackathon it is fixed demo data.
  */
 export const COMPANY = {
-  name: 'TechStartup Ltda',
+  name: 'Acme DAO',
   cnpj: '12.345.678/0001-90',
 } as const;
 
 /** Demo worker used by the one-click demo login and the payroll form default. */
 export const DEMO_WORKER = {
-  name: 'João Silva',
+  name: 'Jane Doe',
   address: 'GWORKER1EXAMPLEADDRESSDONOTUSE000000000000000000000000000',
 } as const;
 

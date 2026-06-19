@@ -59,12 +59,12 @@ export default async function ContractorsPage() {
                   <Link href={`/contractors/${c.id}`} className="min-w-[10rem] hover:underline">
                     <p className="font-medium">{c.name}</p>
                     <p className="font-mono text-xs text-muted">
-                      {c.stellar_address ? truncateKey(c.stellar_address, 6, 4) : '—'}
+                      {c.stellar_address ? truncateKey(c.stellar_address, 6, 4) : '-'}
                     </p>
                   </Link>
                 )}
                 <span className="text-sm text-muted">
-                  ${c.range_min / 100}–${c.range_max / 100} USDC/mo
+                  ${c.range_min / 100}-${c.range_max / 100} USDC/mo
                 </span>
                 {invited ? (
                   <Badge variant="warning"><Clock size={12} /> Invited</Badge>

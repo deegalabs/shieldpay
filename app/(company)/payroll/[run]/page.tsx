@@ -51,7 +51,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
         </div>
         <p className="mt-4 flex items-center gap-1.5 rounded-lg border border-border bg-surface-2/40 p-3 text-xs text-muted">
           <Lock size={12} /> Each payment posts a real, recipient-visible on-chain settlement; the
-          exact amount stays private (committed, never in clear). The total above is yours — an
+          exact amount stays private (committed, never in clear). The total above is yours, an
           authorized auditor can verify it and each amount without it ever being public.
         </p>
       </Card>
@@ -65,7 +65,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
                 <p className="font-medium">{p.worker_name}</p>
                 <p className="text-xs text-muted">amount: private</p>
               </div>
-              <span className="text-sm text-muted">range ${p.range_min / 100}–${p.range_max / 100}</span>
+              <span className="text-sm text-muted">range ${p.range_min / 100}-${p.range_max / 100}</span>
               <Badge variant="success"><ShieldCheck size={12} /> Verified</Badge>
               <div className="flex gap-3 text-sm">
                 {p.settlement_tx_hash && (

@@ -76,7 +76,7 @@ export function ContractorForm({
     <div className="space-y-4">
       <div>
         <Label htmlFor="name">Full name</Label>
-        <Input id="name" value={f.name} onChange={set('name')} placeholder="João Silva" />
+        <Input id="name" value={f.name} onChange={set('name')} placeholder="Jane Doe" />
       </div>
       <div>
         <Label htmlFor="addr">Stellar address</Label>

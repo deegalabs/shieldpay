@@ -164,11 +164,11 @@ export default async function AuditorView({ params }: { params: { token: string 
                             )}
                           </span>
                         ) : (
-                          <span className="text-muted">—</span>
+                          <span className="text-muted">-</span>
                         )}
                       </td>
                     ) : null}
-                    <td className="px-5 py-3">${p.range_min / 100}–${p.range_max / 100}</td>
+                    <td className="px-5 py-3">${p.range_min / 100}-${p.range_max / 100}</td>
                     <td className="px-5 py-3">
                       <a className="inline-flex items-center gap-1 font-mono text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                         {truncateKey(p.tx_hash, 6, 4)} <ArrowUpRight size={12} />
@@ -205,7 +205,7 @@ export default async function AuditorView({ params }: { params: { token: string 
         )}
         <InfoHint>
           Each payment carries a proof, verified by a Stellar smart contract, that the amount fell
-          within the agreed range — provable to a third party without disclosing the figure. A
+          within the agreed range, provable to a third party without disclosing the figure. A
           viewing-key link additionally reveals the exact amount and re-derives the same commitment
           the contract checked, so the disclosed figure is cryptographically tied to the chain.
         </InfoHint>

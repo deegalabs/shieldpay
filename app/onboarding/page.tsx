@@ -46,8 +46,8 @@ export default async function OnboardingPage() {
         <p className="mb-3 text-sm font-medium text-muted">What happens next</p>
         <ol className="space-y-3">
           <Step done icon={<Check size={15} />} title="Set up your organization" body="Your workspace and receipt details." />
-          <Step icon={<Send size={15} />} title="Run your first payroll" body="Pay your team and prove it on-chain — amounts stay private." />
-          <Step icon={<FileCheck size={15} />} title="Get the verifiable receipt" body="A private, re-verifiable PDF — exact amount disclosed only under a viewing key." />
+          <Step icon={<Send size={15} />} title="Run your first payroll" body="Pay your team and prove it on-chain, amounts stay private." />
+          <Step icon={<FileCheck size={15} />} title="Get the verifiable receipt" body="A private, re-verifiable PDF, exact amount disclosed only under a viewing key." />
         </ol>
       </div>
     </div>

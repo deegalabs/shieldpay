@@ -7,7 +7,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'ShieldPay — Payroll & Payment Proof on Stellar',
+  title: 'ShieldPay | Payroll & Payment Proof on Stellar',
   description:
     'Pay anyone in the world. Prove mathematically that you paid. Protect your company forever.',
 };

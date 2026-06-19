@@ -48,7 +48,7 @@ export default async function WorkerPayments() {
                 <div>
                   <p className="font-medium">{p.reference}</p>
                   <p className="text-sm text-muted">
-                    ${p.range_min / 100}–${p.range_max / 100} USDC
+                    ${p.range_min / 100}-${p.range_max / 100} USDC
                   </p>
                 </div>
                 <span className="inline-flex items-center gap-1">
@@ -57,7 +57,7 @@ export default async function WorkerPayments() {
                   </Badge>
                   <InfoHint>
                     A mathematical proof, checked inside a Stellar smart contract, confirms this
-                    payment was within your agreed range — without revealing the exact amount.
+                    payment was within your agreed range, without revealing the exact amount.
                   </InfoHint>
                 </span>
                 <div className="flex gap-2">

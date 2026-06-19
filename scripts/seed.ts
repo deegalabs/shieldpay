@@ -15,12 +15,12 @@ interface DemoWorker {
   contract: { min: number; max: number }; // USDC cents
 }
 
-const COMPANY = { name: 'TechStartup Ltda', cnpj: '12.345.678/0001-90' };
+const COMPANY = { name: 'Acme DAO', cnpj: '12.345.678/0001-90' };
 
 const WORKERS: DemoWorker[] = [
-  { name: 'João Silva', cpf: '123.456.789-00', contract: { min: 45000, max: 55000 } },
-  { name: 'Maria Souza', cpf: '987.654.321-00', contract: { min: 70000, max: 80000 } },
-  { name: 'Pedro Santos', cpf: '111.222.333-44', contract: { min: 30000, max: 40000 } },
+  { name: 'Jane Doe', cpf: '123.456.789-00', contract: { min: 45000, max: 55000 } },
+  { name: 'Alice Smith', cpf: '987.654.321-00', contract: { min: 70000, max: 80000 } },
+  { name: 'Bob Johnson', cpf: '111.222.333-44', contract: { min: 30000, max: 40000 } },
 ];
 
 async function main() {
@@ -43,7 +43,7 @@ async function main() {
     console.log('  address: ', kp.publicKey);
     console.log('  secret:  ', kp.secret);
     console.log('  cpf_hash:', hashCpf(w.cpf));
-    console.log(`  range:   $${w.contract.min / 100} – $${w.contract.max / 100} USDC`);
+    console.log(`  range:   $${w.contract.min / 100} to $${w.contract.max / 100} USDC`);
   }
 
   console.log('\nTip: re-run with --fund to fund all accounts on testnet via friendbot.\n');

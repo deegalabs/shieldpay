@@ -22,7 +22,7 @@ export default async function ReceiptsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Receipts</h1>
         <p className="text-sm text-muted">
-          Verifiable payment proofs. Each PDF binds the payment to an on-chain, re-verifiable proof — the exact amount stays private.
+          Verifiable payment proofs. Each PDF binds the payment to an on-chain, re-verifiable proof, the exact amount stays private.
         </p>
       </div>
 
@@ -44,7 +44,7 @@ export default async function ReceiptsPage() {
                     {p.worker_name} · {p.reference}
                   </p>
                   <p className="text-xs text-muted">
-                    ${p.range_min / 100}–${p.range_max / 100} USDC ·{' '}
+                    ${p.range_min / 100}-${p.range_max / 100} USDC ·{' '}
                     {new Date(p.created_at).toLocaleDateString('en-GB')}
                   </p>
                 </div>

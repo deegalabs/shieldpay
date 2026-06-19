@@ -12,7 +12,7 @@ export default function NewContractorPage() {
       <h1 className="text-2xl font-bold">Invite a collaborator</h1>
       <p className="mt-1 text-sm text-muted">
         Set their name and agreed range. They accept the invite, connect their own wallet, and
-        confirm their identity — you never handle their keys.
+        confirm their identity, you never handle their keys.
       </p>
       <Card className="mt-6 p-6">
         <InviteForm />

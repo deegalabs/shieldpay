@@ -95,7 +95,7 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
           {mode === 'signup' && role === 'worker' && (
             <p className="mt-2 rounded-lg border border-border bg-surface-2/40 p-2.5 text-xs text-muted">
               Contractors join through an <span className="text-foreground">invite link</span> from
-              their organization. Ask them to invite you — or sign in if you already accepted.
+              their organization. Ask them to invite you, or sign in if you already accepted.
             </p>
           )}
         </div>
