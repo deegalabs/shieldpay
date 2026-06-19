@@ -2,71 +2,73 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/lib/auth/session';
 
 /**
- * Route protection (MVP).
- *   public:   /, /login, /api/health, /api/auth/*, static
- *   token:    /audit/*, /api/audit/* , /api/receipt  (validated downstream)
- *   company:  /dashboard, /payroll, /api/payroll
- *   any session: /payments
+ * Route protection.
+ *
+ * API routes are default-deny: a route must be explicitly listed as public or
+ * company-scoped, otherwise it is rejected. This keeps any unlisted or legacy
+ * endpoint from being reachable without auth.
+ *
+ * Pages: the company and worker areas require the matching session; everything
+ * else (landing, login, help, public invite and audit links) is open.
  */
-function isCompanyPath(p: string) {
-  return (
-    p.startsWith('/dashboard') ||
-    p.startsWith('/payroll') ||
-    p.startsWith('/contractors') ||
-    p.startsWith('/receipts') ||
-    p.startsWith('/settings') ||
-    p.startsWith('/onboarding') ||
-    p.startsWith('/api/payroll') ||
-    p.startsWith('/api/contractors') ||
-    p.startsWith('/api/company')
-  );
+
+// API routes that authorize themselves: public login and health, or handlers
+// that validate their own scoped token or session ownership downstream.
+const PUBLIC_API = [
+  '/api/health',
+  '/api/auth', // login, logout, demo, privy; company-only ones self-check the role
+  '/api/audit', // validated by the audit token downstream
+  '/api/receipt', // validated by session ownership or audit token downstream
+  '/api/invite', // public onboarding, validated by the invite token downstream
+];
+
+// API routes that require a company session.
+const COMPANY_API = ['/api/company', '/api/contractors', '/api/payroll'];
+
+const COMPANY_PAGES = [
+  '/dashboard',
+  '/payroll',
+  '/contractors',
+  '/receipts',
+  '/settings',
+  '/onboarding',
+];
+const WORKER_PAGES = ['/payments'];
+
+function matches(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
-function isWorkerPath(p: string) {
-  return p.startsWith('/payments');
+
+function loginRedirect(req: NextRequest, pathname: string): NextResponse {
+  const url = req.nextUrl.clone();
+  url.pathname = '/login';
+  url.searchParams.set('next', pathname);
+  return NextResponse.redirect(url);
 }
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Public + token-gated-downstream + auth endpoints pass straight through.
-  if (
-    pathname === '/' ||
-    pathname === '/login' ||
-    pathname.startsWith('/api/auth') ||
-    pathname.startsWith('/api/health') ||
-    pathname.startsWith('/audit') ||
-    pathname.startsWith('/api/audit') ||
-    pathname.startsWith('/api/receipt')
-  ) {
-    return NextResponse.next();
+  // API: default-deny.
+  if (pathname.startsWith('/api')) {
+    if (matches(pathname, PUBLIC_API)) return NextResponse.next();
+    if (matches(pathname, COMPANY_API)) {
+      const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+      if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+      if (session.role !== 'company') return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+      return NextResponse.next();
+    }
+    return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
 
-  if (!isCompanyPath(pathname) && !isWorkerPath(pathname)) {
-    return NextResponse.next();
-  }
+  // Pages.
+  const isCompanyPage = matches(pathname, COMPANY_PAGES);
+  const isWorkerPage = matches(pathname, WORKER_PAGES);
+  if (!isCompanyPage && !isWorkerPage) return NextResponse.next();
 
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
-
-  if (!session) {
-    if (pathname.startsWith('/api')) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
-  }
-
-  if (isCompanyPath(pathname) && session.role !== 'company') {
-    if (pathname.startsWith('/api')) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-    }
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
-  }
-
+  if (!session) return loginRedirect(req, pathname);
+  if (isCompanyPage && session.role !== 'company') return loginRedirect(req, pathname);
   return NextResponse.next();
 }
 
