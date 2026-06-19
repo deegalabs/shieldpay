@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listPayments, listPaymentsForCompany, type PaymentRow } from '@/lib/db/client';
+import {
+  listPayments,
+  listPaymentsForCompany,
+  ensureCompanyViewingKey,
+  type PaymentRow,
+} from '@/lib/db/client';
 import { verifyScopedToken } from '@/lib/auth/session';
 import { disclosePayments } from '@/lib/payments/disclose';
 import { EXPLORER_BASE } from '@/lib/constants';
@@ -10,7 +15,6 @@ export const dynamic = 'force-dynamic';
 interface AuditClaims {
   scope: string;
   companyId?: string;
-  vk?: string;
   disclose?: boolean;
 }
 
@@ -47,8 +51,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'database unavailable' }, { status: 503 });
   }
 
-  const disclose = Boolean(claims.disclose && claims.vk);
-  const disclosed = disclose && claims.vk ? await disclosePayments(claims.vk, payments) : new Map();
+  // The viewing key is resolved server-side from the company, never carried in
+  // the token.
+  const disclose = Boolean(claims.disclose && claims.companyId);
+  let disclosed = new Map();
+  if (disclose && claims.companyId) {
+    const vk = await ensureCompanyViewingKey(claims.companyId);
+    disclosed = await disclosePayments(vk, payments);
+  }
 
   const cols = [
     'date',

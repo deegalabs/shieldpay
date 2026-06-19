@@ -1,5 +1,10 @@
 import { ShieldCheck, Download, ArrowUpRight, Lock, KeyRound, AlertTriangle } from 'lucide-react';
-import { listPayments, listPaymentsForCompany, type PaymentRow } from '@/lib/db/client';
+import {
+  listPayments,
+  listPaymentsForCompany,
+  ensureCompanyViewingKey,
+  type PaymentRow,
+} from '@/lib/db/client';
 import { disclosePayments, summarizeDisclosure, type Disclosed } from '@/lib/payments/disclose';
 import { EXPLORER_BASE } from '@/lib/constants';
 import { truncateKey } from '@/lib/utils';
@@ -14,7 +19,6 @@ export const dynamic = 'force-dynamic';
 interface AuditClaims {
   scope: string;
   companyId?: string;
-  vk?: string;
   disclose?: boolean;
 }
 
@@ -57,12 +61,14 @@ export default async function AuditorView({ params }: { params: { token: string 
   const contractors = new Set(payments.map((p) => p.worker_address)).size;
 
   // Viewing-key tier: open + verify each amount against its on-chain commitment.
-  const disclose = Boolean(claims.disclose && claims.vk);
+  // The key is resolved server-side from the company, never carried in the token.
+  const disclose = Boolean(claims.disclose && claims.companyId);
   let disclosed: Map<string, Disclosed> = new Map();
   let summary = { disclosedTotalCents: 0, disclosedCount: 0, allMatch: true };
-  if (disclose && claims.vk) {
+  if (disclose && claims.companyId) {
     try {
-      disclosed = await disclosePayments(claims.vk, payments);
+      const vk = await ensureCompanyViewingKey(claims.companyId);
+      disclosed = await disclosePayments(vk, payments);
       summary = summarizeDisclosure(disclosed);
     } catch {
       /* fall back to read-only rendering */

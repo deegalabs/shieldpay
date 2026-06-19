@@ -39,7 +39,9 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    claims.vk = await ensureCompanyViewingKey(company.id);
+    // Ensure the company has a viewing key, but never put it in the token.
+    // It is resolved server-side when the auditor view or export runs.
+    await ensureCompanyViewingKey(company.id);
     claims.disclose = true;
   }
 
