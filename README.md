@@ -2,9 +2,9 @@
 
 # 🛡️ ShieldPay
 
-### Payroll & Payment Proof on Stellar + Zero-Knowledge
+### Confidential payroll for DAOs and Web3 teams on Stellar
 
-**Pay anyone in the world. Prove mathematically that you paid. Protect your company forever.**
+**Pay contributors in USDC. Keep each amount private. Prove on-chain that the payment was correct, and disclose the exact figure only to an authorized auditor.**
 
 [![Stellar](https://img.shields.io/badge/Stellar-Protocol%2026-7D00FF?logo=stellar&logoColor=white)](https://stellar.org)
 [![Soroban](https://img.shields.io/badge/Soroban-soroban--sdk%2026-08B5A5)](https://developers.stellar.org/docs/build/smart-contracts/overview)
@@ -20,151 +20,184 @@ Submission for **Stellar Hacks: ZK** · Real-world ZK on Stellar
 
 ## The problem
 
-> Your company paid a contractor in crypto. Months later they claim they never
-> received it. **How do you prove it in court?**
-
-A blockchain transfer from `GABC…` to `GXYZ…` proves nothing to a judge — there
-is no link between an on-chain address and a legal identity, and the exact
-salary (commercially sensitive) is exposed for the whole world to see.
+A DAO or a Web3 team wants to pay its contributors on-chain, but payroll amounts
+are sensitive. On a transparent chain, putting the salary in the operation amount
+publishes it to the whole world. The team needs a payment that settles for real,
+proves it was correct, and still keeps the figure private, while remaining
+auditable when an accountant or a partner needs to check the numbers.
 
 ## The solution
 
-ShieldPay pays contractors in **native USDC on Stellar** and automatically
-produces a **court-grade, on-chain proof of payment**. Every payout is backed by
-a **zero-knowledge proof, verified inside a Soroban smart contract**, that the
-amount fell within the agreed contractual range — *without revealing the exact
-amount*.
+ShieldPay pays contributors in native USDC on Stellar. Each amount is kept as a
+Poseidon commitment with a zero-knowledge range proof that is verified inside a
+Soroban smart contract. The payment posts a real, recipient-visible, memo-bound
+settlement on-chain, bound to the proof, without printing the salary in clear.
+The company holds a viewing key that lets an authorized auditor reveal the exact
+amounts and re-verify them against the on-chain commitments.
 
-The result: selective privacy (range, not the figure) **plus** an irrefutable,
-independently verifiable record any judge, auditor, or accountant can validate.
+The privacy model is deliberate: **recipient visible, amount hidden.** Private by
+default, auditable on demand.
 
 ## Why ZK is essential here
 
-ZK isn't decoration on a slide — it's load-bearing. The product's core promise
-is **"prove the payment was correct without disclosing the salary."** That is
-exactly a zero-knowledge statement:
+ZK is load-bearing, not decoration. The core promise is "prove the payment was
+correct without disclosing the salary," which is exactly a zero-knowledge
+statement:
 
 ```
 public:   valueCommitment, minValue, maxValue
 private:  value, randomness
 
-prove:    min ≤ value ≤ max  ∧  Poseidon(value, randomness) == valueCommitment
+prove:    min <= value <= max  and  Poseidon(value, randomness) == valueCommitment
 ```
 
-- **Proof system:** Groth16 (zk-SNARK) — one of the three officially endorsed
-  Stellar ZK paths, and the one that fits the Soroban verification budget on
-  testnet today.
-- **Verified on-chain** in the `PaymentVerifier` Soroban contract via Stellar's
-  native BLS12-381 host functions (Protocol 23+).
+- **Proof system:** Groth16 (zk-SNARK), Circom and snarkjs toolchain, BN254 curve.
+  Groth16 is one of the officially endorsed Stellar ZK paths and the one that
+  fits the Soroban verification budget on testnet today.
+- **Verified on-chain** in the `PaymentVerifier` Soroban contract using Stellar's
+  native BN254 host functions (Protocol 25 and 26), exposed through
+  `soroban_sdk::crypto::bn254`. A valid proof records; a proof with wrong public
+  signals is rejected with `InvalidProof`.
 
-> We deliberately chose Groth16 over Noir/UltraHonk: UltraHonk verification is
-> currently ~5–6× over the testnet compute budget and localnet-only. A readable
-> Noir reference of the same circuit lives in
-> [`circuits/noir_reference`](circuits/noir_reference). See
-> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full rationale.
+We chose Groth16 over Noir and UltraHonk because UltraHonk verification currently
+exceeds the testnet compute budget. A readable Noir reference of the same circuit
+lives in [`circuits/noir_reference`](circuits/noir_reference). The full rationale
+is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## The five-layer proof chain
+## The proof and settlement chain
 
 | Layer | What | Where |
 | --- | --- | --- |
-| 5 | Court-grade PDF receipt | Off-chain (generated) |
-| 4 | **ZK proof of in-range payment** | **Soroban — `PaymentVerifier`** |
-| 3 | USDC payment + structured memo | Stellar classic |
-| 2 | Identity anchor (address ↔ CPF) | **Soroban — `AnchorRegistry`** |
-| 1 | Digitally signed service contract | Off-chain |
+| Receipt and disclosure | Verifiable receipt PDF, plus the viewing-key disclosure | Off-chain |
+| ZK proof | Groth16 proof of in-range payment, bound to the settlement | Soroban, `PaymentVerifier` |
+| Settlement | Recipient-visible, memo-bound on-chain record (symbolic amount) | Stellar classic |
+| Identity anchor | Worker self-anchors their address and contract metadata | Soroban, `AnchorRegistry` |
+| Organization and invite | Company setup and seedless onboarding | Off-chain |
 
-Full diagram and flow in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The exact amount stays a commitment at every public layer. Full diagram and flow
+in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Privacy model
+
+- **Public and on-chain:** who paid whom (recipient visible by design, for
+  compliance and AML), the agreed range, the commitment, the proof, and the
+  settlement transaction. Never the amount.
+- **Company:** holds a per-company viewing key, sees its own totals and amounts.
+- **Auditor with the viewing key:** reveals the exact amounts and re-verifies them
+  against the on-chain commitments, so it is provable rather than trusting a
+  spreadsheet.
+
+We do not move the real USDC salary amount in the settlement, because a real
+transfer of that amount would publish it in the operation. The settlement is a
+real record with a symbolic amount, and real-USDC fund rails are a documented
+decision for mainnet.
 
 ## Tech stack
 
 | Layer | Technology |
 | --- | --- |
-| Web (3 portals + API) | Next.js 14 (App Router), TypeScript, Tailwind |
+| Web (3 portals and API) | Next.js 14 (App Router), TypeScript, Tailwind |
 | Smart contracts | Rust, `soroban-sdk` 26, target `wasm32v1-none` |
-| ZK circuit (primary) | Circom 2 + Groth16 (snarkjs) |
+| ZK circuit (primary) | Circom 2 and Groth16 (snarkjs) |
 | ZK circuit (reference) | Noir |
-| Proof generation | snarkjs (pure JS — runs anywhere, incl. Railway) |
+| Proof generation | snarkjs (pure JS, runs anywhere including Railway) |
+| Commitment and disclosure | Poseidon commitment, AES-256-GCM disclosure sealing |
 | Stellar integration | `@stellar/stellar-sdk` 15 (`rpc` namespace) |
 | Database | PostgreSQL (Railway) |
-| Deploy | Railway (app) · Stellar testnet (contracts) |
+| Auth | jose JWT sessions and RBAC middleware, Privy seedless login |
+| Deploy | Railway (app), Stellar testnet (contracts) |
 
 ## Quickstart
 
 ```bash
-# 0. prerequisites: Node >=20, Rust + stellar-cli, circom + snarkjs
+# 0. prerequisites: Node 22, Rust and stellar-cli, circom and snarkjs
 bash scripts/setup.sh           # installs JS deps, prints a toolchain checklist
 
 # 1. configure
 cp .env.example .env.local      # fill in values
 
-# 2. build the ZK circuit + trusted setup
+# 2. build the ZK circuit and trusted setup
 npm run zk:setup
 
 # 3. deploy contracts to testnet (writes contracts/deploy/addresses.json)
 npm run contracts:deploy
 
-# 4. seed demo identities (optional: --fund via friendbot)
-npm run seed -- --fund
-
-# 5. run the app
+# 4. run the app
 npm run dev                     # http://localhost:3000
 ```
 
 End-to-end ZK smoke test (after `zk:setup`):
 
 ```bash
-npm run test:flow               # valid in-range proof passes; out-of-range fails
+npm run zk:prove -- --value 50000 --min 45000 --max 55000   # in-range proof passes
 ```
 
 ## Project structure
 
 ```
 shieldpay/
-├── app/              Next.js — landing + 3 portals (company / worker / auditor) + API
-├── lib/              Stellar client, ZK prover, PDF receipts, DB schema
+├── app/              Next.js: landing, 3 portals (company / worker / auditor), API
+├── lib/              Stellar client, ZK prover, disclosure, PDF receipts, DB
 ├── contracts/        Soroban (Rust): anchor_registry, payment_verifier
-├── circuits/         ZK: Circom (primary, Groth16) + Noir (reference)
+├── circuits/         ZK: Circom (primary, Groth16) and Noir (reference)
 ├── scripts/          setup / seed / e2e flow
 └── docs/             ARCHITECTURE · LEGAL · DEMO_SCRIPT
 ```
 
 ## Authentication
 
-Seedless, no-extension auth via **Privy** (email / Google / passkey) — it
-creates a Stellar account for the user behind the scenes, so HR, payroll and
-accounting users never touch a seed phrase. A one-click **demo login** is
-available for evaluation. Auditors get a signed, expiring read-only link (no
-wallet). Sessions are signed JWTs; routes are role-gated by middleware.
+Seedless login through Privy (email, Google, or passkey), which creates a Stellar
+account for the user, so payroll and accounting users never touch a seed phrase.
+A one-click demo login is available for evaluation. Auditors get a signed,
+expiring read-only link, with no wallet needed. Sessions are signed JWTs, and
+routes are role-gated by middleware.
 
 ## The three portals
 
-- **Company (HR / payroll)** — onboarding wizard, contractor management (CRUD),
-  "Pay & Prove" with live progress, receipts, settings, one-click auditor link.
-- **Worker / contractor** — passwordless login, payment history scoped to their
-  address, downloadable court-grade receipts for taxes.
-- **Auditor / accountant** — read-only, time-boxed link (no wallet), period
-  table, per-row proof + receipt, CSV export.
+- **Company.** Organization setup, dashboard, contractor invite and management,
+  confidential payroll runs, receipts, settings, and two auditor links
+  (read-only and viewing-key).
+- **Worker.** Seedless login, history scoped to their address, recipient-visible
+  settlement link, and receipt download.
+- **Auditor.** Signed expiring link with no wallet. Read-only shows ranges and
+  proofs. The viewing-key link reveals exact amounts, re-verified against the
+  commitments, with a reconciled total and CSV export.
 
-> Design rule: cryptography is invisible. Plain-language UI + a Help Center
-> ([`/help`](https://web-production-f389ce.up.railway.app/help)) translate the
-> ZK concepts for non-technical users; the technical terms appear only where
-> they carry legal weight.
+Design rule: cryptography is invisible. Plain-language UI and a Help Center at
+[`/help`](https://web-production-f389ce.up.railway.app/help) translate the ZK
+concepts for non-technical users.
 
 ## Status
 
-A working, deployed product (not a skeleton). End-to-end on Stellar **testnet**.
+A working, deployed product on Stellar testnet. The full flow from invite to
+onboarding and on-chain anchor, confidential payroll run, on-chain proof and
+settlement, selective disclosure, and receipt is built and validated on testnet.
 
-- ✅ Real on-chain **Groth16 / BN254** proof verification in `PaymentVerifier`
-  via `soroban_sdk::crypto::bn254` (valid proof records; tampered proof rejected)
-- ✅ Off-chain prover (Circom + snarkjs) + trusted-setup pipeline
-- ✅ Soroban contracts (`AnchorRegistry`, `PaymentVerifier`) deployed to testnet
-- ✅ Full app: Privy auth, company onboarding, contractor CRUD, Pay & Prove,
-  receipts (PDF), worker & auditor portals, Help Center — design-system UI
-- ✅ Postgres persistence (Railway); payments scoped per company; privacy kept
-  (exact amount never stored — only the range + commitment)
-- 🚧 Native USDC transfer in the pay flow (currently proves + records; transfer
-  is the next step) · worker-signed on-chain self-anchor (needs worker wallet)
-- 🚧 PT-BR localization of the UI/Help Center
+- Real on-chain Groth16 and BN254 proof verification in `PaymentVerifier` via
+  `soroban_sdk::crypto::bn254`. A valid proof records; a tampered proof is
+  rejected.
+- Off-chain prover (Circom and snarkjs) with a trusted-setup pipeline.
+- Soroban contracts (`AnchorRegistry`, `PaymentVerifier`) deployed to testnet.
+- Confidential payroll runs with a per-payment commitment and a run total.
+- Selective disclosure with AES-256-GCM sealing, re-verified against the
+  on-chain commitment.
+- Real, recipient-visible, memo-bound settlement record, with the proof bound to
+  the settlement transaction hash.
+- Postgres persistence on Railway, scoped per company, with the exact amount
+  never stored in clear.
+
+Honest limitations:
+
+- The real USDC salary amount is not moved as a fund transfer. This is a privacy
+  decision, since a transparent transfer would leak the amount. The settlement
+  posts a real record with a symbolic amount.
+- The Groth16 trusted setup is a single-party demo ceremony, not MPC.
+- There are no automated frontend or end-to-end tests yet. Contracts have unit
+  tests, and the app was validated manually and through on-chain checks.
+- The UI and Help Center are in English. No PT-BR localization yet.
+
+Security policy and how to report a vulnerability: [`SECURITY.md`](SECURITY.md).
+The internal audit log with open findings is kept private until remediated.
 
 ### Live on testnet
 
@@ -172,17 +205,17 @@ A working, deployed product (not a skeleton). End-to-end on Stellar **testnet**.
 - [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI)
 - [PaymentVerifier contract](https://stellar.expert/explorer/testnet/contract/CB6LJ2YRBUVHKDQ4CPKDXH3BSUSQM6UR4WKRCLVJZG6VES7KDMTCDDKF)
 
-## Legal context
+## Legal note
 
-ShieldPay targets contractors/PJ, Web3-native companies, cross-border payments,
-and DAOs — where crypto payment is valid by contractual agreement **today**. It
-does **not** claim to replace Brazilian CLT payroll. Details and the Art. 464
-CLT mapping in [`docs/LEGAL.md`](docs/LEGAL.md).
+ShieldPay fits Web3-native teams, DAOs paying contributors, contractors and
+service providers, and cross-border payments, where payment in USDC is valid by
+contractual agreement. It does not claim to replace Brazilian CLT payroll. The
+compliance and identity-anchor rationale is in [`docs/LEGAL.md`](docs/LEGAL.md).
 
 ## License
 
 [MIT](LICENSE)
 
 <div align="center">
-<sub>Built on Stellar + Zero-Knowledge · Stellar Hacks: ZK 2026</sub>
+<sub>Built on Stellar and Zero-Knowledge · Stellar Hacks: ZK 2026</sub>
 </div>

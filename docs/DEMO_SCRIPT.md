@@ -1,56 +1,62 @@
-# ShieldPay — Demo Video Script (2–3 min)
+# ShieldPay: Demo Video Script (2 to 3 min)
 
-Goal: clearly show the product working and explain **what ZK is doing**, per the
+Goal: show the product working and explain what the ZK proof is doing, per the
 hackathon submission requirements. You do not need to appear on camera.
 
-## [0:00–0:20] The hook
-> "Your company paid the contractor. They claim they never received it. How do
-> you prove it in court?"
+## [0:00 to 0:20] The hook
 
-## [0:20–0:45] Why blockchain
-Briefly: blockchain is immutable, timestamps are irrefutable, and — the key
-point — **zero-knowledge proofs let anyone verify a payment was correct without
-revealing the private amount.**
+> "A DAO wants to pay its contributors on-chain, but salaries are private. On a
+> transparent chain, the amount is public. How do you settle for real, keep the
+> figure private, and still let an auditor check the numbers?"
 
-## [0:45–1:30] The flow (hero)
-1. Sign in (email / Google / passkey via Privy, or one-click **demo**) — no seed
+## [0:20 to 0:45] Why ZK
+
+Briefly: the blockchain is immutable and timestamps are irrefutable. The key
+point is that a zero-knowledge proof lets anyone verify a payment was within the
+agreed range without revealing the amount, and the company can disclose the exact
+figure to an auditor on demand.
+
+## [0:45 to 1:45] The flow
+
+1. Sign in (email, Google, or passkey via Privy, or one-click demo). No seed
    phrase, no extension.
-2. Onboarding: create the company (name + tax id) → land on the dashboard.
-3. **Contractors** → the contractor's agreed range is set (e.g. $450–$550).
-4. **Pay & Prove** → pick the contractor, confirm.
-5. Progress stepper: commit → **prove** → **verify on-chain** → record.
-6. Success card: "Payment proven — Verified on-chain", with an explorer link.
+2. Set up the organization, then land on the dashboard.
+3. Invite a contributor. Show the shareable invite link.
+4. Accept the invite as the contributor: a Stellar wallet is created, identity is
+   provided, and the on-chain self-anchor is signed.
+5. Run a confidential payroll batch. Each amount is committed, proven, and
+   recorded on-chain. The run shows the total.
 
-> On-screen callout while the stepper is on "prove / verify":
+> On-screen callout during the run:
 > "A Groth16 zero-knowledge proof is generated and verified inside a Stellar
-> smart contract — proving the amount is within the agreed range without
-> revealing it."
+> smart contract, proving the amount is within the agreed range without revealing
+> it."
 
-## [1:30–2:00] The legal proof
-1. Click **Legal Defense** for João Silva.
-2. PDF opens with the full trail.
-3. Show the QR → opens stellar.expert → "Verified on-chain".
-4. "This is what you show the judge."
+## [1:45 to 2:15] Settlement and proof on-chain
 
-## [2:00–2:20] Worker portal
-1. João logs in with his wallet.
-2. Sees May/2026 received ✅.
-3. Downloads the receipt for his tax return.
+1. Open the settlement transaction on stellar.expert.
+2. Show the recipient-visible payment and the memo `SHIELDPAY|PAY|v1|...`.
+3. Show the proof recorded in the `PaymentVerifier` contract.
+4. "The payment is real and on-chain. The amount stays private."
 
-## [2:20–2:40] Auditor portal
-1. Company generates a temporary read-only link.
-2. Accountant sees the quarter's table of verified payments.
-3. Exports CSV/PDF.
+## [2:15 to 2:40] Selective disclosure (auditor)
 
-## [2:40–3:00] Close
-> "ShieldPay: crypto payments with real legal protection. Built on Stellar +
-> zero-knowledge proofs."
+1. The company mints a viewing-key auditor link.
+2. The auditor opens it with no wallet and sees the exact amounts.
+3. Each amount is re-verified against the on-chain commitment, with a reconciled
+   total. Export the CSV.
+
+## [2:40 to 3:00] Close
+
+> "ShieldPay: confidential payroll on Stellar. Private by default, auditable on
+> demand. Built on Stellar and zero-knowledge proofs."
 
 ---
 
 ### Recording checklist
-- [ ] Seed demo data (`npm run seed`)
-- [ ] Contracts deployed to testnet; IDs in `.env`
+
+- [ ] Clean the test rows from the production database first
+- [ ] Contracts deployed to testnet, IDs in the env
 - [ ] ZK artifacts built (`npm run zk:setup`)
-- [ ] One real testnet payment captured end-to-end
-- [ ] Show a real `stellar.expert` link, not a mock
+- [ ] One real testnet run captured end-to-end
+- [ ] Show a real stellar.expert link, not a mock

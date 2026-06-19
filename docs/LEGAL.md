@@ -1,49 +1,51 @@
-# ShieldPay — Legal Context
+# ShieldPay: Legal and Compliance Note
 
-> This document summarizes why ShieldPay is built the way it is. It is product
-> rationale, **not legal advice**.
+> This document is product rationale, not legal advice. ShieldPay is positioned
+> as confidential payroll for Web3 teams and DAOs. The points below explain how
+> the same evidence chain also supports compliance and dispute defense, which is
+> a useful property rather than the primary pitch.
 
-## The problem
+## Why an identity anchor matters
 
-Brazilian labor courts (TST), under Art. 464 CLT, accept exactly two forms of
-valid proof of salary payment:
+A blockchain payment from `GABC...` to `GXYZ...` does not, on its own, link an
+on-chain address to a legal identity. ShieldPay closes that gap with an identity
+anchor: the contributor signs an on-chain transaction from their own wallet that
+binds the address to their contract metadata, including a hash of their tax id.
+This creates a cryptographic, timestamped link between the address and the
+declared identity, without publishing the tax id itself.
 
-- **Path A** — a payslip **signed by the employee**.
-- **Path B** — a **bank deposit receipt** into an account whose CPF (tax id)
-  belongs to the worker, no extra signature required.
+## How the evidence chain maps to a dispute
 
-A payslip without the employee's signature, unaccompanied by an identified bank
-deposit, has **zero evidentiary value**. The burden of proof is always on the
-employer.
-
-## The Web3 gap
-
-A blockchain payment from `GABC…` to `GXYZ…` proves nothing to a judge: there is
-no link between the on-chain address and a legal identity (CPF). ShieldPay
-closes that gap.
-
-## How ShieldPay maps to the law (the 5 documents)
-
-| # | Document | On/Off chain | Legal effect |
+| # | Artifact | On or off chain | Effect |
 | --- | --- | --- | --- |
-| 1 | Signed service contract | Off-chain | Establishes the agreement; declares the worker's Stellar address (Art. 104 CC). |
-| 2 | Identity anchor tx | On-chain (Stellar) | Cryptographic, timestamped proof that the address owner declared the CPF. Creates the address↔identity link. |
-| 3 | Payment tx (USDC + memo) | On-chain (Stellar) | Equivalent to the bank-deposit receipt (Path B), once bound to #2. |
-| 4 | ZK proof of settlement | On-chain (Soroban) | Verifiable by any third party that the amount was within the agreed range. |
-| 5 | Court-grade PDF | Off-chain | Plain-language bundle of all hashes + proof + QR for a non-technical judge. |
+| 1 | Signed service agreement | Off-chain | Establishes the agreement and declares the contributor's Stellar address. |
+| 2 | Identity anchor tx | On-chain (Stellar) | Timestamped proof that the address owner declared their identity. Creates the address to identity link. |
+| 3 | Settlement record | On-chain (Stellar) | Recipient-visible, memo-bound record of the payment to the worker address. |
+| 4 | ZK proof | On-chain (Soroban) | Anyone can verify the amount was within the agreed range. |
+| 5 | Verifiable receipt and disclosure | Off-chain | Plain-language bundle of the hashes and the proof, with selective disclosure of the exact amount to an authorized auditor. |
 
-## Scope — what works today vs. what needs new law
+## Brazilian context
 
-- **Works today (no new law):** PJ / freelancers / service providers, Web3-native
-  companies, cross-border payments, DAOs paying contributors. Payment in USDC is
-  valid by contractual agreement.
-- **Not yet:** full CLT salary in crypto. That depends on bills in progress
-  (PL 957/2025; PL 2.324/2026). ShieldPay does **not** claim to replace CLT
+For reference, Brazilian labor courts under Art. 464 CLT accept two forms of
+valid proof of salary payment: a payslip signed by the employee, or a bank
+deposit receipt into an account whose tax id belongs to the worker. The identity
+anchor plus the settlement record are designed to play a similar role for on-chain
+payments, by binding the address to the declared identity.
+
+## Scope
+
+- **Works today with no new law:** contractors and service providers,
+  Web3-native companies, cross-border payments, and DAOs paying contributors,
+  where payment in USDC is valid by contractual agreement.
+- **Not in scope:** full CLT salary in crypto, which depends on bills in progress
+  (PL 957/2025 and PL 2.324/2026). ShieldPay does not claim to replace CLT
   payroll. This limitation is stated openly.
 
-## Privacy — honest framing
+## Privacy, stated honestly
 
-Stellar is transparent by default. The ZK layer provides **range privacy**, not
-invisibility: anyone watching the chain can see that the company paid the worker;
-they cannot see the **exact amount** (the commercially sensitive figure). We do
-not promise Zcash-style shielded pools.
+Stellar is transparent by default. The ZK layer provides range privacy, not
+invisibility. Anyone watching the chain can see that the company paid the worker.
+They cannot see the exact amount, which is the commercially sensitive figure. We
+do not promise Zcash-style shielded pools. The exact amount is disclosed only to
+an authorized auditor through the viewing key, and is re-verified against the
+on-chain commitment.

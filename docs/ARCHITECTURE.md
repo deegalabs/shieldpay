@@ -1,104 +1,126 @@
-# ShieldPay — Architecture
+# ShieldPay: Architecture
 
-ShieldPay turns a crypto payment into **court-grade, mathematically verifiable
-proof of payment**. It does this by chaining five layers of evidence, two of
-which live on Stellar/Soroban.
+ShieldPay is confidential payroll for DAOs and Web3 teams on Stellar. It pays
+contributors in USDC, keeps each amount private with a zero-knowledge range proof
+verified inside a Soroban contract, posts a real on-chain settlement bound to the
+proof, and lets the company disclose exact amounts to an authorized auditor under
+a viewing key.
 
-## The five-layer proof chain
+## The proof and settlement chain
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  LAYER 5 — LEGAL DOCUMENT (off-chain)                        │
-│  Auto-generated PDF binding the whole trail in plain language │
+│  RECEIPT AND DISCLOSURE (off-chain)                          │
+│  Verifiable receipt PDF. Viewing-key disclosure reveals and   │
+│  re-verifies exact amounts against the on-chain commitments.  │
 └───────────────────────────┬───────────────────────────────────┘
                             │
 ┌───────────────────────────▼───────────────────────────────────┐
-│  LAYER 4 — ZK PROOF (Soroban: PaymentVerifier)               │
-│  Groth16 proof: "amount within contractual range" — verified   │
-│  on-chain, exact amount never revealed                          │
+│  ZK PROOF (Soroban: PaymentVerifier)                         │
+│  Groth16 proof: amount within the contractual range. Verified  │
+│  on-chain. The exact amount is never revealed. Bound to the    │
+│  settlement transaction hash.                                  │
 └───────────────────────────┬───────────────────────────────────┘
                             │
 ┌───────────────────────────▼───────────────────────────────────┐
-│  LAYER 3 — PAYMENT (Stellar classic)                         │
-│  USDC -> worker address, memo SHIELDPAY|PAY|v1|...             │
+│  SETTLEMENT (Stellar classic)                                │
+│  Recipient-visible, memo-bound record to the worker address.   │
+│  Symbolic amount. The salary stays the commitment.            │
+│  Memo SHIELDPAY|PAY|v1|...                                    │
 └───────────────────────────┬───────────────────────────────────┘
                             │
 ┌───────────────────────────▼───────────────────────────────────┐
-│  LAYER 2 — IDENTITY ANCHOR (Soroban: AnchorRegistry)         │
-│  Worker self-anchors address <-> cpf_hash + contract           │
+│  IDENTITY ANCHOR (Soroban: AnchorRegistry)                   │
+│  Worker self-anchors their address with contract metadata.     │
 └───────────────────────────┬───────────────────────────────────┘
                             │
 ┌───────────────────────────▼───────────────────────────────────┐
-│  LAYER 1 — CONTRACT (off-chain)                              │
-│  Digitally signed service agreement; declares Stellar address  │
+│  ORGANIZATION AND INVITE (off-chain)                         │
+│  Company setup and seedless onboarding via Privy.             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Where ZK is essential
 
 The hackathon requires ZK to drive a real part of the system, not decorate a
-slide. In ShieldPay, **Layer 4 is load-bearing**: the legal value of the receipt
-depends on a proof that the payment fell inside the agreed range
-`[min, max]` — letting a company prove compliance to a judge or auditor
-**without disclosing the commercially sensitive exact salary**. Remove the ZK
-proof and the product's core promise (selective privacy + provability)
-collapses.
+slide. In ShieldPay the ZK proof is load-bearing: the product proves that a
+payment fell inside the agreed range `[min, max]` without disclosing the
+commercially sensitive exact amount. Remove the proof and the core promise of
+verifiable privacy collapses.
 
-- **Statement:** `min ≤ value ≤ max` ∧ `Poseidon(value, r) == commitment`
-- **System:** Groth16 (zk-SNARK), Circom toolchain, **BN254** curve
-- **Verification:** REAL on-chain pairing check in the `PaymentVerifier` Soroban
-  contract using Stellar's native **BN254** host functions (Protocol 25/26),
+- **Statement:** `min <= value <= max` and `Poseidon(value, r) == commitment`
+- **System:** Groth16 (zk-SNARK), Circom toolchain, BN254 curve
+- **Verification:** real on-chain pairing check in the `PaymentVerifier` Soroban
+  contract using Stellar's native BN254 host functions (Protocol 25 and 26),
   exposed via `soroban_sdk::crypto::bn254`. Verified on testnet: a valid proof
   records; a proof with wrong public signals is rejected with `InvalidProof`.
+
+## Selective disclosure (the viewing key)
+
+The chain and the public auditor view only ever see the commitment and the range.
+The company holds a per-company viewing key. With it, an authorized auditor can
+open each payment's sealed witness `{amount, randomness}`, recompute
+`Poseidon(amount, randomness)`, and confirm it matches the on-chain commitment.
+The witness is sealed with AES-256-GCM, with the key derived from the viewing key
+through HKDF-SHA256. This makes disclosure provable rather than a matter of trust.
 
 ## Component map
 
 | Component | Tech | Path |
 | --- | --- | --- |
-| Web app (3 portals + API) | Next.js 14, TS, Tailwind | `app/`, `lib/` |
+| Web app (3 portals and API) | Next.js 14, TS, Tailwind | `app/`, `lib/` |
 | Identity anchor contract | Rust, soroban-sdk 26 | `contracts/anchor_registry` |
 | ZK verifier contract | Rust, soroban-sdk 26 | `contracts/payment_verifier` |
-| ZK circuit (primary) | Circom + Groth16 | `circuits/payment_proof` |
+| ZK circuit (primary) | Circom and Groth16 | `circuits/payment_proof` |
 | ZK circuit (reference) | Noir | `circuits/noir_reference` |
 | Off-chain proof generation | snarkjs (pure JS) | `lib/zk/prover.ts` |
+| Commitment and disclosure | Poseidon, AES-256-GCM | `lib/zk/commitment.ts`, `lib/zk/disclosure.ts` |
 | Database | Postgres (Railway) | `lib/db/schema.ts` |
 
 ## Payment flow
 
-1. **Onboarding** — company invites worker; worker signs the contract and
-   self-anchors their address (`AnchorRegistry.anchor`).
-2. **Payout** — CFO uploads a CSV; for each row the server (a) checks the
-   address is anchored, (b) generates a Groth16 proof off-chain, (c) sends USDC
-   with the structured memo, (d) calls `PaymentVerifier.verify_and_record`.
-3. **Receipt** — once verified on-chain, the server renders the court-grade PDF.
-4. **Portals** — worker views/downloads receipts; auditor gets a read-only,
-   time-boxed link.
+1. **Onboarding.** The company invites a contributor. The contributor accepts
+   through a Privy embedded wallet, provides identity, and signs an on-chain
+   self-anchor (`AnchorRegistry.anchor`).
+2. **Confidential payroll run.** The company submits a batch run. For each line
+   the server commits to the amount, generates a Groth16 proof off-chain, posts a
+   recipient-visible settlement, and calls `PaymentVerifier.verify_and_record`
+   with the proof bound to the settlement transaction hash. When a viewing key is
+   present, the witness is sealed for later disclosure.
+3. **Receipt.** Once verified on-chain, the server renders the verifiable PDF.
+4. **Disclosure.** The company mints a read-only auditor link, or a viewing-key
+   link that reveals exact amounts and re-verifies them against the commitments.
 
-## Decisions & honest status (work-in-progress)
+## Decisions and honest status
 
-- **Decision 1 — Groth16 over UltraHonk.** UltraHonk on Soroban is currently
-  localnet-only and ~5–6× over the testnet compute budget; the Protocol 26
-  precompile integration that would fix it is an unfinished stretch goal.
-  Groth16 verifies on testnet today and is one of the three officially endorsed
-  paths. Noir is kept as a readable reference.
-- **Decision 2 — range proof, not amount hiding.** The transaction itself is
-  public on Stellar; ZK hides the *exact* amount, proving only range membership.
-- **On-chain verification is real (done).** `payment_verifier` runs the full
-  Groth16/BN254 pairing check on-chain via `soroban_sdk::crypto::bn254`
-  (`e(-A,B)·e(α,β)·e(vk_x,γ)·e(C,δ) == 1`). The earlier stub was replaced and
-  verified on testnet. Note we use **BN254** (matching Circom+snarkjs), not the
-  BLS12-381 of the official BLS example. snarkjs artifacts are converted to the
-  on-chain byte layout by `circuits/scripts/encode_bn254_for_soroban.mjs`
-  (G2 needs c1-before-c0 Fp2 ordering).
-- **Demo signing.** For the hackathon, the company signs payments server-side
-  from a funded testnet key; production uses a Freighter wallet signature flow.
+- **Decision 1, Groth16 over UltraHonk.** UltraHonk on Soroban is currently
+  localnet-only and over the testnet compute budget. Groth16 verifies on testnet
+  today and is one of the officially endorsed paths. Noir is kept as a readable
+  reference.
+- **Decision 2, range proof, not amount hiding.** The settlement itself is public
+  on Stellar. The ZK proof hides the exact amount, proving only range membership.
+  The recipient is visible by design.
+- **Decision 3, settlement record, not real-USDC transfer.** Moving the real
+  amount on a transparent chain would leak it. The settlement is a real record
+  with a symbolic amount, and the salary stays the commitment. Real-USDC fund
+  rails are a documented decision for mainnet.
+- **On-chain verification is real.** `payment_verifier` runs the full Groth16 and
+  BN254 pairing check on-chain via `soroban_sdk::crypto::bn254`
+  (`e(-A,B)·e(α,β)·e(vk_x,γ)·e(C,δ) == 1`). We use BN254 to match Circom and
+  snarkjs, not the BLS12-381 of the official BLS example. snarkjs artifacts are
+  converted to the on-chain byte layout by
+  `circuits/scripts/encode_bn254_for_soroban.mjs` (G2 needs c1-before-c0 Fp2
+  ordering).
+- **Demo signing.** For the hackathon the company signs server-side from a funded
+  testnet key. Production uses a wallet signature flow.
 
 ## Toolchain versions (verified June 2026)
 
 | Tool | Version | Note |
 | --- | --- | --- |
-| `@stellar/stellar-sdk` | 15.x | Soroban RPC under `rpc` namespace |
-| `soroban-sdk` | 26 | tracks protocol number |
+| Node | 22 | see `.nvmrc` |
+| `@stellar/stellar-sdk` | 15.x | Soroban RPC under the `rpc` namespace |
+| `soroban-sdk` | 26 | tracks the protocol number |
 | `stellar-cli` | 26.x | binary is `stellar`, not `soroban` |
 | build target | `wasm32v1-none` | not `wasm32-unknown-unknown` |
-| Circom | 2.1.x | + snarkjs, circomlib |
+| Circom | 2.1.x | with snarkjs and circomlib |
