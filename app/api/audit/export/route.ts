@@ -15,6 +15,17 @@ interface AuditClaims {
 }
 
 /**
+ * Render a CSV cell safely: neutralize spreadsheet formula injection (a leading
+ * =, +, -, @, or control char) and quote-escape separators.
+ */
+function csvCell(v: unknown): string {
+  let s = String(v ?? '');
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  if (/[",\n]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/**
  * GET /api/audit/export?token=...
  * Fiscal CSV export for an auditor. Read-only. With a viewing-key link the
  * exact amount (and its on-chain match) is included; otherwise only the public
@@ -32,8 +43,8 @@ export async function GET(req: NextRequest) {
     payments = claims.companyId
       ? await listPaymentsForCompany(claims.companyId, 1000)
       : await listPayments(1000);
-  } catch (e) {
-    return NextResponse.json({ error: 'database unavailable', detail: String(e) }, { status: 503 });
+  } catch {
+    return NextResponse.json({ error: 'database unavailable' }, { status: 503 });
   }
 
   const disclose = Boolean(claims.disclose && claims.vk);
@@ -56,7 +67,7 @@ export async function GET(req: NextRequest) {
     const d = disclosed.get(p.id);
     return [
       new Date(p.created_at).toISOString(),
-      `"${p.worker_name.replace(/"/g, '""')}"`,
+      p.worker_name,
       p.reference,
       ...(disclose
         ? [d && d.amountCents !== null ? d.amountCents / 100 : '', d ? d.matchesOnChain : '']
@@ -67,10 +78,12 @@ export async function GET(req: NextRequest) {
       p.tx_hash,
       p.verified,
       `${EXPLORER_BASE}/tx/${p.tx_hash}`,
-    ].join(',');
+    ]
+      .map(csvCell)
+      .join(',');
   });
 
-  const csv = [cols.join(','), ...rows].join('\n');
+  const csv = [cols.map(csvCell).join(','), ...rows].join('\n');
   return new NextResponse(csv, {
     headers: {
       'content-type': 'text/csv; charset=utf-8',
