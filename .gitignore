@@ -61,3 +61,9 @@ circuits/**/public*.json
 
 # Local working notes / scratch (not versioned)
 /temp
+
+# Internal docs kept out of the public repo (responsible disclosure / scratch).
+# SECURITY.md (the public security policy) IS tracked; the audit log is not.
+SECURITY_AUDIT.md
+DECISOES_FUTURAS.md
+IMPLEMENTATION_INVENTORY.md
