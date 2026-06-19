@@ -18,7 +18,13 @@ export interface Session {
 export const SESSION_COOKIE = 'shieldpay_session';
 
 function secret(): Uint8Array {
-  return new TextEncoder().encode(process.env.JWT_SECRET || 'dev-secret-change-me');
+  const s = process.env.JWT_SECRET;
+  if (s) return new TextEncoder().encode(s);
+  // Fail closed in production: never fall back to a known default secret.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET is not set');
+  }
+  return new TextEncoder().encode('dev-secret-change-me');
 }
 
 export async function signSession(s: Session, expires = '24h'): Promise<string> {
