@@ -8,6 +8,7 @@ import {
   ensureCompanyViewingKey,
 } from '@/lib/db/client';
 import { proveAndRecordPayment } from '@/lib/payments/flow';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,10 @@ const Body = z.object({
  * stores the total (the company can prove it to an auditor later via N4).
  */
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`payroll:${clientIp(req)}`, 10, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'too many requests' }, { status: 429, headers: { 'retry-after': String(rl.retryAfter) } });
+  }
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
