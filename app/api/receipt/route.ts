@@ -1,13 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPayment } from '@/lib/db/client';
+import { getPayment, getCompanyByOwner, type PaymentRow } from '@/lib/db/client';
+import { getSession } from '@/lib/auth/server';
+import { verifyScopedToken } from '@/lib/auth/session';
 import { generateReceiptPdf } from '@/lib/pdf/receipt';
 import { COMPANY, EXPLORER_BASE } from '@/lib/constants';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+interface AuditClaims {
+  scope: string;
+  companyId?: string;
+}
+
 /**
- * GET /api/receipt?id=<paymentId>
+ * Whether the caller may read this payment's receipt. Access is restricted to
+ * the payment's owner: a company session that owns it, the worker whose address
+ * received it, or an audit token scoped to the payment's company.
+ */
+async function canAccess(req: NextRequest, payment: PaymentRow): Promise<boolean> {
+  const session = await getSession();
+  if (session) {
+    if (session.role === 'worker') return payment.worker_address === session.sub;
+    if (session.role === 'company') {
+      const company = await getCompanyByOwner(session.sub).catch(() => null);
+      return !!company && String(company.id) === String(payment.company_id);
+    }
+  }
+  const token = req.nextUrl.searchParams.get('token');
+  if (token) {
+    const claims = await verifyScopedToken<AuditClaims>(token);
+    if (claims && claims.scope === 'audit' && claims.companyId != null) {
+      return String(claims.companyId) === String(payment.company_id);
+    }
+  }
+  return false;
+}
+
+/**
+ * GET /api/receipt?id=<paymentId>[&token=<auditToken>]
  * The verifiable receipt: a plain-language PDF for a recorded payment proof.
  */
 export async function GET(req: NextRequest) {
@@ -19,11 +50,15 @@ export async function GET(req: NextRequest) {
   let payment;
   try {
     payment = await getPayment(id);
-  } catch (e) {
-    return NextResponse.json({ error: 'database unavailable', detail: String(e) }, { status: 503 });
+  } catch {
+    return NextResponse.json({ error: 'database unavailable' }, { status: 503 });
   }
   if (!payment) {
-    return NextResponse.json({ error: 'payment not found' }, { status: 404 });
+    return NextResponse.json({ error: 'not found' }, { status: 404 });
+  }
+
+  if (!(await canAccess(req, payment))) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   const pdf = await generateReceiptPdf({

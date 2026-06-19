@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/server';
-import { getCompanyByOwner, upsertCompany } from '@/lib/db/client';
+import { getCompanyByOwner, upsertCompany, type CompanyRow } from '@/lib/db/client';
 
 export const runtime = 'nodejs';
+
+/** Strip server-only fields. The viewing key must never leave the server. */
+function publicCompany(c: CompanyRow) {
+  const { viewing_key, ...safe } = c; // eslint-disable-line @typescript-eslint/no-unused-vars
+  return safe;
+}
 
 /** GET /api/company — the caller's company (or null). */
 export async function GET() {
@@ -11,9 +17,9 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   try {
     const company = await getCompanyByOwner(session.sub);
-    return NextResponse.json({ company });
-  } catch (e) {
-    return NextResponse.json({ error: 'database unavailable', detail: String(e) }, { status: 503 });
+    return NextResponse.json({ company: company ? publicCompany(company) : null });
+  } catch {
+    return NextResponse.json({ error: 'database unavailable' }, { status: 503 });
   }
 }
 
@@ -40,8 +46,8 @@ export async function POST(req: NextRequest) {
   }
   try {
     const company = await upsertCompany({ owner_sub: session.sub, ...parsed.data });
-    return NextResponse.json({ ok: true, company });
-  } catch (e) {
-    return NextResponse.json({ error: 'could not save company', detail: String(e) }, { status: 500 });
+    return NextResponse.json({ ok: true, company: publicCompany(company) });
+  } catch {
+    return NextResponse.json({ error: 'could not save company' }, { status: 500 });
   }
 }

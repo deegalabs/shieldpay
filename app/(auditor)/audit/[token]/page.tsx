@@ -178,7 +178,7 @@ export default async function AuditorView({ params }: { params: { token: string 
                       <Badge variant="success"><ShieldCheck size={12} /> Verified</Badge>
                     </td>
                     <td className="px-5 py-3">
-                      <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">PDF</a>
+                      <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}&token=${params.token}`} target="_blank" rel="noreferrer">PDF</a>
                     </td>
                   </tr>
                 );
