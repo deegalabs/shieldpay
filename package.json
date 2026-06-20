@@ -19,6 +19,8 @@
     "contracts:build": "bash contracts/deploy/build.sh",
     "contracts:deploy": "bash contracts/deploy/deploy.sh",
     "seed": "tsx scripts/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:flow": "tsx scripts/test_flow.ts"
   },
   "dependencies": {
@@ -63,6 +65,7 @@
     "prettier": "^3.3.3",
     "tailwindcss": "^3.4.7",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.9"
   }
 }
