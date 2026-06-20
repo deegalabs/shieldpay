@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
       lines: results,
     });
   } catch (e) {
-    return NextResponse.json({ error: String(e instanceof Error ? e.message : e) }, { status: 500 });
+    console.error('payroll run failed', e);
+    return NextResponse.json({ error: 'payroll run failed' }, { status: 500 });
   }
 }

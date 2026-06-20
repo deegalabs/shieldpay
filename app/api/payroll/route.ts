@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       onChain: { txHash, explorerUrl: `${EXPLORER_BASE}/tx/${txHash}`, verified: true },
     });
   } catch (e) {
-    return NextResponse.json({ error: String(e instanceof Error ? e.message : e) }, { status: 500 });
+    console.error('payment failed', e);
+    return NextResponse.json({ error: 'payment failed' }, { status: 500 });
   }
 }
