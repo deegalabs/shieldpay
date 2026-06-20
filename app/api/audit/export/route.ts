@@ -5,18 +5,12 @@ import {
   ensureCompanyViewingKey,
   type PaymentRow,
 } from '@/lib/db/client';
-import { verifyScopedToken } from '@/lib/auth/session';
+import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
 import { disclosePayments } from '@/lib/payments/disclose';
 import { EXPLORER_BASE } from '@/lib/constants';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-interface AuditClaims {
-  scope: string;
-  companyId?: string;
-  disclose?: boolean;
-}
 
 /**
  * Render a CSV cell safely: neutralize spreadsheet formula injection (a leading
@@ -37,7 +31,7 @@ function csvCell(v: unknown): string {
  */
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token') ?? '';
-  const claims = await verifyScopedToken<AuditClaims>(token);
+  const claims = await verifyScopedToken<AuditTokenClaims>(token);
   if (!claims || claims.scope !== 'audit') {
     return NextResponse.json({ error: 'invalid or expired token' }, { status: 401 });
   }

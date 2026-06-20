@@ -51,6 +51,13 @@ export async function verifySession(token: string | undefined): Promise<Session 
   }
 }
 
+/** Claims carried by an auditor link. The viewing key is never put in the token. */
+export interface AuditTokenClaims {
+  scope: 'audit';
+  companyId?: string;
+  disclose?: boolean;
+}
+
 /** Sign a short-lived, scoped token (auditor link / magic link). */
 export async function signScopedToken(
   claims: Record<string, unknown>,

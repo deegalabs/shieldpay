@@ -8,19 +8,13 @@ import {
 import { disclosePayments, summarizeDisclosure, type Disclosed } from '@/lib/payments/disclose';
 import { EXPLORER_BASE } from '@/lib/constants';
 import { truncateKey } from '@/lib/utils';
-import { verifyScopedToken } from '@/lib/auth/session';
+import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
 
 export const dynamic = 'force-dynamic';
-
-interface AuditClaims {
-  scope: string;
-  companyId?: string;
-  disclose?: boolean;
-}
 
 const fmt = (cents: number) =>
   `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -35,7 +29,7 @@ const fmt = (cents: number) =>
  *    on-chain commitments, with a reconciled total (N4 selective disclosure).
  */
 export default async function AuditorView({ params }: { params: { token: string } }) {
-  const claims = await verifyScopedToken<AuditClaims>(params.token);
+  const claims = await verifyScopedToken<AuditTokenClaims>(params.token);
   if (!claims || claims.scope !== 'audit') {
     return (
       <main className="mx-auto max-w-md px-6 py-24 text-center">

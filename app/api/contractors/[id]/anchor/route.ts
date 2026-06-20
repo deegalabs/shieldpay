@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/server';
-import { getCompanyByOwner, getContractor, setContractorAnchored } from '@/lib/db/client';
+import { requireCompany } from '@/lib/auth/server';
+import { getContractor, setContractorAnchored } from '@/lib/db/client';
 
 export const runtime = 'nodejs';
 
@@ -15,12 +15,9 @@ export const runtime = 'nodejs';
  * anchored status off-chain so the payroll flow can proceed in the demo.
  */
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getSession();
-  if (!session || session.role !== 'company') {
-    return NextResponse.json({ error: 'company session required' }, { status: 403 });
-  }
-  const company = await getCompanyByOwner(session.sub);
-  if (!company) return NextResponse.json({ error: 'company not found' }, { status: 404 });
+  const auth = await requireCompany();
+  if (!auth.ok) return auth.res;
+  const company = auth.company;
 
   const contractor = await getContractor(params.id, company.id);
   if (!contractor) return NextResponse.json({ error: 'not found' }, { status: 404 });

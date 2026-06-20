@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
 import { signSession, SESSION_COOKIE, cookieOptions, type Role } from '@/lib/auth/session';
-import { rateLimit, clientIp } from '@/lib/rate-limit';
+import { rateLimited } from '@/lib/auth/server';
 
 export const runtime = 'nodejs';
 
@@ -14,10 +14,8 @@ const appSecret = process.env.PRIVY_APP_SECRET;
  * cookie so the existing middleware/RBAC/portals work unchanged.
  */
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(`privy:${clientIp(req)}`, 30, 60_000);
-  if (!rl.ok) {
-    return NextResponse.json({ error: 'too many requests' }, { status: 429, headers: { 'retry-after': String(rl.retryAfter) } });
-  }
+  const limited = rateLimited(req, 'privy', 30, 60_000);
+  if (limited) return limited;
   if (!appId || !appSecret) {
     return NextResponse.json({ error: 'Privy not configured' }, { status: 500 });
   }

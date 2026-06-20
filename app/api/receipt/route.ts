@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPayment, getCompanyByOwner, type PaymentRow } from '@/lib/db/client';
 import { getSession } from '@/lib/auth/server';
-import { verifyScopedToken } from '@/lib/auth/session';
+import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
 import { generateReceiptPdf } from '@/lib/pdf/receipt';
 import { COMPANY, EXPLORER_BASE } from '@/lib/constants';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-interface AuditClaims {
-  scope: string;
-  companyId?: string;
-}
 
 /**
  * Whether the caller may read this payment's receipt. Access is restricted to
@@ -29,7 +24,7 @@ async function canAccess(req: NextRequest, payment: PaymentRow): Promise<boolean
   }
   const token = req.nextUrl.searchParams.get('token');
   if (token) {
-    const claims = await verifyScopedToken<AuditClaims>(token);
+    const claims = await verifyScopedToken<AuditTokenClaims>(token);
     if (claims && claims.scope === 'audit' && claims.companyId != null) {
       return String(claims.companyId) === String(payment.company_id);
     }

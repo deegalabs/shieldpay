@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getSession } from '@/lib/auth/server';
-import {
-  getCompanyByOwner,
-  createPayrollRun,
-  finalizePayrollRun,
-  ensureCompanyViewingKey,
-} from '@/lib/db/client';
+import { requireCompany, rateLimited } from '@/lib/auth/server';
+import { createPayrollRun, finalizePayrollRun, ensureCompanyViewingKey } from '@/lib/db/client';
 import { proveAndRecordPayment } from '@/lib/payments/flow';
-import { rateLimit, clientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,19 +27,17 @@ const Body = z.object({
  * stores the total (the company can prove it to an auditor later via N4).
  */
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(`payroll:${clientIp(req)}`, 10, 60_000);
-  if (!rl.ok) {
-    return NextResponse.json({ error: 'too many requests' }, { status: 429, headers: { 'retry-after': String(rl.retryAfter) } });
-  }
+  const limited = rateLimited(req, 'payroll', 10, 60_000);
+  if (limited) return limited;
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const companySecret = process.env.COMPANY_SECRET_KEY;
   if (!companySecret) return NextResponse.json({ error: 'COMPANY_SECRET_KEY not configured' }, { status: 500 });
 
-  const session = await getSession();
-  const company = session ? await getCompanyByOwner(session.sub) : null;
-  if (!company) return NextResponse.json({ error: 'company not found' }, { status: 403 });
+  const auth = await requireCompany();
+  if (!auth.ok) return auth.res;
+  const company = auth.company;
 
   const { reference, lines } = parsed.data;
 

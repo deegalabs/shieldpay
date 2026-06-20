@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getSession } from '@/lib/auth/server';
-import { getCompanyByOwner, createInvite } from '@/lib/db/client';
+import { requireCompany } from '@/lib/auth/server';
+import { createInvite } from '@/lib/db/client';
 import { signScopedToken } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
@@ -22,12 +22,9 @@ const Body = z.object({
 
 /** POST /api/contractors/invite — company creates an invite + returns the link. */
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session || session.role !== 'company') {
-    return NextResponse.json({ error: 'company session required' }, { status: 403 });
-  }
-  const company = await getCompanyByOwner(session.sub);
-  if (!company) return NextResponse.json({ error: 'company not found' }, { status: 404 });
+  const auth = await requireCompany();
+  if (!auth.ok) return auth.res;
+  const company = auth.company;
 
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
