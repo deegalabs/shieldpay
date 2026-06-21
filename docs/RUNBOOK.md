@@ -51,10 +51,12 @@ without disturbing the demo data.
 
 ### 4. Verify and go public
 
-1. Re-run the security probes against the live URL:
-   - `POST /api/pay` returns 404
-   - `GET /api/receipt?id=1` without a session or token returns 401
-   - `GET /api/company` does not include `viewing_key`
+1. Run the smoke test against the live URL (it checks health, RBAC, default-deny,
+   the closed receipt IDOR, and the security headers):
+   ```
+   pnpm smoke https://web-production-f389ce.up.railway.app
+   ```
+   All checks must pass. If any fail, the deploy is behind or a fix regressed.
 2. Record the demo video.
 3. Make the GitHub repository public.
 4. Submit on DoraHacks.

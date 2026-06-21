@@ -22,7 +22,8 @@
     "seed": "tsx scripts/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:flow": "tsx scripts/test_flow.ts"
+    "test:flow": "tsx scripts/test_flow.ts",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@privy-io/react-auth": "^3.31.0",
