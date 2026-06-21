@@ -19,6 +19,15 @@ function fieldToBe32(value: string | bigint): Buffer {
   return Buffer.from(n.toString(16).padStart(64, '0'), 'hex');
 }
 
+// BN254 scalar field modulus.
+const BN254_FR = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+
+/** Reduce arbitrary bytes to a BN254 scalar field element (decimal string). */
+export function bytesToField(buf: Buffer): string {
+  const n = buf.length ? BigInt('0x' + buf.toString('hex')) : 0n;
+  return (n % BN254_FR).toString();
+}
+
 function u32be(n: number): Buffer {
   const b = Buffer.alloc(4);
   b.writeUInt32BE(n, 0);

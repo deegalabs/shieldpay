@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { generatePaymentProof } from '@/lib/zk/prover';
 import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
-import { encodeProof, encodePublicSignals, fieldToBe32 } from '@/lib/zk/encode';
+import { encodeProof, encodePublicSignals, fieldToBe32, bytesToField } from '@/lib/zk/encode';
 import { recordProofOnChain } from '@/lib/stellar/soroban';
 import { settlePaymentRecord } from '@/lib/stellar/transactions';
 import { insertPayment, type CompanyRow, type PaymentRow } from '@/lib/db/client';
@@ -50,30 +50,37 @@ export async function proveAndRecordPayment(args: {
 
   const randomness = randomFieldElement();
   const commitment = await poseidonCommitment(value, randomness);
+
+  // Settle first (best-effort, recipient-visible, amount-confidential) so the
+  // proof can be bound to the REAL settlement tx hash. If settlement is skipped,
+  // fall back to a random binding id so the proof is still recorded.
+  const settlement = await settlePaymentRecord({
+    companySecret: args.companySecret,
+    workerAddress: input.workerAddress,
+    reference: input.reference,
+  });
+  const paymentTxHash = settlement ? Buffer.from(settlement.hash, 'hex') : randomBytes(32);
+
+  // Bind the proof to the recipient and the settlement tx, as field elements that
+  // become public signals. The contract enforces that these match the recorded
+  // values, so a valid proof cannot be reused for a different recipient or tx.
+  const workerAddrField = bytesToField(createHash('sha256').update(input.workerAddress).digest());
+  const txField = bytesToField(paymentTxHash);
+
   const { proof, publicSignals } = await generatePaymentProof({
     value,
     valueRandomness: randomness,
     valueCommitment: commitment,
     minValue,
     maxValue,
+    workerAddressHash: workerAddrField,
+    paymentTxHash: txField,
   });
-
-  // N5: settle first (best-effort, recipient-visible, amount-confidential), then
-  // bind the proof to the REAL settlement tx hash. If settlement is skipped, fall
-  // back to a random binding id so the proof is still recorded.
-  const settlement = await settlePaymentRecord({
-    companySecret: args.companySecret,
-    workerAddress: input.workerAddress,
-    reference: input.reference,
-  });
-  const paymentTxHash = settlement
-    ? Buffer.from(settlement.hash, 'hex')
-    : randomBytes(32);
 
   const { proofId, txHash } = await recordProofOnChain({
     companySecret: args.companySecret,
-    workerAddressHash: createHash('sha256').update(input.workerAddress).digest(),
-    paymentTxHash,
+    workerAddressHash: fieldToBe32(workerAddrField),
+    paymentTxHash: fieldToBe32(txField),
     valueCommitment: fieldToBe32(commitment),
     proofBytes: encodeProof(proof),
     publicSignalsBytes: encodePublicSignals(publicSignals),

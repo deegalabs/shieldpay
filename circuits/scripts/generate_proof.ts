@@ -38,6 +38,9 @@ async function main() {
     valueCommitment: commitment,
     minValue,
     maxValue,
+    // Recipient + settlement binding (fixed sample values for the CLI).
+    workerAddressHash: BigInt('0x' + '02'.repeat(32)).toString(),
+    paymentTxHash: BigInt('0x' + '03'.repeat(32)).toString(),
   };
 
   console.log('Witness:', input);

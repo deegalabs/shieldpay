@@ -55,6 +55,19 @@ pub enum Error {
     MalformedVerifyingKey = 5,
     MalformedProof = 6,
     MalformedPublicSignals = 7,
+    ProofNotBound = 8,
+}
+
+/// Read the 32-byte public signal at `index` (after the u32 length prefix).
+fn public_signal(env: &Env, public_signals: &Bytes, index: u32) -> Result<BytesN<32>, Error> {
+    let start = 4 + index * 32;
+    let end = start.checked_add(32).ok_or(Error::MalformedPublicSignals)?;
+    if end > public_signals.len() {
+        return Err(Error::MalformedPublicSignals);
+    }
+    let mut arr = [0u8; 32];
+    public_signals.slice(start..end).copy_into_slice(&mut arr);
+    Ok(BytesN::from_array(env, &arr))
 }
 
 // ─────────────────────────── Groth16 / BN254 ───────────────────────────
@@ -220,6 +233,17 @@ impl PaymentVerifier {
 
         if !verify_groth16(&env, &vk, &parsed_proof, &signals)? {
             return Err(Error::InvalidProof);
+        }
+
+        // Bind the recorded values to the proof: the public signals for the
+        // commitment (0), recipient (3), and settlement tx (4) must equal what is
+        // being recorded, so a valid proof cannot be reused for a different
+        // recipient or transaction.
+        if public_signal(&env, &public_signals, 0)? != value_commitment
+            || public_signal(&env, &public_signals, 3)? != worker_address_hash
+            || public_signal(&env, &public_signals, 4)? != payment_tx_hash
+        {
+            return Err(Error::ProofNotBound);
         }
 
         let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);

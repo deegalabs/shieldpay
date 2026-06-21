@@ -23,6 +23,10 @@ export interface PaymentPublicInputs {
   minValue: number;
   /** Upper bound of the contractual range, in USDC cents. */
   maxValue: number;
+  /** Field element binding the proof to the recipient (< BN254 scalar field). */
+  workerAddressHash: string;
+  /** Field element binding the proof to the settlement tx (< BN254 scalar field). */
+  paymentTxHash: string;
 }
 
 /** Full circuit input passed to snarkjs. */

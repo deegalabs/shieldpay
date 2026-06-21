@@ -17,7 +17,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { Keypair } from '@stellar/stellar-sdk';
 import { generatePaymentProof } from '@/lib/zk/prover';
 import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
-import { encodeProof, encodePublicSignals, fieldToBe32 } from '@/lib/zk/encode';
+import { encodeProof, encodePublicSignals, fieldToBe32, bytesToField } from '@/lib/zk/encode';
 import { newViewingKey, sealWitness, openWitness } from '@/lib/zk/disclosure';
 import { disclosePayments } from '@/lib/payments/disclose';
 import type { PaymentRow } from '@/lib/db/client';
@@ -34,14 +34,18 @@ const fail = (s: string, e: unknown) => {
 async function makeProof(value: number, min: number, max: number) {
   const randomness = randomFieldElement();
   const commitment = await poseidonCommitment(value, randomness);
+  const workerField = bytesToField(createHash('sha256').update('GTESTWORKER').digest());
+  const txField = bytesToField(randomBytes(32));
   const { proof, publicSignals } = await generatePaymentProof({
     value,
     valueRandomness: randomness,
     valueCommitment: commitment,
     minValue: min,
     maxValue: max,
+    workerAddressHash: workerField,
+    paymentTxHash: txField,
   });
-  return { randomness, commitment, proof, publicSignals };
+  return { randomness, commitment, proof, publicSignals, workerField, txField };
 }
 
 async function stageOffchainProof() {
@@ -98,11 +102,12 @@ async function stageOnchainProof() {
   }
   try {
     const { recordProofOnChain, isVerifiedOnChain } = await import('@/lib/stellar/soroban');
-    const { commitment, proof, publicSignals } = await makeProof(50000, 45000, 55000);
-    const paymentTxHash = randomBytes(32);
+    const { commitment, proof, publicSignals, workerField, txField } = await makeProof(50000, 45000, 55000);
+    // The recorded hashes must equal the proof's public signals (the binding).
+    const paymentTxHash = fieldToBe32(txField);
     const { proofId, txHash } = await recordProofOnChain({
       companySecret: process.env.COMPANY_SECRET_KEY!,
-      workerAddressHash: createHash('sha256').update('GTESTWORKER').digest(),
+      workerAddressHash: fieldToBe32(workerField),
       paymentTxHash,
       valueCommitment: fieldToBe32(commitment),
       proofBytes: encodeProof(proof),
