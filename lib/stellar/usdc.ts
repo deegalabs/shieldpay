@@ -1,3 +1,10 @@
+/**
+ * USDC support: asset, trustline check, and changeTrust builder.
+ *
+ * Not wired into the current flow. Settlement uses a symbolic native-XLM record
+ * to keep the amount private (see docs/DECISIONS.md). This module is the prebuilt
+ * infrastructure for the deferred real-USDC payment path.
+ */
 import {
   Asset,
   Operation,

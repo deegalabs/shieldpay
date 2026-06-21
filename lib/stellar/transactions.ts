@@ -8,8 +8,7 @@ import {
   Account,
 } from '@stellar/stellar-sdk';
 import { createHash } from 'node:crypto';
-import { buildAnchorMemo, buildPaymentMemo, MEMO_PREFIX, MEMO_VERSION, NETWORK } from '@/lib/constants';
-import { usdcAsset } from './usdc';
+import { MEMO_PREFIX, MEMO_VERSION, NETWORK } from '@/lib/constants';
 import { horizonServer, networkPassphrase, loadAccount, fundTestnetAccount } from './client';
 
 /**
@@ -27,79 +26,6 @@ function encodeMemo(text: string): Memo {
   // sha256 -> 32-byte hash memo. The full string is persisted off-chain.
   const hash = createHash('sha256').update(bytes).digest();
   return Memo.hash(hash);
-}
-
-/**
- * IDENTITY ANCHOR (layer 2) — a 0-amount self-payment signed by the WORKER,
- * binding their Stellar address to their legal identity (cpf_hash) + contract.
- * Effect: cryptographic, timestamped declaration of address↔identity ownership.
- */
-export async function buildAnchorTx(args: {
-  workerSecret: string;
-  companyAddress: string;
-  contractId: number;
-  cpfHash: string;
-}): Promise<{ xdr: string; memo: string }> {
-  const kp = Keypair.fromSecret(args.workerSecret);
-  const account = await loadAccount(kp.publicKey());
-  const memo = buildAnchorMemo({
-    companyAddress: args.companyAddress,
-    contractId: args.contractId,
-    cpfHash: args.cpfHash,
-  });
-
-  const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase })
-    // Self-payment of 1 stroop of native XLM; the memo is the legal payload.
-    .addOperation(
-      Operation.payment({
-        destination: kp.publicKey(),
-        asset: Asset.native(),
-        amount: '0.0000001',
-      }),
-    )
-    .addMemo(encodeMemo(memo))
-    .setTimeout(180)
-    .build();
-
-  tx.sign(kp);
-  return { xdr: tx.toXDR(), memo };
-}
-
-/**
- * PAYMENT (layer 3) — USDC sent by the COMPANY to the worker's anchored address.
- * Equivalent to a bank-deposit receipt (Art. 464 CLT, path B) once combined
- * with the anchor transaction.
- */
-export async function buildPaymentTx(args: {
-  companySecret: string;
-  workerAddress: string;
-  amountUsdc: string; // e.g. "500.00"
-  contractId: number;
-  reference: string; // e.g. "MAI2026"
-  proofId: number | string;
-}): Promise<{ xdr: string; memo: string; hash: string }> {
-  const kp = Keypair.fromSecret(args.companySecret);
-  const account = await loadAccount(kp.publicKey());
-  const memo = buildPaymentMemo({
-    contractId: args.contractId,
-    reference: args.reference,
-    proofId: args.proofId,
-  });
-
-  const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase })
-    .addOperation(
-      Operation.payment({
-        destination: args.workerAddress,
-        asset: usdcAsset(),
-        amount: args.amountUsdc,
-      }),
-    )
-    .addMemo(encodeMemo(memo))
-    .setTimeout(180)
-    .build();
-
-  tx.sign(kp);
-  return { xdr: tx.toXDR(), memo, hash: tx.hash().toString('hex') };
 }
 
 /**
