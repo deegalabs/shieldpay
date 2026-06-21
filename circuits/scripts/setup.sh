@@ -23,7 +23,7 @@ command -v snarkjs >/dev/null || { echo "snarkjs not found. Run: npm i -g snarkj
 mkdir -p "$OUT"
 
 echo "==> [1/5] Compiling circuit"
-circom "$SRC" --r1cs --wasm --sym -l node_modules -o "$OUT"
+circom "$SRC" --r1cs --wasm --sym -l ../node_modules -o "$OUT"
 
 echo "==> [2/5] Powers of Tau (phase 1)"
 snarkjs powersoftau new bn128 "$PTAU_POWER" "$OUT/pot_0.ptau" -v
