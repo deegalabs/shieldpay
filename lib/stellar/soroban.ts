@@ -1,4 +1,5 @@
 import {
+  Account,
   Contract,
   Keypair,
   TransactionBuilder,
@@ -89,13 +90,12 @@ export async function recordProofOnChain(args: {
 export async function isVerifiedOnChain(paymentTxHash: Buffer): Promise<boolean> {
   if (!CONTRACTS.paymentVerifier) return false;
   const contract = new Contract(CONTRACTS.paymentVerifier);
-  // Build a throwaway tx just to simulate the read.
-  const dummy = Keypair.random();
   const op = contract.call('is_verified', bytesScVal(paymentTxHash));
   try {
-    const account = await sorobanServer.getAccount(dummy.publicKey()).catch(() => null);
-    if (!account) return false;
-    const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase })
+    // A read-only simulation does not require a funded source, so use a local
+    // throwaway account instead of fetching one (which always failed before).
+    const source = new Account(Keypair.random().publicKey(), '0');
+    const tx = new TransactionBuilder(source, { fee: '100', networkPassphrase })
       .addOperation(op)
       .setTimeout(30)
       .build();
