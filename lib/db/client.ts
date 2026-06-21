@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { SCHEMA_SQL } from './schema';
+import { encryptAtRest, decryptAtRest } from '@/lib/crypto/at-rest';
 
 /**
  * Postgres access for the portals. Lazy pool + idempotent schema bootstrap,
@@ -196,19 +197,20 @@ export async function ensureCompanyViewingKey(companyId: string): Promise<string
     [companyId],
   );
   const current = existing.rows[0]?.viewing_key;
-  if (current) return current;
+  if (current) return decryptAtRest(current);
   const { newViewingKey } = await import('@/lib/zk/disclosure');
   const key = newViewingKey();
   await getPool().query(
     `UPDATE companies SET viewing_key = $2 WHERE id = $1 AND viewing_key IS NULL`,
-    [companyId, key],
+    [companyId, encryptAtRest(key)],
   );
   // Re-read in case of a race (another request set it first).
   const after = await getPool().query<{ viewing_key: string | null }>(
     `SELECT viewing_key FROM companies WHERE id = $1`,
     [companyId],
   );
-  return after.rows[0]?.viewing_key ?? key;
+  const stored = after.rows[0]?.viewing_key;
+  return stored ? decryptAtRest(stored) : key;
 }
 
 /** Create or update the caller's company (upsert by owner). */
