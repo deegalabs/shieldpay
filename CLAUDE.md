@@ -31,6 +31,7 @@ surrounding code.
 
 - **Runtime:** Node 22 (`.nvmrc`). **TypeScript** with `strict` and
   `noUncheckedIndexedAccess`. Path aliases `@/`, `@/lib`, `@/components`.
+- **Package manager:** pnpm (see the `packageManager` field). Use `pnpm`, not npm.
 - **Files:** `kebab-case` names (`company-form.tsx`, `nav-link.tsx`).
 - **Components:** Server Component by default. `'use client'` only when needed,
   on the first line. UI primitives follow the shadcn pattern (`forwardRef`,
@@ -83,8 +84,8 @@ surrounding code.
 
 ### 0.6 Verify before finishing
 
-- Run `npm run typecheck` and `npm run build` and make sure they pass.
-- For changes to contracts or the circuit, run `cargo test` and `npm run zk:prove`.
+- Run `pnpm typecheck` and `pnpm build` and make sure they pass.
+- For changes to contracts or the circuit, run `cargo test` and `pnpm zk:prove`.
 
 > Positioning note. Sections 1 to 18 below were written for the original framing
 > (Brazilian labor compliance and court-grade proof). The product was later

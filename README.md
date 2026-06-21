@@ -110,26 +110,26 @@ decision for mainnet.
 ## Quickstart
 
 ```bash
-# 0. prerequisites: Node 22, Rust and stellar-cli, circom and snarkjs
+# 0. prerequisites: Node 22, pnpm, Rust and stellar-cli, circom and snarkjs
 bash scripts/setup.sh           # installs JS deps, prints a toolchain checklist
 
 # 1. configure
 cp .env.example .env.local      # fill in values
 
 # 2. build the ZK circuit and trusted setup
-npm run zk:setup
+pnpm zk:setup
 
 # 3. deploy contracts to testnet (writes contracts/deploy/addresses.json)
-npm run contracts:deploy
+pnpm contracts:deploy
 
 # 4. run the app
-npm run dev                     # http://localhost:3000
+pnpm dev                        # http://localhost:3000
 ```
 
 End-to-end ZK smoke test (after `zk:setup`):
 
 ```bash
-npm run zk:prove -- --value 50000 --min 45000 --max 55000   # in-range proof passes
+pnpm zk:prove -- --value 50000 --min 45000 --max 55000   # in-range proof passes
 ```
 
 ## Project structure

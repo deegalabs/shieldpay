@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> Installing Node dependencies"
-npm install
+pnpm install
 
 echo ""
 echo "==> Toolchain checklist (install any that are missing):"
@@ -15,7 +15,7 @@ check node    "https://nodejs.org (>=20)"
 check stellar "curl -fsSL https://github.com/stellar/stellar-cli/install.sh | sh"
 check cargo   "https://rustup.rs"
 check circom  "https://docs.circom.io/getting-started/installation/"
-check snarkjs "npm i -g snarkjs"
+check snarkjs "pnpm add -g snarkjs"
 check nargo   "curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash (optional, reference circuit)"
 
 echo ""
@@ -24,7 +24,7 @@ echo "      rustup target add wasm32v1-none"
 echo ""
 echo "==> Next steps:"
 echo "   1. cp .env.example .env.local  (fill in values)"
-echo "   2. npm run zk:setup            (build circuit + trusted setup)"
-echo "   3. npm run contracts:deploy    (deploy to testnet, writes addresses.json)"
-echo "   4. npm run seed                (seed demo company + workers)"
-echo "   5. npm run dev                 (start the app)"
+echo "   2. pnpm zk:setup               (build circuit + trusted setup)"
+echo "   3. pnpm contracts:deploy       (deploy to testnet, writes addresses.json)"
+echo "   4. pnpm seed                   (seed demo company + workers)"
+echo "   5. pnpm dev                    (start the app)"
