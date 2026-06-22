@@ -195,7 +195,10 @@ Honest limitations:
   in clear would leak it on a transparent chain, so the salary stays in the
   commitment. When a worker or treasury has no USDC trustline yet, the
   settlement falls back to a native XLM marker so it always posts.
-- The Groth16 trusted setup is a single-party demo ceremony, not MPC.
+- The deployed Groth16 setup used a single-contributor ceremony. A multi-party
+  ceremony (N independent contributions per phase plus a public random beacon)
+  is scripted in `circuits/scripts/ceremony.sh` and validated; adopting it in
+  production is a redeploy of the verifier with the new verification key.
 - `pnpm e2e` boots the production build and checks routing, RBAC redirects,
   security headers and public-page rendering; contracts have unit tests
   (`cargo test`) and the proving + disclosure path has unit tests (`pnpm test`).

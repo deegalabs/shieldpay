@@ -70,3 +70,4 @@ circuits/**/public*.json
 SECURITY_AUDIT.md
 DECISOES_FUTURAS.md
 IMPLEMENTATION_INVENTORY.md
+circuits/payment_proof/ceremony_out/
