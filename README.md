@@ -4,7 +4,7 @@
 
 ### Confidential payroll for DAOs and Web3 teams on Stellar
 
-**Pay contributors in USDC. Keep each amount private. Prove on-chain that the payment was correct, and disclose the exact figure only to an authorized auditor.**
+**Settle contributor payments on Stellar and prove on-chain that each one was correct, while keeping the amount private and disclosing the exact figure only to an authorized auditor.**
 
 [![Stellar](https://img.shields.io/badge/Stellar-Protocol%2026-7D00FF?logo=stellar&logoColor=white)](https://stellar.org)
 [![Soroban](https://img.shields.io/badge/Soroban-soroban--sdk%2026-08B5A5)](https://developers.stellar.org/docs/build/smart-contracts/overview)
@@ -28,10 +28,12 @@ auditable when an accountant or a partner needs to check the numbers.
 
 ## The solution
 
-ShieldPay pays contributors in native USDC on Stellar. Each amount is kept as a
-Poseidon commitment with a zero-knowledge range proof that is verified inside a
-Soroban smart contract. The payment posts a real, recipient-visible, memo-bound
-settlement on-chain, bound to the proof, without printing the salary in clear.
+ShieldPay runs payroll on Stellar with USDC as the payout rail. Each amount is
+kept as a Poseidon commitment with a zero-knowledge range proof that is verified
+inside a Soroban smart contract. The payment posts a real, recipient-visible,
+memo-bound settlement on-chain, bound to the proof, without printing the salary
+in clear. The settlement amount is a fixed, symbolic marker, not the salary,
+because moving the real figure in clear would leak it on a transparent chain.
 The company holds a viewing key that lets an authorized auditor reveal the exact
 amounts and re-verify them against the on-chain commitments.
 
@@ -203,7 +205,24 @@ The internal audit log with open findings is kept private until remediated.
 
 - App: https://web-production-f389ce.up.railway.app
 - [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI)
-- [PaymentVerifier contract](https://stellar.expert/explorer/testnet/contract/CB6LJ2YRBUVHKDQ4CPKDXH3BSUSQM6UR4WKRCLVJZG6VES7KDMTCDDKF)
+- [PaymentVerifier contract](https://stellar.expert/explorer/testnet/contract/CCLEDEZ2YA73SOL3AIMU7ZWV7LJMDMZYXAKCBW5GQLNYYABNA64XQE5Z)
+
+### Verify it yourself
+
+You do not have to trust us. Read a recorded proof straight from the live
+verifier on testnet (the proof is checked on-chain with the native BN254 pairing
+before it is stored):
+
+```bash
+stellar contract invoke \
+  --id CCLEDEZ2YA73SOL3AIMU7ZWV7LJMDMZYXAKCBW5GQLNYYABNA64XQE5Z \
+  --source-account <any-funded-testnet-key> \
+  --network testnet \
+  -- get_proof_record --proof_id 2
+```
+
+It returns the record with `verified: true`, the recipient address hash, the
+settlement tx hash, and the amount commitment, none of which reveal the salary.
 
 ## Legal note
 
