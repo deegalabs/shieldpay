@@ -3,6 +3,7 @@ import {
   listPayments,
   listPaymentsForCompany,
   ensureCompanyViewingKey,
+  getCompanyById,
   type PaymentRow,
 } from '@/lib/db/client';
 import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
@@ -46,8 +47,12 @@ export async function GET(req: NextRequest) {
   }
 
   // The viewing key is resolved server-side from the company, never carried in
-  // the token.
-  const disclose = Boolean(claims.disclose && claims.companyId);
+  // the token. A rotation revokes the link by bumping the disclosure epoch.
+  let disclose = Boolean(claims.disclose && claims.companyId);
+  if (disclose && claims.companyId) {
+    const company = await getCompanyById(claims.companyId);
+    if (!company || (claims.epoch ?? 0) !== company.disclose_epoch) disclose = false;
+  }
   let disclosed = new Map();
   if (disclose && claims.companyId) {
     const vk = await ensureCompanyViewingKey(claims.companyId);

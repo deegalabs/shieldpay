@@ -3,6 +3,7 @@ import {
   listPayments,
   listPaymentsForCompany,
   ensureCompanyViewingKey,
+  getCompanyById,
   type PaymentRow,
 } from '@/lib/db/client';
 import { disclosePayments, summarizeDisclosure, type Disclosed } from '@/lib/payments/disclose';
@@ -56,7 +57,17 @@ export default async function AuditorView({ params }: { params: { token: string 
 
   // Viewing-key tier: open + verify each amount against its on-chain commitment.
   // The key is resolved server-side from the company, never carried in the token.
-  const disclose = Boolean(claims.disclose && claims.companyId);
+  // The link's disclosure epoch must still match the company's current epoch;
+  // a rotation revokes the link, dropping it back to read-only.
+  let disclose = Boolean(claims.disclose && claims.companyId);
+  if (disclose && claims.companyId) {
+    try {
+      const company = await getCompanyById(claims.companyId);
+      if (!company || (claims.epoch ?? 0) !== company.disclose_epoch) disclose = false;
+    } catch {
+      disclose = false; // cannot confirm the epoch — fail closed to read-only
+    }
+  }
   let disclosed: Map<string, Disclosed> = new Map();
   let summary = { disclosedTotalCents: 0, disclosedCount: 0, allMatch: true };
   if (disclose && claims.companyId) {

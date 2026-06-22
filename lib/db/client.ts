@@ -164,7 +164,20 @@ export interface CompanyRow {
   auditor_contact: string | null;
   require_invoice: boolean;
   viewing_key: string | null;
+  disclose_epoch: number;
   created_at: string;
+}
+
+/** Bump the disclosure epoch, instantly invalidating every outstanding
+ * viewing-key (disclose) link for this company. Returns the new epoch. */
+export async function rotateDiscloseEpoch(companyId: string): Promise<number> {
+  await ensureSchema();
+  const { rows } = await getPool().query<{ disclose_epoch: number }>(
+    `UPDATE companies SET disclose_epoch = disclose_epoch + 1 WHERE id = $1
+     RETURNING disclose_epoch`,
+    [companyId],
+  );
+  return rows[0]?.disclose_epoch ?? 1;
 }
 
 export async function getCompanyByOwner(ownerSub: string): Promise<CompanyRow | null> {

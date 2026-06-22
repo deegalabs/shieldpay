@@ -33,6 +33,19 @@ export function TopbarActions({ canAudit = false }: { canAudit?: boolean }) {
     }
   }
 
+  async function revokeDisclosure() {
+    if (!confirm('Revoke every viewing-key link? Auditors keep read-only access, and you can issue new links.')) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/auth/auditor-link/rotate', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) toast.success('All viewing-key links revoked');
+      else toast.error(data.error || 'Could not revoke');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
@@ -47,6 +60,9 @@ export function TopbarActions({ canAudit = false }: { canAudit?: boolean }) {
           </Button>
           <Button variant="ghost" size="sm" disabled={busy} onClick={() => auditorLink(true)}>
             Viewing-key link
+          </Button>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={revokeDisclosure}>
+            Revoke disclosure
           </Button>
         </>
       )}

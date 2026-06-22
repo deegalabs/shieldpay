@@ -56,6 +56,7 @@ export interface AuditTokenClaims {
   scope: 'audit';
   companyId?: string;
   disclose?: boolean;
+  epoch?: number; // disclosure epoch the link was minted under (rotation check)
 }
 
 /** Sign a short-lived, scoped token (auditor link / magic link). */

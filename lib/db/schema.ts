@@ -71,6 +71,11 @@ CREATE INDEX IF NOT EXISTS idx_runs_company ON payroll_runs(company_id);
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS viewing_key TEXT;
 ALTER TABLE payments  ADD COLUMN IF NOT EXISTS disclosure TEXT; -- sealed {amountCents, randomness}
 
+-- Disclosure epoch: every disclose link carries the epoch it was minted under.
+-- Bumping it (rotate) instantly invalidates all outstanding disclose links, so a
+-- leaked viewing-key link can be revoked without rotating the key or re-sealing.
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS disclose_epoch INTEGER NOT NULL DEFAULT 1;
+
 -- N5: real, recipient-visible, memo-bound on-chain settlement record. Carries a
 -- symbolic amount only (the salary stays confidential as the commitment); the
 -- proof is bound to this tx hash. Null when settlement was skipped (best-effort).

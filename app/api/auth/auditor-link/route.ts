@@ -43,6 +43,9 @@ export async function POST(req: NextRequest) {
     // It is resolved server-side when the auditor view or export runs.
     await ensureCompanyViewingKey(company.id);
     claims.disclose = true;
+    // Stamp the current disclosure epoch so the company can revoke this link
+    // (and every other outstanding disclose link) at once by rotating.
+    claims.epoch = company.disclose_epoch;
   }
 
   const token = await signScopedToken(claims, `${clamped}d`);
