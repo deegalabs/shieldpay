@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useCreateWallet, useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { ShieldCheck } from 'lucide-react';
@@ -37,6 +37,33 @@ export function InviteAccept({
   const [step, setStep] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [walletAddr, setWalletAddr] = useState<string | null>(null);
+  const walletReq = useRef(false);
+
+  // Pre-create the embedded Stellar wallet as soon as the collaborator is
+  // authenticated. Creating it and signing with it in the same tick fails with
+  // "Wallet not found" because the Privy user context has not refreshed yet, so
+  // we create it on a prior render and only sign once it is ready.
+  useEffect(() => {
+    if (!authenticated || walletReq.current) return;
+    walletReq.current = true;
+    (async () => {
+      try {
+        const existing = (user?.linkedAccounts ?? []).find(
+          (a: any) => a?.type === 'wallet' && a?.chainType === 'stellar' && a?.address,
+        ) as any;
+        if (existing?.address) {
+          setWalletAddr(existing.address);
+          return;
+        }
+        const { wallet } = await createWallet({ chainType: 'stellar' });
+        setWalletAddr(wallet.address);
+      } catch {
+        walletReq.current = false; // allow a retry
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated]);
 
   // After accepting, the collaborator is already authenticated with Privy, so
   // open a worker session and send them straight to their portal instead of
@@ -61,11 +88,13 @@ export function InviteAccept({
   }, [done]);
 
   async function getStellarWallet(): Promise<string> {
+    if (walletAddr) return walletAddr;
     const existing = (user?.linkedAccounts ?? []).find(
       (a: any) => a?.type === 'wallet' && a?.chainType === 'stellar' && a?.address,
     ) as any;
     if (existing?.address) return existing.address;
     const { wallet } = await createWallet({ chainType: 'stellar' });
+    setWalletAddr(wallet.address);
     return wallet.address;
   }
 
@@ -197,6 +226,10 @@ export function InviteAccept({
       {!authenticated ? (
         <Button className="w-full" size="lg" disabled={!ready} onClick={login}>
           Sign in to continue
+        </Button>
+      ) : !walletAddr ? (
+        <Button className="w-full" size="lg" disabled>
+          Preparing your wallet…
         </Button>
       ) : (
         <Button className="w-full" size="lg" disabled={busy} onClick={run}>
