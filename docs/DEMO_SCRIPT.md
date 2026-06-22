@@ -1,62 +1,100 @@
 # ShieldPay: Demo Video Script (2 to 3 min)
 
-Goal: show the product working and explain what the ZK proof is doing, per the
-hackathon submission requirements. You do not need to appear on camera.
+Goal: show the product working and make clear what the ZK proof does. You do not
+need to appear on camera. Read the narration as voice-over while screen-recording
+the actions. Keep it honest: recipient visible, amount hidden, settlement marker
+symbolic, proof verified on-chain.
 
-## [0:00 to 0:20] The hook
-
-> "A DAO wants to pay its contributors on-chain, but salaries are private. On a
-> transparent chain, the amount is public. How do you settle for real, keep the
-> figure private, and still let an auditor check the numbers?"
-
-## [0:20 to 0:45] Why ZK
-
-Briefly: the blockchain is immutable and timestamps are irrefutable. The key
-point is that a zero-knowledge proof lets anyone verify a payment was within the
-agreed range without revealing the amount, and the company can disclose the exact
-figure to an auditor on demand.
-
-## [0:45 to 1:45] The flow
-
-1. Sign in (email, Google, or passkey via Privy, or one-click demo). No seed
-   phrase, no extension.
-2. Set up the organization, then land on the dashboard.
-3. Invite a contributor. Show the shareable invite link.
-4. Accept the invite as the contributor: a Stellar wallet is created, identity is
-   provided, and the on-chain self-anchor is signed.
-5. Run a confidential payroll batch. Each amount is committed, proven, and
-   recorded on-chain. The run shows the total.
-
-> On-screen callout during the run:
-> "A Groth16 zero-knowledge proof is generated and verified inside a Stellar
-> smart contract, proving the amount is within the agreed range without revealing
-> it."
-
-## [1:45 to 2:15] Settlement and proof on-chain
-
-1. Open the settlement transaction on stellar.expert.
-2. Show the recipient-visible payment and the memo `SHIELDPAY|PAY|v1|...`.
-3. Show the proof recorded in the `PaymentVerifier` contract.
-4. "The payment is real and on-chain. The amount stays private."
-
-## [2:15 to 2:40] Selective disclosure (auditor)
-
-1. The company mints a viewing-key auditor link.
-2. The auditor opens it with no wallet and sees the exact amounts.
-3. Each amount is re-verified against the on-chain commitment, with a reconciled
-   total. Export the CSV.
-
-## [2:40 to 3:00] Close
-
-> "ShieldPay: confidential payroll on Stellar. Private by default, auditable on
-> demand. Built on Stellar and zero-knowledge proofs."
+Tip: have two browser profiles ready (company, and a fresh one for the
+contributor and the auditor link) and the stellar.expert tab pre-opened on the
+PaymentVerifier contract.
 
 ---
 
-### Recording checklist
+## [0:00 to 0:18] The hook
 
-- [ ] Clean the test rows from the production database first
-- [ ] Contracts deployed to testnet, IDs in the env
-- [ ] ZK artifacts built (`npm run zk:setup`)
-- [ ] One real testnet run captured end-to-end
-- [ ] Show a real stellar.expert link, not a mock
+On screen: the landing page, then the dashboard.
+
+> "A DAO wants to pay its contributors on-chain. But salaries are private, and on
+> a transparent chain the amount is public to everyone. ShieldPay settles the
+> payment for real, proves it was correct, and keeps the figure private."
+
+## [0:18 to 0:40] Why ZK (kept short)
+
+On screen: the dashboard with the "amounts are private" line visible.
+
+> "The proof is doing the work. A zero-knowledge proof lets anyone confirm a
+> payment was inside the agreed range, without revealing the amount. The exact
+> figure is disclosed only to an auditor the company authorizes."
+
+## [0:40 to 1:05] Onboarding (fast)
+
+On screen, click through:
+1. Sign in with email or the one-click demo. No seed phrase, no extension.
+2. Invite a contributor, copy the invite link.
+3. In the second profile, open the link: a Stellar wallet is created, the
+   contributor fills name and tax id, and signs the on-chain identity anchor.
+
+> "Sign-in is seedless through Privy. The contributor gets a Stellar wallet and
+> signs a one-time identity anchor that binds their wallet to the agreement."
+
+## [1:05 to 1:40] Run a confidential payroll
+
+On screen: the payroll run, then the success state.
+
+> "Now payroll. Each amount becomes a commitment. A Groth16 proof is generated
+> and verified inside a Stellar smart contract, proving the amount is within the
+> agreed range, without printing it. The settlement posts on-chain over USDC."
+
+On-screen callout while the run progresses: "settle, prove, verify".
+
+## [1:40 to 2:15] The proof is real and on-chain (your strongest 30 seconds)
+
+On screen: switch to the pre-opened stellar.expert tab.
+1. Show the `verify_and_record` transaction on the PaymentVerifier contract.
+2. Point to the recorded proof: `verified: true`, the recipient hash, the
+   settlement tx hash, and the amount commitment. None reveal the salary.
+3. Optionally show the terminal running the README "verify it yourself" command:
+   `get_proof_record --proof_id 2` returning the same record.
+
+> "This is not a mock. The proof was checked on-chain with Stellar's native
+> pairing, then recorded. Anyone can re-verify it. The amount never appears."
+
+## [2:15 to 2:40] Selective disclosure (auditor)
+
+On screen:
+1. As the company, mint a viewing-key auditor link.
+2. Open it in the fresh profile, no wallet. The exact amounts appear.
+3. Highlight that each amount re-derives the same commitment the contract
+   checked, with a reconciled total. Export the CSV.
+4. Back in the company topbar, click "Revoke disclosure" and reload the auditor
+   link: it drops to read-only.
+
+> "An auditor opens a link with no wallet and sees the exact amounts, each one
+> re-verified against the on-chain commitment. And the company can revoke that
+> access in one click."
+
+## [2:40 to 3:00] Close
+
+On screen: back to the dashboard.
+
+> "ShieldPay. Confidential payroll on Stellar. Private by default, auditable on
+> demand, verifiable by anyone. Built on Stellar and zero-knowledge proofs."
+
+---
+
+### Pre-flight checklist (do this before recording)
+
+- [ ] Latest commits pushed and the Railway deploy is live.
+- [ ] Test rows cleared from the production database (`scripts/cleanup_test_data.sql`).
+- [ ] Contracts deployed to testnet, IDs in the env; `addresses.json` current.
+- [ ] One real testnet run captured end to end, with a real stellar.expert link.
+- [ ] Optional, for the USDC rail on screen: run `pnpm setup:usdc` so the
+      treasury holds USDC and the settlement shows the USDC asset, not the XLM
+      marker.
+- [ ] stellar.expert pre-opened on the PaymentVerifier contract to avoid dead air.
+
+### One-line value proposition (for the submission text)
+
+Confidential payroll on Stellar: pay contributors, prove on-chain each amount was
+correct, keep the figure private, and disclose it only to an authorized auditor.
