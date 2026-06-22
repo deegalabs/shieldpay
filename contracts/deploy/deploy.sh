@@ -7,6 +7,11 @@ cd "$(dirname "$0")/.."
 
 NETWORK="${STELLAR_NETWORK:-testnet}"
 SOURCE="${STELLAR_SOURCE:-shieldpay}"
+# DEPLOY_TARGET=all      deploy both contracts and write addresses.json (first deploy)
+# DEPLOY_TARGET=verifier deploy ONLY a new PaymentVerifier, keep the existing
+#                        AnchorRegistry, and DO NOT overwrite addresses.json
+#                        (staged ceremony swap: validate the new id, then swap).
+DEPLOY_TARGET="${DEPLOY_TARGET:-all}"
 OUT="deploy/addresses.json"
 
 # Configure testnet + a funded key on first run:
@@ -14,17 +19,23 @@ OUT="deploy/addresses.json"
 #     --rpc-url https://soroban-testnet.stellar.org \
 #     --network-passphrase "Test SDF Network ; September 2015"
 #   stellar keys generate "$SOURCE" --network testnet --fund
+#   (or import an existing one: stellar keys add "$SOURCE" --secret-key)
 
 echo "==> Building before deploy"
 bash deploy/build.sh
 
 REL="target/wasm32v1-none/release"
 
-echo "==> Deploying AnchorRegistry"
-ANCHOR_ID=$(stellar contract deploy \
-  --wasm "$REL/anchor_registry.wasm" \
-  --source "$SOURCE" --network "$NETWORK")
-echo "    AnchorRegistry: $ANCHOR_ID"
+if [ "$DEPLOY_TARGET" = "verifier" ]; then
+  ANCHOR_ID=$(node -e "console.log(require('./deploy/addresses.json').anchor_registry)")
+  echo "==> Staged verifier-only deploy (keeping AnchorRegistry $ANCHOR_ID)"
+else
+  echo "==> Deploying AnchorRegistry"
+  ANCHOR_ID=$(stellar contract deploy \
+    --wasm "$REL/anchor_registry.wasm" \
+    --source "$SOURCE" --network "$NETWORK")
+  echo "    AnchorRegistry: $ANCHOR_ID"
+fi
 
 echo "==> Deploying PaymentVerifier"
 VERIFIER_ID=$(stellar contract deploy \
@@ -42,6 +53,15 @@ if [ -f "$VK_JSON" ]; then
 else
   echo "    WARNING: verification_key.json not found. Run 'npm run zk:setup' first,"
   echo "    then initialize manually with the encoded VK."
+fi
+
+if [ "$DEPLOY_TARGET" = "verifier" ]; then
+  echo "==> Staged deploy done. The new verifier is NOT wired yet."
+  echo "    1) Validate it:"
+  echo "       COMPANY_SECRET_KEY=S... PAYMENT_VERIFIER_CONTRACT_ID=$VERIFIER_ID pnpm test:flow"
+  echo "    2) If green, set PAYMENT_VERIFIER_CONTRACT_ID=$VERIFIER_ID in Railway,"
+  echo "       update deploy/addresses.json + the README link, then merge + push."
+  exit 0
 fi
 
 echo "==> Writing $OUT"
