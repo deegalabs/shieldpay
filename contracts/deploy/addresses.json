@@ -2,10 +2,10 @@
   "network": "testnet",
   "deployer": "GALMHHXIV746ULVLMQ576Q34ISJ4V62DDU3ALXLIE6ZNSY5VAAGQZNLQ",
   "anchor_registry": "CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
-  "payment_verifier": "CCLEDEZ2YA73SOL3AIMU7ZWV7LJMDMZYXAKCBW5GQLNYYABNA64XQE5Z",
-  "notes": "payment_verifier is the binding circuit (5 public signals): it verifies the Groth16/BN254 proof on-chain AND enforces that the public signals for the commitment, recipient, and settlement tx equal the recorded values. Initialized with the new verification key. Validated on testnet (proof_id 0, verified=true). Supersedes CB6LJ2YR (3-signal, range-only). anchor_registry is unchanged.",
+  "payment_verifier": "CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3",
+  "notes": "payment_verifier is the binding circuit (5 public signals): it verifies the Groth16/BN254 proof on-chain AND enforces that the public signals for the commitment, recipient, and settlement tx equal the recorded values. Initialized with the multi-party ceremony verification key (3 contributions plus a public beacon). Supersedes CCLEDEZ2 (single-contributor setup) and CB6LJ2YR (3-signal, range-only). anchor_registry is unchanged.",
   "explorer": {
     "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
-    "payment_verifier": "https://stellar.expert/explorer/testnet/contract/CCLEDEZ2YA73SOL3AIMU7ZWV7LJMDMZYXAKCBW5GQLNYYABNA64XQE5Z"
+    "payment_verifier": "https://stellar.expert/explorer/testnet/contract/CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3"
   }
 }

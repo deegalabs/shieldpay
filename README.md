@@ -218,7 +218,7 @@ The internal audit log with open findings is kept private until remediated.
 
 - App: https://web-production-f389ce.up.railway.app
 - [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI)
-- [PaymentVerifier contract](https://stellar.expert/explorer/testnet/contract/CCLEDEZ2YA73SOL3AIMU7ZWV7LJMDMZYXAKCBW5GQLNYYABNA64XQE5Z)
+- [PaymentVerifier contract](https://stellar.expert/explorer/testnet/contract/CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3)
 
 ### Verify it yourself
 
@@ -228,7 +228,7 @@ before it is stored):
 
 ```bash
 stellar contract invoke \
-  --id CCLEDEZ2YA73SOL3AIMU7ZWV7LJMDMZYXAKCBW5GQLNYYABNA64XQE5Z \
+  --id CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3 \
   --source-account <any-funded-testnet-key> \
   --network testnet \
   -- get_proof_record --proof_id 2
