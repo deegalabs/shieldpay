@@ -2,7 +2,7 @@ import { ShieldCheck, ArrowUpRight, Download } from 'lucide-react';
 import {
   listPayments,
   listPaymentsForWorker,
-  getContractorByAddress,
+  listContractorsByAddress,
   type PaymentRow,
   type InviteView,
 } from '@/lib/db/client';
@@ -27,12 +27,12 @@ function shortAddr(a: string | null): string {
 export default async function WorkerPayments() {
   const session = await getSession();
   let payments: PaymentRow[] = [];
-  let profile: InviteView | null = null;
+  let orgs: InviteView[] = [];
   try {
     if (session?.role === 'worker') {
-      [payments, profile] = await Promise.all([
+      [payments, orgs] = await Promise.all([
         listPaymentsForWorker(session.sub),
-        getContractorByAddress(session.sub),
+        listContractorsByAddress(session.sub),
       ]);
     } else {
       payments = await listPayments(50);
@@ -42,6 +42,7 @@ export default async function WorkerPayments() {
   }
 
   const latest = payments[0];
+  const profile = orgs[0] ?? null;
   const displayName = profile?.name || session?.name || 'My account';
 
   return (
@@ -56,27 +57,38 @@ export default async function WorkerPayments() {
       </div>
 
       {profile && (
-        <Card className="grid gap-4 p-5 sm:grid-cols-2">
-          <Field label="Organization" value={profile.company_name} />
-          {profile.role && <Field label="Role" value={profile.role} />}
-          <Field
-            label="Agreed range"
-            value={`$${profile.range_min / 100}-$${profile.range_max / 100} USDC/mo`}
-          />
-          <Field label="Your wallet" value={shortAddr(profile.stellar_address)} mono />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Identity</p>
-            <div className="mt-1">
-              {profile.anchored ? (
-                <Badge variant="success">
-                  <ShieldCheck size={12} /> Anchored on-chain
-                </Badge>
-              ) : (
-                <Badge variant="warning">Pending anchor</Badge>
-              )}
-            </div>
+        <p className="-mt-3 text-sm text-muted">
+          Your wallet: <span className="font-mono text-foreground">{shortAddr(profile.stellar_address)}</span>
+        </p>
+      )}
+
+      {orgs.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+            {orgs.length > 1 ? 'Your organizations' : 'Your organization'}
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {orgs.map((o) => (
+              <Card key={o.id} className="space-y-3 p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">{o.company_name}</p>
+                  {o.anchored ? (
+                    <Badge variant="success">
+                      <ShieldCheck size={12} /> Anchored
+                    </Badge>
+                  ) : (
+                    <Badge variant="warning">Pending anchor</Badge>
+                  )}
+                </div>
+                {o.role && <Field label="Role" value={o.role} />}
+                <Field
+                  label="Agreed range"
+                  value={`$${o.range_min / 100}-$${o.range_max / 100} USDC/mo`}
+                />
+              </Card>
+            ))}
           </div>
-        </Card>
+        </section>
       )}
 
       {payments.length === 0 ? (
@@ -89,7 +101,7 @@ export default async function WorkerPayments() {
                 <div>
                   <p className="font-medium">{p.reference}</p>
                   <p className="text-sm text-muted">
-                    ${p.range_min / 100}-${p.range_max / 100} USDC
+                    {p.payer_name ? `${p.payer_name} · ` : ''}${p.range_min / 100}-${p.range_max / 100} USDC
                   </p>
                 </div>
                 <span className="inline-flex items-center gap-1">

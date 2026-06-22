@@ -320,19 +320,20 @@ export async function getInvite(id: string): Promise<InviteView | null> {
   return rows[0] ?? null;
 }
 
-/** Load a collaborator's own profile (contractor + hiring company) by the
- * wallet address that identifies their session. Used by the worker portal. */
-export async function getContractorByAddress(address: string): Promise<InviteView | null> {
+/** Load every organization a collaborator is linked to (one row per company),
+ * by the wallet address that identifies their session. A collaborator can work
+ * for more than one company, each with its own role, range and anchor. */
+export async function listContractorsByAddress(address: string): Promise<InviteView[]> {
   await ensureSchema();
   const { rows } = await getPool().query<InviteView>(
     `SELECT c.*, co.name AS company_name, co.type AS company_type,
             co.treasury_address AS company_treasury
      FROM contractors c JOIN companies co ON co.id = c.company_id
      WHERE c.stellar_address = $1
-     ORDER BY c.created_at DESC LIMIT 1`,
+     ORDER BY c.created_at DESC`,
     [address],
   );
-  return rows[0] ?? null;
+  return rows;
 }
 
 /** Record the on-chain self-anchor for an invited/active contractor (by id). */
