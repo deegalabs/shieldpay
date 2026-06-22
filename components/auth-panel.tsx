@@ -74,7 +74,7 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
   }
 
   const title = mode === 'signup' ? 'Create your account' : 'Welcome back';
-  const cta = mode === 'signup' ? 'Sign up' : 'Continue';
+  const cta = mode === 'signup' ? 'Create account' : 'Sign in';
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
@@ -107,11 +107,13 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
         </div>
 
         {/* Primary: Privy */}
-        <Button className="w-full" size="lg" disabled={!ready || !!busy} onClick={startPrivy}>
+        <Button className="w-full" disabled={!ready || !!busy} onClick={startPrivy}>
           <Mail size={16} />
-          {busy === 'bridge' ? 'Signing in…' : `${cta} with email, Google or passkey`}
+          {busy === 'bridge' ? 'Signing in…' : cta}
         </Button>
-        <p className="text-center text-xs text-muted">No seed phrase. A secure wallet is created for you.</p>
+        <p className="text-center text-xs text-muted">
+          Email, Google, or passkey. No seed phrase, a secure wallet is created for you.
+        </p>
 
         {error && (
           <p className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{error}</p>
