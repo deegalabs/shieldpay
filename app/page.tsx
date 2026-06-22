@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import {
-  ShieldCheck,
   Globe,
   KeyRound,
   ArrowRight,
@@ -11,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { BrandMark } from '@/components/ui/brand-mark';
 
 export default function HomePage() {
   return (
@@ -19,8 +19,8 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
           <Link href="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/15 text-brand">
-              <ShieldCheck size={18} />
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10">
+              <BrandMark size={18} />
             </span>
             <span className="font-semibold tracking-tight">ShieldPay</span>
           </Link>

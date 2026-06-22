@@ -1,4 +1,5 @@
-import { ShieldCheck, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import { BrandMark } from '@/components/ui/brand-mark';
 import { verifyScopedToken } from '@/lib/auth/session';
 import { USDC } from '@/lib/constants';
 import { getInvite } from '@/lib/db/client';
@@ -26,8 +27,8 @@ export default async function InvitePage({ params }: { params: { token: string }
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <div className="mb-6 text-center">
-        <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl bg-brand/15 text-brand">
-          <ShieldCheck size={22} />
+        <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl bg-brand/10">
+          <BrandMark size={22} />
         </span>
         <h1 className="text-2xl font-bold tracking-tight">You&apos;ve been invited</h1>
       </div>

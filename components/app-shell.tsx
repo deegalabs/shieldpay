@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { ShieldCheck, HelpCircle } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { NavLink } from '@/components/nav-link';
+import { BrandMark } from '@/components/ui/brand-mark';
 
 export interface NavItem {
   href: string;
@@ -32,8 +33,8 @@ export function AppShell({
       {/* Sidebar (desktop) */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 md:flex">
         <Link href="/" className="mb-8 flex items-center gap-2 px-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/15 text-brand">
-            <ShieldCheck size={18} />
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10">
+            <BrandMark size={18} />
           </span>
           <span className="font-semibold tracking-tight">ShieldPay</span>
         </Link>
@@ -60,8 +61,8 @@ export function AppShell({
         {/* Topbar */}
         <header className="flex items-center justify-between gap-4 border-b border-border bg-surface/30 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
-            <Link href="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/15 text-brand md:hidden">
-              <ShieldCheck size={18} />
+            <Link href="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/10 md:hidden">
+              <BrandMark size={18} />
             </Link>
             <div className="min-w-0">
               <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{title}</h1>

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
-import { ShieldCheck, Send, FileCheck, Check } from 'lucide-react';
+import { Send, FileCheck, Check } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { CompanyForm } from '@/components/company-form';
+import { BrandMark } from '@/components/ui/brand-mark';
 import { getSession } from '@/lib/auth/server';
 import { getCompanyByOwner } from '@/lib/db/client';
 import { COMPANY } from '@/lib/constants';
@@ -27,8 +28,8 @@ export default async function OnboardingPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">
       <div className="mb-8 text-center">
-        <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl bg-brand/15 text-brand">
-          <ShieldCheck size={22} />
+        <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl bg-brand/10">
+          <BrandMark size={22} />
         </span>
         <h1 className="text-2xl font-bold tracking-tight">Set up your company</h1>
         <p className="mt-1 text-sm text-muted">This takes a minute. You can change it later.</p>

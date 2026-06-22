@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { ShieldCheck, Mail, Building2, User } from 'lucide-react';
+import { Mail, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BrandMark } from '@/components/ui/brand-mark';
 
 type Role = 'company' | 'worker';
 
@@ -75,8 +76,8 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <div className="mb-8 text-center">
-        <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl bg-brand/15 text-brand">
-          <ShieldCheck size={22} />
+        <span className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl bg-brand/10">
+          <BrandMark size={22} />
         </span>
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         <p className="mt-1 text-sm text-muted">
