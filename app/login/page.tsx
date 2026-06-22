@@ -1,5 +1,5 @@
-import { AuthPanel } from '@/components/auth-panel';
+import { AuthPanelMount } from '@/components/auth-panel-mount';
 
 export default function LoginPage() {
-  return <AuthPanel mode="login" />;
+  return <AuthPanelMount mode="login" />;
 }

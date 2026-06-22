@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import { useState } from 'react';
+import { usePrivy, useLogin } from '@privy-io/react-auth';
 import { ShieldCheck, Mail, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,9 +9,8 @@ import { Card } from '@/components/ui/card';
 type Role = 'company' | 'worker';
 
 export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
-  const { ready, authenticated, getAccessToken, login } = usePrivy();
+  const { ready, getAccessToken } = usePrivy();
   const [role, setRole] = useState<Role>('company');
-  const [intent, setIntent] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,34 +19,41 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
     return p.get('next') || (r === 'company' ? '/dashboard' : '/payments');
   }
 
-  // Bridge to our session only after an intentful Privy login (avoids loops).
-  useEffect(() => {
-    if (!intent || !authenticated || busy === 'bridge') return;
-    (async () => {
-      setBusy('bridge');
-      try {
-        const token = await getAccessToken();
-        const res = await fetch('/api/auth/privy', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ token, role }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'login failed');
-        window.location.href = nextDest(data.role);
-      } catch (e) {
-        setError(String(e instanceof Error ? e.message : e));
-        setBusy(null);
-        setIntent(false);
+  // Exchange the Privy session for our own (role-scoped) session cookie. Runs
+  // from the useLogin onComplete callback, the recommended v3 pattern, instead
+  // of watching `authenticated` in an effect.
+  async function bridge() {
+    setBusy('bridge');
+    try {
+      const token = await getAccessToken();
+      const res = await fetch('/api/auth/privy', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token, role }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'login failed');
+      window.location.href = nextDest(data.role);
+    } catch (e) {
+      setError(String(e instanceof Error ? e.message : e));
+      setBusy(null);
+    }
+  }
+
+  const { login } = useLogin({
+    onComplete: () => void bridge(),
+    onError: (err) => {
+      // Closing the Privy modal is not an error worth surfacing.
+      if (err !== 'exited_auth_flow' && err !== 'generic_connect_wallet_error') {
+        setError(typeof err === 'string' ? err.replace(/_/g, ' ') : 'login failed');
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intent, authenticated]);
+      setBusy(null);
+    },
+  });
 
   function startPrivy() {
     setError(null);
-    setIntent(true);
-    if (!authenticated) login();
+    login();
   }
 
   async function demo(r: Role) {

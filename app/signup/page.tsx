@@ -1,5 +1,5 @@
-import { AuthPanel } from '@/components/auth-panel';
+import { AuthPanelMount } from '@/components/auth-panel-mount';
 
 export default function SignupPage() {
-  return <AuthPanel mode="signup" />;
+  return <AuthPanelMount mode="signup" />;
 }
