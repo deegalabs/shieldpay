@@ -200,10 +200,12 @@ Honest limitations:
   in clear would leak it on a transparent chain, so the salary stays in the
   commitment. When a worker or treasury has no USDC trustline yet, the
   settlement falls back to a native XLM marker so it always posts.
-- The deployed Groth16 setup used a single-contributor ceremony. A multi-party
-  ceremony (N independent contributions per phase plus a public random beacon)
-  is scripted in `circuits/scripts/ceremony.sh` and validated; adopting it in
-  production is a redeploy of the verifier with the new verification key.
+- The deployed Groth16 setup uses a multi-party ceremony: three independent
+  contributions per phase plus a public random beacon, scripted in
+  `circuits/scripts/ceremony.sh`. The verifier was redeployed and initialized
+  with that verification key and validated on testnet (proof_id 0, verified
+  true). For a production launch the ceremony would run with external
+  contributors rather than on a single host.
 - `pnpm e2e` boots the production build and checks routing, RBAC redirects,
   security headers and public-page rendering; contracts have unit tests
   (`cargo test`) and the proving + disclosure path has unit tests (`pnpm test`).
@@ -231,7 +233,7 @@ stellar contract invoke \
   --id CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3 \
   --source-account <any-funded-testnet-key> \
   --network testnet \
-  -- get_proof_record --proof_id 2
+  -- get_proof_record --proof_id 0
 ```
 
 It returns the record with `verified: true`, the recipient address hash, the
