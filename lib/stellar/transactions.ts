@@ -8,8 +8,24 @@ import {
   Account,
 } from '@stellar/stellar-sdk';
 import { createHash } from 'node:crypto';
-import { MEMO_PREFIX, MEMO_VERSION, NETWORK } from '@/lib/constants';
+import { MEMO_PREFIX, MEMO_VERSION, NETWORK, USDC } from '@/lib/constants';
 import { horizonServer, networkPassphrase, loadAccount, fundTestnetAccount } from './client';
+
+/** The native USDC asset used for settlement (testnet issuer by default). */
+export function usdcAsset(): Asset {
+  return new Asset(USDC.code, USDC.issuer);
+}
+
+/** True if `account` holds a trustline to the given non-native asset. */
+function hasTrustline(account: Awaited<ReturnType<typeof loadAccount>>, asset: Asset): boolean {
+  return account.balances.some(
+    (b) =>
+      'asset_code' in b &&
+      b.asset_code === asset.getCode() &&
+      'asset_issuer' in b &&
+      b.asset_issuer === asset.getIssuer(),
+  );
+}
 
 /**
  * Stellar transaction builders for the ShieldPay flow.
@@ -40,6 +56,7 @@ export async function buildSettlementRecordTx(args: {
   companySecret: string;
   workerAddress: string;
   reference: string;
+  asset?: Asset; // defaults to native XLM; pass usdcAsset() for the USDC rail
 }): Promise<{ xdr: string; memo: string; hash: string }> {
   const kp = Keypair.fromSecret(args.companySecret);
   const account = await loadAccount(kp.publicKey());
@@ -50,7 +67,7 @@ export async function buildSettlementRecordTx(args: {
     .addOperation(
       Operation.payment({
         destination: args.workerAddress,
-        asset: Asset.native(),
+        asset: args.asset ?? Asset.native(),
         amount: '0.0000001', // symbolic — the salary is the commitment, not this
       }),
     )
@@ -74,15 +91,38 @@ export async function settlePaymentRecord(args: {
   reference: string;
 }): Promise<{ hash: string; asset: string } | null> {
   try {
+    let worker;
     try {
-      await loadAccount(args.workerAddress);
+      worker = await loadAccount(args.workerAddress);
     } catch {
-      if (NETWORK === 'testnet') await fundTestnetAccount(args.workerAddress);
-      else throw new Error('recipient account not found');
+      if (NETWORK === 'testnet') {
+        await fundTestnetAccount(args.workerAddress);
+        worker = await loadAccount(args.workerAddress);
+      } else {
+        throw new Error('recipient account not found');
+      }
     }
-    const { xdr, hash } = await buildSettlementRecordTx(args);
+
+    // Prefer the real USDC rail: only when both sides can transact USDC (worker
+    // has the trustline, treasury holds a balance). Otherwise fall back to the
+    // native XLM marker so the settlement always posts. The amount is symbolic
+    // either way; the salary stays in the commitment.
+    const usdc = usdcAsset();
+    let asset: Asset | undefined;
+    let assetLabel = 'XLM';
+    try {
+      const treasury = await loadAccount(Keypair.fromSecret(args.companySecret).publicKey());
+      if (hasTrustline(worker, usdc) && hasTrustline(treasury, usdc)) {
+        asset = usdc;
+        assetLabel = usdc.getCode();
+      }
+    } catch {
+      /* fall back to native */
+    }
+
+    const { xdr, hash } = await buildSettlementRecordTx({ ...args, asset });
     await submit(xdr);
-    return { hash, asset: 'XLM' };
+    return { hash, asset: assetLabel };
   } catch {
     return null;
   }

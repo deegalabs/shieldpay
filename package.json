@@ -23,6 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:flow": "tsx scripts/test_flow.ts",
+    "setup:usdc": "tsx scripts/setup_usdc_testnet.ts",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {

@@ -190,9 +190,11 @@ settlement, selective disclosure, and receipt is built and validated on testnet.
 
 Honest limitations:
 
-- The real USDC salary amount is not moved as a fund transfer. This is a privacy
-  decision, since a transparent transfer would leak the amount. The settlement
-  posts a real record with a symbolic amount.
+- The settlement is a real on-chain transfer over the USDC asset (testnet),
+  but of a fixed, symbolic marker amount, not the salary. Moving the real figure
+  in clear would leak it on a transparent chain, so the salary stays in the
+  commitment. When a worker or treasury has no USDC trustline yet, the
+  settlement falls back to a native XLM marker so it always posts.
 - The Groth16 trusted setup is a single-party demo ceremony, not MPC.
 - There are no automated frontend or end-to-end tests yet. Contracts have unit
   tests, and the app was validated manually and through on-chain checks.

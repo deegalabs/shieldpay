@@ -1,5 +1,6 @@
 import { ShieldCheck, Lock } from 'lucide-react';
 import { verifyScopedToken } from '@/lib/auth/session';
+import { USDC } from '@/lib/constants';
 import { getInvite } from '@/lib/db/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -78,6 +79,8 @@ export default async function InvitePage({ params }: { params: { token: string }
             }
             anchorContractId={process.env.ANCHOR_REGISTRY_CONTRACT_ID || ''}
             defaultName={invite!.name}
+            usdcCode={USDC.code}
+            usdcIssuer={USDC.issuer}
           />
         </Card>
       )}

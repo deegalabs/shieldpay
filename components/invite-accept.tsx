@@ -20,11 +20,15 @@ export function InviteAccept({
   companyAddress,
   anchorContractId,
   defaultName,
+  usdcCode,
+  usdcIssuer,
 }: {
   token: string;
   companyAddress: string;
   anchorContractId: string;
   defaultName: string;
+  usdcCode: string;
+  usdcIssuer: string;
 }) {
   const { ready, authenticated, login, user, getAccessToken } = usePrivy();
   const { createWallet } = useCreateWallet();
@@ -142,6 +146,33 @@ export function InviteAccept({
     return sent.hash;
   }
 
+  // Best-effort: open a USDC trustline so the worker can receive the USDC
+  // settlement rail. If it fails or is skipped, settlements fall back to the
+  // native marker, so this never blocks acceptance.
+  async function addUsdcTrustline(addr: string): Promise<void> {
+    const sdk: any = await import('@stellar/stellar-sdk');
+    const { Horizon, Asset, Operation, TransactionBuilder, Networks, BASE_FEE, Keypair, xdr } = sdk;
+    const server = new Horizon.Server('https://horizon-testnet.stellar.org');
+    const account = await server.loadAccount(addr);
+    const already = account.balances.some(
+      (b: any) => b.asset_code === usdcCode && b.asset_issuer === usdcIssuer,
+    );
+    if (already) return;
+
+    const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
+      .addOperation(Operation.changeTrust({ asset: new Asset(usdcCode, usdcIssuer) }))
+      .setTimeout(120)
+      .build();
+
+    const hashHex = ('0x' + tx.hash().toString('hex')) as `0x${string}`;
+    const { signature } = await signRawHash({ address: addr, chainType: 'stellar', hash: hashHex });
+    const sigBuf = Buffer.from(signature.replace(/^0x/, ''), 'hex');
+    tx.signatures.push(
+      new xdr.DecoratedSignature({ hint: Keypair.fromPublicKey(addr).signatureHint(), signature: sigBuf }),
+    );
+    await server.submitTransaction(tx);
+  }
+
   async function run() {
     if (name.trim().length < 2 || cpf.trim().length < 3 || !declared) {
       setError('Fill in your name and ID, and accept the declaration.');
@@ -164,6 +195,9 @@ export function InviteAccept({
 
       setStep('Anchoring your identity on-chain (approve in your wallet)…');
       const txHash = await anchorOnChain(addr, accData.cpf_hash);
+
+      setStep('Enabling the USDC rail…');
+      await addUsdcTrustline(addr).catch(() => {}); // best-effort, never blocks
 
       setStep('Finishing…');
       await fetch('/api/invite/anchored', {
