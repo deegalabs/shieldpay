@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useCreateWallet, useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { ShieldCheck } from 'lucide-react';
@@ -26,7 +26,7 @@ export function InviteAccept({
   anchorContractId: string;
   defaultName: string;
 }) {
-  const { ready, authenticated, login, user } = usePrivy();
+  const { ready, authenticated, login, user, getAccessToken } = usePrivy();
   const { createWallet } = useCreateWallet();
   const { signRawHash } = useSignRawHash();
 
@@ -37,6 +37,28 @@ export function InviteAccept({
   const [step, setStep] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // After accepting, the collaborator is already authenticated with Privy, so
+  // open a worker session and send them straight to their portal instead of
+  // asking them to sign in again.
+  async function goToPortal() {
+    try {
+      const token = await getAccessToken();
+      await fetch('/api/auth/privy', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token, role: 'worker' }),
+      });
+    } catch {
+      /* if the bridge fails, /payments will route through /login */
+    }
+    window.location.href = '/payments';
+  }
+
+  useEffect(() => {
+    if (done) void goToPortal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
 
   async function getStellarWallet(): Promise<string> {
     const existing = (user?.linkedAccounts ?? []).find(
@@ -139,11 +161,10 @@ export function InviteAccept({
         </span>
         <p className="text-lg font-semibold text-primary">Accepted &amp; anchored ✅</p>
         <p className="text-sm text-muted">
-          Your wallet is linked and your identity is anchored on-chain. Sign in to your portal to
-          see payments and download receipts.
+          Your wallet is linked and your identity is anchored on-chain. Opening your portal…
         </p>
         <Button asChild className="w-full">
-          <a href="/login">Go to my portal</a>
+          <a href="/payments">Go to my portal</a>
         </Button>
       </div>
     );
