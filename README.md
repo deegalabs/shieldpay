@@ -196,8 +196,11 @@ Honest limitations:
   commitment. When a worker or treasury has no USDC trustline yet, the
   settlement falls back to a native XLM marker so it always posts.
 - The Groth16 trusted setup is a single-party demo ceremony, not MPC.
-- There are no automated frontend or end-to-end tests yet. Contracts have unit
-  tests, and the app was validated manually and through on-chain checks.
+- `pnpm e2e` boots the production build and checks routing, RBAC redirects,
+  security headers and public-page rendering; contracts have unit tests
+  (`cargo test`) and the proving + disclosure path has unit tests (`pnpm test`).
+  The full payment flow (invite, anchor, payroll, disclosure) needs Privy, a
+  database and testnet keys, so it is exercised on a configured environment.
 - The UI and Help Center are in English. No PT-BR localization yet.
 
 Security policy and how to report a vulnerability: [`SECURITY.md`](SECURITY.md).
