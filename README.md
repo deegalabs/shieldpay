@@ -14,6 +14,11 @@
 
 Submission for **Stellar Hacks: ZK** · Real-world ZK on Stellar
 
+ShieldPay builds the hackathon's "confidential payroll" idea: pay a team in
+stablecoins with each amount private on-chain, while the company can still prove
+totals to an auditor. The ZK is load-bearing: a Groth16 proof is verified inside
+a Soroban smart contract with Stellar's native BN254 pairing, not namechecked.
+
 </div>
 
 ---
