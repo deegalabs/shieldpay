@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireCompany, rateLimited } from '@/lib/auth/server';
-import { createPayrollRun, finalizePayrollRun, ensureCompanyViewingKey } from '@/lib/db/client';
+import {
+  createPayrollRun,
+  finalizePayrollRun,
+  ensureCompanyViewingKey,
+  listContractors,
+} from '@/lib/db/client';
 import { proveAndRecordPayment } from '@/lib/payments/flow';
 
 export const runtime = 'nodejs';
@@ -46,6 +51,29 @@ export async function POST(req: NextRequest) {
     if (l.amountUsdc < l.minUsdc || l.amountUsdc > l.maxUsdc) {
       return NextResponse.json(
         { error: `${l.workerName}: amount outside range [${l.minUsdc}, ${l.maxUsdc}]` },
+        { status: 422 },
+      );
+    }
+  }
+
+  // Enforce the identity anchor: only anchored contractors of THIS company can
+  // be paid. The anchor is the on-chain address-to-identity binding, so paying
+  // an un-anchored address would settle without that link.
+  let anchoredAddresses: Set<string>;
+  try {
+    const contractors = await listContractors(company.id);
+    anchoredAddresses = new Set(
+      contractors.filter((c) => c.anchored && c.stellar_address).map((c) => c.stellar_address!),
+    );
+  } catch {
+    return NextResponse.json({ error: 'database unavailable' }, { status: 503 });
+  }
+  for (const l of lines) {
+    if (!anchoredAddresses.has(l.workerAddress)) {
+      return NextResponse.json(
+        {
+          error: `${l.workerName}: identity is not anchored on-chain. The collaborator must finish their identity anchor before being paid.`,
+        },
         { status: 422 },
       );
     }

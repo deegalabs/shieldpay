@@ -58,6 +58,12 @@ export default function PayrollPage() {
       .filter(Boolean) as any[];
 
     if (built.length === 0) return setError('Add at least one collaborator with an amount.');
+    for (const l of lines) {
+      const c = byId(l.contractorId);
+      if (c && !c.anchored) {
+        return setError(`${c.name}: identity not anchored yet. They must finish accepting the invite before they can be paid.`);
+      }
+    }
     for (const b of built) {
       if (!(b.amountUsdc > 0) || b.amountUsdc < b.minUsdc || b.amountUsdc > b.maxUsdc) {
         return setError(`${b.workerName}: amount must be within $${b.minUsdc}-$${b.maxUsdc}.`);
@@ -122,8 +128,9 @@ export default function PayrollPage() {
                       >
                         <option value="">Choose…</option>
                         {contractors.map((ct) => (
-                          <option key={ct.id} value={ct.id}>
-                            {ct.name} (${ct.range_min / 100}-${ct.range_max / 100}){ct.anchored ? ' ✓' : ''}
+                          <option key={ct.id} value={ct.id} disabled={!ct.anchored}>
+                            {ct.name} (${ct.range_min / 100}-${ct.range_max / 100})
+                            {ct.anchored ? ' ✓' : ' — pending anchor'}
                           </option>
                         ))}
                       </select>
