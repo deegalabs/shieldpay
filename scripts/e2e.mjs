@@ -39,7 +39,9 @@ async function waitForReady(timeoutMs = 60000) {
 
 const server = spawn('pnpm', ['exec', 'next', 'start', '-p', PORT], {
   stdio: 'ignore',
-  env: process.env,
+  // A throwaway JWT secret so the authenticated demo flow can be exercised
+  // locally; in production JWT_SECRET fails closed when unset, by design.
+  env: { ...process.env, JWT_SECRET: process.env.JWT_SECRET || 'e2e-local-test-secret' },
 });
 
 try {
@@ -67,6 +69,21 @@ try {
   // Protected API rejects an unauthenticated caller.
   const company = await get('/api/company');
   check('GET /api/company without session is 401', company.status === 401, `status ${company.status}`);
+
+  // Authenticated flow (no DB needed): the one-click demo login signs a session
+  // cookie, and the company portal then renders for that session. The dashboard
+  // degrades to an empty state when the database is absent, so this runs locally.
+  const demo = await get('/api/auth/demo', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ role: 'company' }),
+  });
+  const cookie = (demo.headers.get('set-cookie') || '').split(';')[0];
+  check('POST /api/auth/demo signs a session', demo.status === 200 && cookie.length > 0, `status ${demo.status}`);
+
+  const authedDash = await get('/dashboard', { headers: { cookie } });
+  const dashHtml = await authedDash.text();
+  check('GET /dashboard renders for a company session', authedDash.status === 200 && dashHtml.includes('Verified proofs'), `status ${authedDash.status}`);
 
   // Security headers are present on a public response.
   const root = await get('/');

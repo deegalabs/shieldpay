@@ -207,10 +207,12 @@ Honest limitations:
   true). For a production launch the ceremony would run with external
   contributors rather than on a single host.
 - `pnpm e2e` boots the production build and checks routing, RBAC redirects,
-  security headers and public-page rendering; contracts have unit tests
-  (`cargo test`) and the proving + disclosure path has unit tests (`pnpm test`).
-  The full payment flow (invite, anchor, payroll, disclosure) needs Privy, a
-  database and testnet keys, so it is exercised on a configured environment.
+  security headers, public-page rendering, and an authenticated flow (demo
+  login signs a session and the company portal renders for it). Contracts have
+  unit tests (`cargo test`) and the proving + disclosure path has unit tests
+  (`pnpm test`). The full payment flow (invite, anchor, payroll, disclosure)
+  needs Privy, a database and testnet keys, so it is exercised on a configured
+  environment.
 - The UI and Help Center are in English. No PT-BR localization yet.
 
 Security policy and how to report a vulnerability: [`SECURITY.md`](SECURITY.md).
