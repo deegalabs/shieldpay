@@ -108,3 +108,35 @@ export async function isVerifiedOnChain(paymentTxHash: Buffer): Promise<boolean>
   }
   return false;
 }
+
+/**
+ * Read-only check, against the AnchorRegistry, whether a worker address is
+ * anchored for a company. This is the on-chain source of truth for the identity
+ * anchor, so the server can confirm an anchor instead of trusting a client hash.
+ */
+export async function isAnchoredOnChain(
+  workerAddress: string,
+  companyAddress: string,
+): Promise<boolean> {
+  if (!CONTRACTS.anchorRegistry) return false;
+  const contract = new Contract(CONTRACTS.anchorRegistry);
+  const op = contract.call(
+    'is_anchored',
+    nativeToScVal(workerAddress, { type: 'address' }),
+    nativeToScVal(companyAddress, { type: 'address' }),
+  );
+  try {
+    const source = new Account(Keypair.random().publicKey(), '0');
+    const tx = new TransactionBuilder(source, { fee: '100', networkPassphrase })
+      .addOperation(op)
+      .setTimeout(30)
+      .build();
+    const sim = await sorobanServer.simulateTransaction(tx);
+    if ('result' in sim && sim.result?.retval) {
+      return Boolean(scValToNative(sim.result.retval));
+    }
+  } catch {
+    /* read-only best effort */
+  }
+  return false;
+}

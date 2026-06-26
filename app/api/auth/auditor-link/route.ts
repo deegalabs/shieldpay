@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getSession } from '@/lib/auth/server';
 import { signScopedToken } from '@/lib/auth/session';
 import { getCompanyByOwner, ensureCompanyViewingKey } from '@/lib/db/client';
 
 export const runtime = 'nodejs';
+
+const Body = z.object({ days: z.number().optional(), disclose: z.boolean().optional() });
 
 /**
  * POST /api/auth/auditor-link  { days?: number, disclose?: boolean }
@@ -19,7 +22,8 @@ export async function POST(req: NextRequest) {
   if (!session || session.role !== 'company') {
     return NextResponse.json({ error: 'company session required' }, { status: 403 });
   }
-  const { days = 30, disclose = false } = await req.json().catch(() => ({}));
+  const parsed = Body.safeParse(await req.json().catch(() => ({})));
+  const { days = 30, disclose = false } = parsed.success ? parsed.data : {};
   const clamped = Math.min(Math.max(Number(days) || 30, 1), 365);
 
   let company = null;
