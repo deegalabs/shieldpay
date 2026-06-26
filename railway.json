@@ -6,6 +6,7 @@
   },
   "deploy": {
     "startCommand": "pnpm run start",
+    "preDeployCommand": "pnpm seed:demo || true",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",

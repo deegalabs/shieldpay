@@ -29,6 +29,7 @@ import {
   ensureCompanyViewingKey,
   createPayrollRun,
   finalizePayrollRun,
+  listContractors,
 } from '@/lib/db/client';
 import { proveAndRecordPayment } from '@/lib/payments/flow';
 import {
@@ -94,6 +95,13 @@ async function anchorOnChain(secret: string, companyAddress: string, cpfHash: st
 }
 
 async function main() {
+  // Gated one-shot: only runs when explicitly asked (e.g. a Railway pre-deploy
+  // hook with SEED_DEMO=1), so normal deploys never reseed.
+  if (process.env.SEED_DEMO !== '1') {
+    console.log('seed_demo: SEED_DEMO != 1, skipping.');
+    return;
+  }
+
   const companySecret = need('COMPANY_SECRET_KEY');
   const companyAddress = need('COMPANY_PUBLIC_KEY');
   need('ANCHOR_REGISTRY_CONTRACT_ID');
@@ -108,6 +116,13 @@ async function main() {
     treasury_address: companyAddress,
     type: 'dao',
   });
+
+  // Idempotent: if this company already has a contractor, assume seeded.
+  const existing = await listContractors(company.id);
+  if (existing.length > 0) {
+    console.log(`seed_demo: already seeded (${existing.length} contractor(s)), skipping.`);
+    return;
+  }
 
   console.log('2/6 creating + funding a worker wallet...');
   const worker = generateKeypair();
@@ -158,6 +173,7 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e instanceof Error ? e.message : e);
-  process.exit(1);
+  // Never fail the deploy on a seed error; the message is in the deploy logs.
+  console.error('seed_demo error:', e instanceof Error ? e.message : e);
+  process.exit(0);
 });
