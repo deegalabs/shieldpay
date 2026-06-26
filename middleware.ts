@@ -25,6 +25,9 @@ const PUBLIC_API = [
 // API routes that require a company session.
 const COMPANY_API = ['/api/company', '/api/contractors', '/api/payroll'];
 
+// API routes that require a worker session.
+const WORKER_API = ['/api/worker'];
+
 const COMPANY_PAGES = [
   '/dashboard',
   '/payroll',
@@ -56,6 +59,12 @@ export async function middleware(req: NextRequest) {
       const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
       if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
       if (session.role !== 'company') return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+      return NextResponse.next();
+    }
+    if (matches(pathname, WORKER_API)) {
+      const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+      if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+      if (session.role !== 'worker') return NextResponse.json({ error: 'forbidden' }, { status: 403 });
       return NextResponse.next();
     }
     return NextResponse.json({ error: 'not found' }, { status: 404 });
