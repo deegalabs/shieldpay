@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
+import { CompleteAnchor } from '@/components/complete-anchor';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,23 @@ export default async function WorkerPayments() {
                   label="Agreed range"
                   value={`$${o.range_min / 100}-$${o.range_max / 100} USDC/mo`}
                 />
+                {!o.anchored && (
+                  <>
+                    <p className="text-xs text-muted">
+                      Finish anchoring your identity on-chain so this organization can pay you.
+                    </p>
+                    <CompleteAnchor
+                      contractorId={String(o.id)}
+                      companyAddress={
+                        /^G[A-Z2-7]{55}$/.test(o.company_treasury || '')
+                          ? o.company_treasury!
+                          : process.env.COMPANY_PUBLIC_KEY || ''
+                      }
+                      anchorContractId={process.env.ANCHOR_REGISTRY_CONTRACT_ID || ''}
+                      cpfHash={o.cpf_hash || ''}
+                    />
+                  </>
+                )}
               </Card>
             ))}
           </div>

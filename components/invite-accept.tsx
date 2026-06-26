@@ -7,6 +7,7 @@ import { ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { anchorIdentity } from '@/lib/stellar/anchor-client';
 
 /**
  * Collaborator-side invite acceptance — N2.
@@ -103,47 +104,7 @@ export function InviteAccept({
   }
 
   async function anchorOnChain(addr: string, cpfHash: string): Promise<string> {
-    const sdk: any = await import('@stellar/stellar-sdk');
-    const { rpc, Contract, TransactionBuilder, Networks, Address, nativeToScVal, Keypair, xdr } = sdk;
-    const server = new rpc.Server('https://soroban-testnet.stellar.org');
-
-    await fetch(`https://friendbot.stellar.org/?addr=${encodeURIComponent(addr)}`).catch(() => {});
-    const account = await server.getAccount(addr);
-
-    const metadata = `SHIELDPAY|ANCHOR|v1|org:${companyAddress}|cpf:${cpfHash}`;
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(metadata));
-    const contractHash = Buffer.from(new Uint8Array(digest));
-
-    const contract = new Contract(anchorContractId);
-    const op = contract.call(
-      'anchor',
-      new Address(addr).toScVal(),
-      new Address(companyAddress).toScVal(),
-      nativeToScVal(contractHash, { type: 'bytes' }),
-      nativeToScVal(metadata, { type: 'string' }),
-    );
-
-    let tx = new TransactionBuilder(account, { fee: '1000000', networkPassphrase: Networks.TESTNET })
-      .addOperation(op)
-      .setTimeout(120)
-      .build();
-    tx = await server.prepareTransaction(tx);
-
-    const hashHex = ('0x' + tx.hash().toString('hex')) as `0x${string}`;
-    const { signature } = await signRawHash({ address: addr, chainType: 'stellar', hash: hashHex });
-    const sigBuf = Buffer.from(signature.replace(/^0x/, ''), 'hex');
-    tx.signatures.push(
-      new xdr.DecoratedSignature({ hint: Keypair.fromPublicKey(addr).signatureHint(), signature: sigBuf }),
-    );
-
-    const sent = await server.sendTransaction(tx);
-    let got = await server.getTransaction(sent.hash);
-    for (let i = 0; got.status === 'NOT_FOUND' && i < 25; i++) {
-      await new Promise((r) => setTimeout(r, 1500));
-      got = await server.getTransaction(sent.hash);
-    }
-    if (got.status !== 'SUCCESS') throw new Error(`anchor not confirmed (${got.status})`);
-    return sent.hash;
+    return anchorIdentity({ addr, companyAddress, anchorContractId, cpfHash, signRawHash });
   }
 
   // Best-effort: open a USDC trustline so the worker can receive the USDC
