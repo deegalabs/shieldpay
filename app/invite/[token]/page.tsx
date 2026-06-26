@@ -2,6 +2,7 @@ import { Lock } from 'lucide-react';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { verifyScopedToken } from '@/lib/auth/session';
 import { USDC } from '@/lib/constants';
+import { usdRange } from '@/lib/utils';
 import { getInvite } from '@/lib/db/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +68,7 @@ export default async function InvitePage({ params }: { params: { token: string }
             <p className="mt-1 flex items-center gap-2">
               <span className="text-muted">Agreed range:</span>
               <Badge variant="brand">
-                ${invite!.range_min / 100}-${invite!.range_max / 100} USDC/mo
+                {usdRange(invite!.range_min, invite!.range_max)} USDC/mo
               </Badge>
             </p>
           </div>

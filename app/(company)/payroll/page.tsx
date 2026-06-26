@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usdRange, formatUsdc } from '@/lib/utils';
 
 interface Contractor {
   id: string;
@@ -129,7 +130,7 @@ export default function PayrollPage() {
                         <option value="">Choose…</option>
                         {contractors.map((ct) => (
                           <option key={ct.id} value={ct.id} disabled={!ct.anchored}>
-                            {ct.name} (${ct.range_min / 100}-${ct.range_max / 100})
+                            {ct.name} ({usdRange(ct.range_min, ct.range_max)})
                             {ct.anchored ? ' ✓' : ' — pending anchor'}
                           </option>
                         ))}
@@ -142,7 +143,7 @@ export default function PayrollPage() {
                         inputMode="decimal"
                         value={l.amount}
                         onChange={(e) => setLine(i, { amount: e.target.value })}
-                        placeholder={c ? `${c.range_min / 100}-${c.range_max / 100}` : 'USDC'}
+                        placeholder={c ? usdRange(c.range_min, c.range_max) : 'USDC'}
                       />
                     </div>
                     {lines.length > 1 && (
@@ -164,7 +165,7 @@ export default function PayrollPage() {
 
             <div className="flex items-center justify-between border-t border-border pt-4 text-sm">
               <span className="text-muted">Run total (visible to you)</span>
-              <span className="text-lg font-bold">${total.toFixed(2)} USDC</span>
+              <span className="text-lg font-bold">{formatUsdc(total)} USDC</span>
             </div>
 
             <Button className="w-full" size="lg" onClick={run} disabled={busy}>

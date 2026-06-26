@@ -16,6 +16,16 @@ export function formatUsdc(amount: number | string): string {
   }).format(n);
 }
 
+/** Format a cents amount as USD: 45000 -> "$450.00". */
+export function usd(cents: number): string {
+  return formatUsdc(cents / 100);
+}
+
+/** Format a cents range as USD: (45000, 55000) -> "$450.00-$550.00". */
+export function usdRange(minCents: number, maxCents: number): string {
+  return `${usd(minCents)}-${usd(maxCents)}`;
+}
+
 /** Truncate a Stellar address/hash for compact display: GABC…WXYZ. */
 export function truncateKey(key: string, lead = 4, tail = 4): string {
   if (key.length <= lead + tail) return key;

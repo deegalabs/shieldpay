@@ -8,6 +8,7 @@ import {
 } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
 import { getSession } from '@/lib/auth/server';
+import { usdRange } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,7 @@ export default async function WorkerPayments() {
                 {o.role && <Field label="Role" value={o.role} />}
                 <Field
                   label="Agreed range"
-                  value={`$${o.range_min / 100}-$${o.range_max / 100} USDC/mo`}
+                  value={`${usdRange(o.range_min, o.range_max)} USDC/mo`}
                 />
                 {!o.anchored && (
                   <>
@@ -119,7 +120,8 @@ export default async function WorkerPayments() {
                 <div>
                   <p className="font-medium">{p.reference}</p>
                   <p className="text-sm text-muted">
-                    {p.payer_name ? `${p.payer_name} · ` : ''}${p.range_min / 100}-${p.range_max / 100} USDC
+                    {p.payer_name ? `${p.payer_name} · ` : ''}
+                    {usdRange(p.range_min, p.range_max)} USDC
                   </p>
                 </div>
                 <span className="inline-flex items-center gap-1">

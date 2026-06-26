@@ -11,6 +11,7 @@ import {
 } from '@/lib/db/client';
 import { getSession } from '@/lib/auth/server';
 import { EXPLORER_BASE } from '@/lib/constants';
+import { usd, usdRange } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -90,7 +91,7 @@ export default async function CompanyDashboard() {
                   <p className="font-medium">{r.reference}</p>
                   <p className="text-xs text-muted">{r.payment_count} payments · total proven</p>
                 </div>
-                <span className="font-semibold">${(Number(r.total_cents) / 100).toFixed(2)} USDC</span>
+                <span className="font-semibold">{usd(Number(r.total_cents))} USDC</span>
               </Link>
             ))}
           </Card>
@@ -125,7 +126,7 @@ export default async function CompanyDashboard() {
                   <p className="text-xs text-muted">{p.reference}</p>
                 </div>
                 <span className="text-sm text-muted">
-                  ${p.range_min / 100}-${p.range_max / 100} USDC
+                  {usdRange(p.range_min, p.range_max)} USDC
                 </span>
                 <Badge variant="success">
                   <ShieldCheck size={12} /> Verified

@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
+import { formatUsdc } from '@/lib/utils';
 
 /**
  * Verifiable payment receipt.
@@ -67,7 +68,7 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Uint8Array>
   row('Recipient', data.workerName);
   monoRow('Recipient address', data.workerAddress);
   row('Reference', data.reference);
-  row('Proven range', `$${data.range.min} to $${data.range.max} USDC`);
+  row('Proven range', `${formatUsdc(data.range.min)} to ${formatUsdc(data.range.max)} USDC`);
   row('On-chain proof id', `#${data.proofId}`);
   monoRow('Verification tx', data.txHash);
   row('Issued at', new Date(data.issuedAt).toUTCString());

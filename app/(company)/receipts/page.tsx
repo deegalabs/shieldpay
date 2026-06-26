@@ -2,6 +2,7 @@ import { FileText, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { getSession } from '@/lib/auth/server';
 import { getCompanyByOwner, listPaymentsForCompany, type PaymentRow } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
+import { usdRange } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -44,7 +45,7 @@ export default async function ReceiptsPage() {
                     {p.worker_name} · {p.reference}
                   </p>
                   <p className="text-xs text-muted">
-                    ${p.range_min / 100}-${p.range_max / 100} USDC ·{' '}
+                    {usdRange(p.range_min, p.range_max)} USDC ·{' '}
                     {new Date(p.created_at).toLocaleDateString('en-GB')}
                   </p>
                 </div>

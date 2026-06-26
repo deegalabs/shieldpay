@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InviteLinkButton } from '@/components/invite-link-button';
-import { truncateKey } from '@/lib/utils';
+import { truncateKey, usdRange } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +64,7 @@ export default async function ContractorsPage() {
                   </Link>
                 )}
                 <span className="text-sm text-muted">
-                  ${c.range_min / 100}-${c.range_max / 100} USDC/mo
+                  {usdRange(c.range_min, c.range_max)} USDC/mo
                 </span>
                 {invited ? (
                   <Badge variant="warning"><Clock size={12} /> Invited</Badge>

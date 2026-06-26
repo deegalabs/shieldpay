@@ -8,7 +8,7 @@ import {
 } from '@/lib/db/client';
 import { disclosePayments, summarizeDisclosure, type Disclosed } from '@/lib/payments/disclose';
 import { EXPLORER_BASE } from '@/lib/constants';
-import { truncateKey } from '@/lib/utils';
+import { usdRange, truncateKey } from '@/lib/utils';
 import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -179,7 +179,7 @@ export default async function AuditorView({ params }: { params: { token: string 
                         )}
                       </td>
                     ) : null}
-                    <td className="px-5 py-3">${p.range_min / 100}-${p.range_max / 100}</td>
+                    <td className="px-5 py-3">{usdRange(p.range_min, p.range_max)}</td>
                     <td className="px-5 py-3">
                       <a className="inline-flex items-center gap-1 font-mono text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                         {truncateKey(p.tx_hash, 6, 4)} <ArrowUpRight size={12} />
