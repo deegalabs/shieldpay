@@ -94,6 +94,7 @@ export default async function WorkerPayments() {
                     </p>
                     <CompleteAnchor
                       contractorId={String(o.id)}
+                      workerAddress={o.stellar_address || ''}
                       companyAddress={
                         /^G[A-Z2-7]{55}$/.test(o.company_treasury || '')
                           ? o.company_treasury!
