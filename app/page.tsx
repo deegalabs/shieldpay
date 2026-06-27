@@ -6,6 +6,9 @@ import {
   Check,
   FileCheck,
   Lock,
+  Github,
+  Twitter,
+  Linkedin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -163,9 +166,117 @@ export default function HomePage() {
         </Card>
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-sm text-muted">
-        Built on Stellar + Zero-Knowledge · Stellar Hacks: ZK 2026
+      {/* Footer */}
+      <footer className="border-t border-border bg-surface/30">
+        <div className="mx-auto max-w-6xl px-6 py-14">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12">
+            {/* Brand */}
+            <div className="lg:col-span-4">
+              <Link href="/" className="flex items-center gap-2">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10">
+                  <BrandMark size={18} />
+                </span>
+                <span className="font-semibold tracking-tight">ShieldPay</span>
+              </Link>
+              <p className="mt-3 max-w-xs text-sm text-fg-subtle">
+                Private payroll you can prove. Confidential payroll for DAOs and Web3 teams,
+                settled on Stellar and verified with zero-knowledge proofs.
+              </p>
+              <div className="mt-5 flex items-center gap-2">
+                <SocialLink href="https://github.com/deegalabs/shieldpay" label="GitHub">
+                  <Github size={16} />
+                </SocialLink>
+                <SocialLink href="https://x.com" label="X (Twitter)">
+                  <Twitter size={16} />
+                </SocialLink>
+                <SocialLink href="https://www.linkedin.com" label="LinkedIn">
+                  <Linkedin size={16} />
+                </SocialLink>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 lg:col-start-7">
+              <FooterCol
+                title="Product"
+                links={[
+                  { label: 'How it works', href: '#how' },
+                  { label: 'Confidential', href: '#audit' },
+                  { label: 'Get started', href: '/login' },
+                ]}
+              />
+            </div>
+            <div className="lg:col-span-3">
+              <FooterCol
+                title="Resources"
+                links={[
+                  { label: 'Help & docs', href: '/help' },
+                  { label: 'GitHub', href: 'https://github.com/deegalabs/shieldpay', external: true },
+                  { label: 'Stellar', href: 'https://stellar.org', external: true },
+                  { label: 'Stellar Hacks: ZK', href: 'https://dorahacks.io/hackathon/stellar-hacks-zk/detail', external: true },
+                ]}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <FooterCol
+                title="Legal"
+                links={[
+                  { label: 'Terms of Service', href: '/terms' },
+                  { label: 'Privacy Policy', href: '/privacy' },
+                ]}
+              />
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-sm text-fg-subtle sm:flex-row">
+            <p>© 2026 ShieldPay. All rights reserved.</p>
+            <p className="flex items-center gap-1.5">
+              <Lock size={13} /> Built on Stellar + Zero-Knowledge · Stellar Hacks: ZK 2026
+            </p>
+          </div>
+        </div>
       </footer>
+    </div>
+  );
+}
+
+function SocialLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-surface-2 text-fg-subtle transition duration-150 hover:border-border-strong hover:text-foreground"
+    >
+      {children}
+    </a>
+  );
+}
+
+function FooterCol({ title, links }: { title: string; links: { label: string; href: string; external?: boolean }[] }) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-fg-faint">{title}</h3>
+      <ul className="mt-3 space-y-2.5">
+        {links.map((l) => (
+          <li key={l.label}>
+            {l.external ? (
+              <a
+                href={l.href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-fg-subtle transition hover:text-foreground"
+              >
+                {l.label}
+              </a>
+            ) : (
+              <Link href={l.href} className="text-sm text-fg-subtle transition hover:text-foreground">
+                {l.label}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
