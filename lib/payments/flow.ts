@@ -3,6 +3,7 @@ import { generatePaymentProof } from '@/lib/zk/prover';
 import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
 import { encodeProof, encodePublicSignals, fieldToBe32, bytesToField } from '@/lib/zk/encode';
 import { recordProofOnChain } from '@/lib/stellar/soroban';
+import { ServerSigner } from '@/lib/stellar/signer';
 import { settlePaymentRecord } from '@/lib/stellar/transactions';
 import { insertPayment, type CompanyRow, type PaymentRow } from '@/lib/db/client';
 import { sealWitness } from '@/lib/zk/disclosure';
@@ -78,7 +79,7 @@ export async function proveAndRecordPayment(args: {
   });
 
   const { proofId, txHash } = await recordProofOnChain({
-    companySecret: args.companySecret,
+    signer: new ServerSigner(args.companySecret),
     workerAddressHash: fieldToBe32(workerAddrField),
     paymentTxHash: fieldToBe32(txField),
     valueCommitment: fieldToBe32(commitment),
