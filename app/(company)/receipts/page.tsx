@@ -1,4 +1,4 @@
-import { FileText, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { FileText, ShieldCheck, ArrowUpRight, Download } from 'lucide-react';
 import { getSession } from '@/lib/auth/server';
 import { getCompanyByOwner, listPaymentsForCompany, type PaymentRow } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
@@ -63,12 +63,12 @@ export default async function ReceiptsPage() {
                   Proof <ArrowUpRight size={13} />
                 </a>
                 <a
-                  className="text-sm font-medium text-foreground hover:underline"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:underline"
                   href={`/api/receipt?id=${p.id}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  ⚖️ Download PDF
+                  <Download size={14} /> Download PDF
                 </a>
               </div>
             </div>
