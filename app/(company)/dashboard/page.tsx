@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Send, UserPlus, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { Send, UserPlus, ArrowUpRight, ShieldCheck, FileText } from 'lucide-react';
 import {
   listPaymentsForCompany,
   companyStats,
@@ -135,8 +135,8 @@ export default async function CompanyDashboard() {
                   <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                     Proof <ArrowUpRight size={13} />
                   </a>
-                  <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
-                    📄 Receipt
+                  <a className="inline-flex items-center gap-1 text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
+                    <FileText size={13} /> Receipt
                   </a>
                 </div>
               </div>

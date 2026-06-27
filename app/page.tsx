@@ -51,7 +51,7 @@ export default function HomePage() {
         </Badge>
         <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-6xl">
           Pay your team.{' '}
-          <span className="bg-gradient-to-r from-brand to-primary bg-clip-text text-transparent">
+          <span className="bg-gradient-to-br from-brand-text to-primary bg-clip-text text-transparent">
             Keep the amounts private.
           </span>
         </h1>
@@ -136,8 +136,8 @@ export default function HomePage() {
             <div className="mt-4 space-y-2 text-sm">
               <Row k="Payer" v="Acme DAO" />
               <Row k="Recipient" v="Jane · GARR…PUKK" />
-              <Row k="Proven range" v="$450 to $550 USDC" />
-              <Row k="Exact amount" v="Private 🔒" />
+              <Row k="Proven range" v="$450 to $550 USDC" mono />
+              <Row k="Exact amount" v="Private" />
               <Row k="Status" v="Verified on-chain" verified />
             </div>
             <div className="mt-5 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted">
@@ -170,24 +170,32 @@ export default function HomePage() {
   );
 }
 
-function Row({ k, v, verified }: { k: string; v: string; verified?: boolean }) {
+function Row({ k, v, verified, mono }: { k: string; v: string; verified?: boolean; mono?: boolean }) {
   return (
     <div className="flex items-center justify-between border-b border-border pb-2 last:border-0">
-      <span className="text-muted">{k}</span>
-      <span className={verified ? 'font-medium text-primary' : 'font-medium'}>{v}</span>
+      <span className="text-fg-subtle">{k}</span>
+      <span
+        className={[
+          'font-medium',
+          mono ? 'figure' : '',
+          verified ? 'text-primary' : 'text-fg-default',
+        ].join(' ')}
+      >
+        {v}
+      </span>
     </div>
   );
 }
 
 const FEATURES = [
   { icon: <Globe size={20} />, title: 'Global USDC payouts', body: 'Pay contributors anywhere in native USDC on Stellar. Settles in 3-5 seconds, fractions of a cent in fees.' },
-  { icon: <Lock size={20} />, title: 'Private by default', body: 'Every payment carries a zero-knowledge proof | the public sees only the agreed range, never the exact amount.' },
-  { icon: <KeyRound size={20} />, title: 'Selective disclosure', body: 'Hand an auditor a viewing key to reveal and re-verify exact amounts against the on-chain commitments | without ever making them public.' },
+  { icon: <Lock size={20} />, title: 'Private by default', body: 'Every payment carries a zero-knowledge proof. The public sees only the agreed range, never the exact amount.' },
+  { icon: <KeyRound size={20} />, title: 'Selective disclosure', body: 'Hand an auditor a viewing key to reveal and re-verify exact amounts against the on-chain commitments, without ever making them public.' },
 ];
 
 const STEPS = [
   { title: 'Run payroll', body: 'Pay your whole team in one confidential run, each within their agreed range.' },
-  { title: 'Prove & settle on-chain', body: 'A zero-knowledge proof is verified inside a Stellar smart contract, and a real, recipient-visible settlement is posted | without the amount.' },
+  { title: 'Prove & settle on-chain', body: 'A zero-knowledge proof is verified inside a Stellar smart contract, and a real, recipient-visible settlement is posted, without the amount.' },
   { title: 'Disclose on your terms', body: 'Share a read-only audit link, or a viewing-key link that reveals and re-verifies amounts for an authorized auditor.' },
 ];
 

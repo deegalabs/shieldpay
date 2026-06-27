@@ -6,9 +6,10 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        'w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm text-foreground',
-        'placeholder:text-muted/70 outline-none transition',
-        'focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50',
+        // Focused field is "protected, receiving input": indigo line + soft glow.
+        'w-full rounded-lg border border-border bg-surface-base/60 px-3 py-2 text-sm text-fg-default',
+        'placeholder:text-fg-faint outline-none transition duration-150',
+        'focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-50',
         className,
       )}
       {...props}

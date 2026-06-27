@@ -1,4 +1,4 @@
-import { ShieldCheck, ArrowUpRight, Download } from 'lucide-react';
+import { ShieldCheck, ArrowUpRight, Download, FileText } from 'lucide-react';
 import {
   listPayments,
   listPaymentsForWorker,
@@ -138,7 +138,7 @@ export default async function WorkerPayments() {
                 <div className="flex gap-2">
                   <Button asChild variant="ghost" size="sm">
                     <a href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
-                      📄 Receipt
+                      <FileText size={13} /> Receipt
                     </a>
                   </Button>
                   {p.settlement_tx_hash && (
