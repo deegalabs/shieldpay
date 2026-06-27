@@ -45,7 +45,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted">Payroll run · {run.reference}</p>
-            <p className="mt-1 text-3xl font-bold">{usd(Number(run.total_cents))} USDC</p>
+            <p className="figure-hero mt-1 text-3xl font-bold">{usd(Number(run.total_cents))} USDC</p>
             <p className="text-sm text-muted">{run.payment_count} payments · total proven</p>
           </div>
           <Badge variant="success"><ShieldCheck size={12} /> Verified on-chain</Badge>
@@ -66,7 +66,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
                 <p className="font-medium">{p.worker_name}</p>
                 <p className="text-xs text-muted">amount: private</p>
               </div>
-              <span className="text-sm text-muted">range {usdRange(p.range_min, p.range_max)}</span>
+              <span className="text-sm text-muted">range <span className="figure">{usdRange(p.range_min, p.range_max)}</span></span>
               <Badge variant="success"><ShieldCheck size={12} /> Verified</Badge>
               <div className="flex gap-3 text-sm">
                 {p.settlement_tx_hash && (

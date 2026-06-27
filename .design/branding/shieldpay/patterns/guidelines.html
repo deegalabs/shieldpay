@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ShieldPay — Brand Guidelines</title>
+<!-- Inter + JetBrains Mono. Geist Mono is the in-app primary mono; JetBrains Mono
+     is used here as the specimen because Geist Mono is not on Google Fonts. -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,450;14..32,500;14..32,550;14..32,600&family=JetBrains+Mono:wght@400;480;500&display=swap');
+
+:root {
+  /* elevation ramp (lightness-based; no shadow except overlay) */
+  --surface-base: #0B1120;
+  --surface-1: #0F172A;
+  --surface-2: #1A2235;
+  --surface-3: #1E293B;
+  --surface-overlay: #232E45;
+  --border-hairline: #1F2A3C;
+  --border-strong: #2C3A52;
+  --top-edge: rgba(255,255,255,0.04);
+  --top-edge-2: rgba(255,255,255,0.06);
+
+  /* 4-rung foreground */
+  --fg-default: rgba(248,250,252,0.98);
+  --fg-strong: rgba(248,250,252,0.86);
+  --fg-subtle: rgba(248,250,252,0.66);
+  --fg-faint: rgba(248,250,252,0.45);
+
+  /* signal: indigo (protected) + emerald (proven) */
+  --brand: #6366F1;
+  --brand-text: #818CF8;
+  --brand-wash: rgba(99,102,241,0.08);
+  --brand-line: rgba(99,102,241,0.40);
+  --verified: #10B981;
+  --verified-wash: rgba(16,185,129,0.08);
+  --verified-line: rgba(16,185,129,0.40);
+
+  /* functional */
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --danger-text: #F87171;
+
+  --gradient: linear-gradient(135deg, #6366F1, #10B981);
+  --radius: 0.75rem;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ease-physical: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --dur-base: 240ms;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  font-weight: 450;
+  font-optical-sizing: auto;
+  color: var(--fg-strong);
+  background-color: var(--surface-base);
+  background-image:
+    radial-gradient(60rem 40rem at 15% -10%, rgba(99,102,241,0.06), transparent 60%),
+    radial-gradient(50rem 36rem at 100% 0%, rgba(16,185,129,0.04), transparent 60%);
+  background-attachment: fixed;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-weight: 600; color: var(--fg-default); letter-spacing: -0.02em; line-height: 1.15; }
+.figure, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* layout */
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+section { padding: 72px 0; border-bottom: 1px solid var(--border-hairline); }
+.eyebrow { font-size: 12px; font-weight: 550; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-subtle); margin-bottom: 16px; }
+.lead { color: var(--fg-subtle); font-size: 19px; max-width: 60ch; margin-top: 12px; }
+.grid { display: grid; gap: 16px; }
+.muted { color: var(--fg-subtle); }
+.faint { color: var(--fg-faint); }
+
+/* frosted nav */
+nav {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(15,23,42,0.72);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-hairline);
+}
+nav .wrap { display: flex; align-items: center; gap: 16px; height: 60px; }
+nav .nav-links { margin-left: auto; display: flex; gap: 24px; font-size: 14px; }
+nav .nav-links a { color: var(--fg-subtle); text-decoration: none; }
+nav .nav-links a:hover { color: var(--fg-strong); }
+
+/* logo lockup */
+.lockup { display: inline-flex; align-items: center; gap: 10px; }
+.logo-tile { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--brand-wash); box-shadow: inset 0 0 0 1px var(--brand-line); }
+.wordmark { font-weight: 600; letter-spacing: -0.02em; color: var(--fg-default); font-size: 18px; }
+
+/* hero */
+.hero { padding: 96px 0 80px; position: relative; }
+.hero h1 { font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3rem); line-height: 1.05; letter-spacing: -0.03em; }
+.hero .motif { color: var(--brand-text); font-weight: 500; margin-top: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 40px; }
+.kpi { background: var(--surface-1); border: 1px solid var(--border-hairline); border-radius: calc(var(--radius) + 4px); padding: 20px; box-shadow: inset 0 1px 0 var(--top-edge); }
+.kpi .k-label { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-subtle); }
+.kpi .k-value { font-size: 22px; color: var(--fg-default); margin-top: 8px; font-weight: 600; }
+
+/* cards */
+.card { background: var(--surface-1); border: 1px solid var(--border-hairline); border-radius: calc(var(--radius) + 4px); padding: 24px; box-shadow: inset 0 1px 0 var(--top-edge); }
+.card-2 { background: var(--surface-2); box-shadow: inset 0 1px 0 var(--top-edge-2); }
+.card-primary { box-shadow: inset 0 1px 0 var(--top-edge), inset 0 2px 0 -1px rgba(99,102,241,0.18); }
+.card-overlay { background: var(--surface-overlay); border-color: var(--border-strong); box-shadow: 0 16px 48px -16px rgba(0,0,0,0.65); }
+
+/* color swatches */
+.swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.swatch { border-radius: 10px; border: 1px solid var(--border-hairline); overflow: hidden; }
+.swatch .chip { height: 72px; }
+.swatch .meta { padding: 10px 12px; font-size: 12px; }
+.swatch .meta .name { color: var(--fg-strong); }
+.swatch .meta .hex { color: var(--fg-faint); font-family: var(--font-mono); }
+.fg-rows { display: grid; gap: 8px; margin-top: 16px; }
+.fg-row { display: flex; align-items: baseline; gap: 16px; }
+.fg-row .demo { font-size: 18px; }
+.accent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.accent-box { border-radius: 10px; padding: 16px; border: 1px solid var(--border-hairline); }
+.wash-line { display: flex; gap: 8px; margin-top: 12px; }
+.wash-line span { flex: 1; height: 36px; border-radius: 8px; display: grid; place-items: center; font-size: 12px; }
+.gradient-light { height: 96px; border-radius: 12px; background: var(--gradient); opacity: 0.18; margin-top: 16px; border: 1px solid var(--border-hairline); }
+
+/* typography specimen */
+.type-row { display: flex; align-items: baseline; gap: 24px; padding: 12px 0; border-bottom: 1px solid var(--border-hairline); }
+.type-row .tag { width: 120px; flex: none; color: var(--fg-faint); font-size: 12px; font-family: var(--font-mono); }
+.specimen-display { font-family: var(--font-sans); font-weight: 600; }
+
+/* table */
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--surface-2); }
+th { text-align: left; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-subtle); font-weight: 550; padding: 10px 16px; }
+th.right, td.amount { text-align: right; }
+tbody tr { height: 52px; border-bottom: 1px solid var(--border-hairline); }
+tbody tr:hover { background: var(--surface-3); }
+td { padding: 0 16px; font-size: 14px; color: var(--fg-strong); }
+td.amount { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-default); }
+td.meta { color: var(--fg-subtle); }
+
+/* badges + amount states */
+.badge-verified { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 500; color: var(--verified); background: var(--verified-wash); box-shadow: 0 0 0 1px var(--verified-line), 0 0 16px -4px rgba(16,185,129,0.35); }
+.chip-masked { display: inline-flex; align-items: center; width: 120px; height: 24px; border-radius: 8px; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--border-hairline); position: relative; }
+.chip-masked::before { content: ""; position: absolute; left: 8px; width: 6px; height: 6px; border-radius: 999px; background: var(--brand); }
+.amount-disclosed { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg-default); }
+
+/* buttons + input */
+.btn-primary { display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius); background: var(--brand); color: #fff; font-weight: 500; padding: 10px 16px; border: none; cursor: pointer; transition: filter 160ms var(--ease-physical); }
+.btn-primary:hover { filter: brightness(1.10); }
+.btn-verified { display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius); background: var(--verified); color: #022C22; font-weight: 500; padding: 10px 16px; border: none; cursor: pointer; }
+.btn-secondary { display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius); background: var(--surface-2); color: var(--fg-strong); font-weight: 500; padding: 10px 16px; border: 1px solid var(--border-hairline); cursor: pointer; transition: 160ms var(--ease-physical); }
+.btn-secondary:hover { background: var(--surface-3); border-color: var(--border-strong); }
+.input { width: 100%; border-radius: var(--radius); background: rgba(11,17,32,0.6); border: 1px solid var(--border-hairline); color: var(--fg-default); padding: 10px 12px; outline: none; transition: 160ms var(--ease-physical); }
+.input:focus-visible { border-color: var(--brand-line); box-shadow: 0 0 0 3px rgba(99,102,241,0.18); }
+.input::placeholder { color: var(--fg-faint); }
+
+/* stepper */
+.stepper { display: flex; align-items: center; margin-top: 16px; }
+.step { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; font-size: 12px; flex: none; }
+.step.pending { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border-strong); color: var(--fg-subtle); }
+.step.active { background: var(--brand); color: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,0.18); }
+.step.settled { background: var(--verified); color: #022C22; }
+.connector { height: 2px; flex: 1; background: var(--border-hairline); }
+.connector.filled { background: var(--gradient); }
+.step-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--fg-subtle); }
+
+/* voice lists */
+.voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.never-list li, .always-list li { list-style: none; padding: 8px 0 8px 26px; position: relative; font-size: 14px; border-bottom: 1px solid var(--border-hairline); }
+.never-list li::before { content: "no"; position: absolute; left: 0; color: var(--danger-text); font-family: var(--font-mono); font-size: 11px; top: 9px; }
+.always-list li::before { content: "ok"; position: absolute; left: 0; color: var(--verified); font-family: var(--font-mono); font-size: 11px; top: 9px; }
+
+/* personas */
+.personas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+/* logo slit shield */
+.shield-demo { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .kpis, .swatches, .personas { grid-template-columns: 1fr 1fr; }
+  .accent-grid, .voice-grid { grid-template-columns: 1fr; }
+  .type-row { flex-direction: column; gap: 4px; }
+  .type-row .tag { width: auto; }
+  section { padding: 48px 0; }
+  .hero { padding: 64px 0 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- the negative-space slit shield, reused inline -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sp-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<nav>
+  <div class="wrap">
+    <span class="lockup">
+      <span class="logo-tile">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path fill="url(#sp-grad)" fill-rule="evenodd"
+            d="M4 4.5C4 3.7 4.7 3 5.5 3H18.5C19.3 3 20 3.7 20 4.5V11C20 16.4 16.6 20 12 21.5C7.4 20 4 16.4 4 11V4.5ZM10.7 14.1L8.6 12C8.2 11.6 7.6 11.6 7.2 12C6.8 12.4 6.8 13 7.2 13.4L10 16.2C10.4 16.6 11 16.6 11.4 16.2L16.8 10.8C17.2 10.4 17.2 9.8 16.8 9.4C16.4 9 15.8 9 15.4 9.4L10.7 14.1Z" />
+        </svg>
+      </span>
+      <span class="wordmark">ShieldPay</span>
+    </span>
+    <span class="nav-links">
+      <a href="#color">Color</a>
+      <a href="#type">Type</a>
+      <a href="#components">Components</a>
+      <a href="#voice">Voice</a>
+    </span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Confidential payroll on Stellar</p>
+    <h1>Private payroll you can prove.</h1>
+    <p class="motif">Protected, then proven.</p>
+    <p class="lead">Pay anyone in USDC. Keep the amount private. Prove on-chain that it
+      settled. ShieldPay is a Guardian and a Steward: deep, calm, exact.</p>
+    <div class="kpis">
+      <div class="kpi"><div class="k-label">Amounts</div><div class="k-value">Private</div></div>
+      <div class="kpi"><div class="k-label">Proof</div><div class="k-value">Verified on-chain</div></div>
+      <div class="kpi"><div class="k-label">Disclosure</div><div class="k-value">On your terms</div></div>
+      <div class="kpi"><div class="k-label">Settlement</div><div class="k-value">In seconds</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- LOGO -->
+<section id="logo">
+  <div class="wrap">
+    <p class="eyebrow">Logo</p>
+    <h2>The privacy-slit shield</h2>
+    <p class="lead">A solid shield carrying the 135deg indigo to emerald gradient, with
+      the check cut out as negative space. The shield is the mask. The slit is the
+      controlled disclosure. The gradient is protected becoming proven. Custom SVG,
+      24x24, even-odd cut. Lucide ShieldCheck stays reserved for the verified badge.</p>
+    <div class="shield-demo" style="margin-top:24px">
+      <span class="logo-tile" style="width:64px;height:64px;border-radius:14px">
+        <svg width="40" height="40" viewBox="0 0 24 24">
+          <path fill="url(#sp-grad)" fill-rule="evenodd"
+            d="M4 4.5C4 3.7 4.7 3 5.5 3H18.5C19.3 3 20 3.7 20 4.5V11C20 16.4 16.6 20 12 21.5C7.4 20 4 16.4 4 11V4.5ZM10.7 14.1L8.6 12C8.2 11.6 7.6 11.6 7.2 12C6.8 12.4 6.8 13 7.2 13.4L10 16.2C10.4 16.6 11 16.6 11.4 16.2L16.8 10.8C17.2 10.4 17.2 9.8 16.8 9.4C16.4 9 15.8 9 15.4 9.4L10.7 14.1Z" />
+        </svg>
+      </span>
+      <span class="lockup">
+        <span class="logo-tile">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="url(#sp-grad)" fill-rule="evenodd"
+              d="M4 4.5C4 3.7 4.7 3 5.5 3H18.5C19.3 3 20 3.7 20 4.5V11C20 16.4 16.6 20 12 21.5C7.4 20 4 16.4 4 11V4.5ZM10.7 14.1L8.6 12C8.2 11.6 7.6 11.6 7.2 12C6.8 12.4 6.8 13 7.2 13.4L10 16.2C10.4 16.6 11 16.6 11.4 16.2L16.8 10.8C17.2 10.4 17.2 9.8 16.8 9.4C16.4 9 15.8 9 15.4 9.4L10.7 14.1Z" />
+          </svg>
+        </span>
+        <span class="wordmark" style="font-size:24px">ShieldPay</span>
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- POSITIONING -->
+<section id="positioning">
+  <div class="wrap">
+    <p class="eyebrow">Positioning</p>
+    <h2>Provable privacy</h2>
+    <p class="lead">The product is one promise: a value held in private, proven correct,
+      and disclosed only on authority. That promise is a designed sequence.</p>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:24px">
+      <div class="card"><p class="eyebrow">Masked</p><p>Private by default. A designed
+        slate chip, not asterisks.</p><div style="margin-top:12px"><span class="chip-masked"></span></div></div>
+      <div class="card"><p class="eyebrow">Verified</p><p>Proven correct on-chain. The
+        amount stays private.</p><div style="margin-top:12px"><span class="badge-verified">Verified on-chain</span></div></div>
+      <div class="card card-primary"><p class="eyebrow">Disclosed</p><p>Revealed to an
+        authorized viewer.</p><div style="margin-top:12px"><span class="amount-disclosed">$500.00 USDC</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COLOR -->
+<section id="color">
+  <div class="wrap">
+    <p class="eyebrow">Color</p>
+    <h2>Neutral plus a single accent</h2>
+    <p class="lead">Five surface steps. Elevation by lightness and a 1px top-edge light,
+      not shadow. Shadow only at the overlay. The single accent is the indigo to emerald
+      gradient as one signal: indigo protected, emerald proven.</p>
+
+    <h3 style="margin-top:32px;font-size:16px">Elevation ramp</h3>
+    <div class="swatches" style="margin-top:12px">
+      <div class="swatch"><div class="chip" style="background:#0B1120"></div><div class="meta"><div class="name">surface-base</div><div class="hex">#0B1120</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#0F172A"></div><div class="meta"><div class="name">surface-1</div><div class="hex">#0F172A</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#1A2235"></div><div class="meta"><div class="name">surface-2</div><div class="hex">#1A2235</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#1E293B"></div><div class="meta"><div class="name">surface-3</div><div class="hex">#1E293B</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#232E45"></div><div class="meta"><div class="name">overlay</div><div class="hex">#232E45</div></div></div>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Foreground tiers</h3>
+    <div class="fg-rows">
+      <div class="fg-row"><span class="demo" style="color:var(--fg-default)">Verified amount and headings</span><span class="faint mono">fg-default 0.98</span></div>
+      <div class="fg-row"><span class="demo" style="color:var(--fg-strong)">Body copy and primary labels</span><span class="faint mono">fg-strong 0.86</span></div>
+      <div class="fg-row"><span class="demo" style="color:var(--fg-subtle)">Secondary text and table meta</span><span class="faint mono">fg-subtle 0.66</span></div>
+      <div class="fg-row"><span class="demo" style="color:var(--fg-faint)">Captions, helper, disabled</span><span class="faint mono">fg-faint 0.45</span></div>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Signal accents (wash + line, never a flat block)</h3>
+    <div class="accent-grid">
+      <div class="accent-box">
+        <strong style="color:var(--brand-text)">Indigo — protected</strong>
+        <p class="muted" style="font-size:13px;margin-top:4px">brand, primary, focus. Text uses indigo-400 #818CF8.</p>
+        <div class="wash-line">
+          <span style="background:var(--brand-wash);color:var(--brand-text)">wash 8%</span>
+          <span style="box-shadow:inset 0 0 0 1px var(--brand-line);color:var(--brand-text)">line 40%</span>
+          <span style="background:var(--brand);color:#fff">fill #6366F1</span>
+        </div>
+      </div>
+      <div class="accent-box">
+        <strong style="color:var(--verified)">Emerald — proven</strong>
+        <p class="muted" style="font-size:13px;margin-top:4px">verified, settled. Reserved for confirmation, never ambient.</p>
+        <div class="wash-line">
+          <span style="background:var(--verified-wash);color:var(--verified)">wash 8%</span>
+          <span style="box-shadow:inset 0 0 0 1px var(--verified-line);color:var(--verified)">line 40%</span>
+          <span style="background:var(--verified);color:#022C22">fill #10B981</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Functional only</h3>
+    <div class="wash-line">
+      <span style="background:var(--warning);color:#000;flex:0 0 160px">warning #F59E0B</span>
+      <span style="background:var(--danger);color:#fff;flex:0 0 160px">danger #EF4444</span>
+      <span style="color:var(--danger-text);box-shadow:inset 0 0 0 1px var(--danger-text);flex:0 0 160px">danger text #F87171</span>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Gradient as light (the one ornament)</h3>
+    <p class="muted" style="font-size:13px;margin-top:4px">135deg, always light, never paint or a flat fill. Shown here at its working low intensity.</p>
+    <div class="gradient-light"></div>
+  </div>
+</section>
+
+<!-- TYPOGRAPHY -->
+<section id="type">
+  <div class="wrap">
+    <p class="eyebrow">Typography</p>
+    <h2>Inter, Inter Display, Geist Mono</h2>
+    <p class="lead">Inter at a 450 register for body, Inter Display for headings via the
+      optical-size axis, Geist Mono for every figure, hash, and ID. Minor third scale,
+      base 16px. (Specimen uses JetBrains Mono; Geist Mono is the in-app primary.)</p>
+
+    <div style="margin-top:24px">
+      <div class="type-row"><span class="tag">display-2xl / 48</span><span class="specimen-display" style="font-size:48px;letter-spacing:-0.03em;color:var(--fg-default)">Private payroll</span></div>
+      <div class="type-row"><span class="tag">h1 / 33</span><span class="specimen-display" style="font-size:33px;letter-spacing:-0.02em;color:var(--fg-default)">Run payroll</span></div>
+      <div class="type-row"><span class="tag">h3 / 23</span><span class="specimen-display" style="font-size:23px;letter-spacing:-0.01em;color:var(--fg-default)">Latest payments</span></div>
+      <div class="type-row"><span class="tag">body / 16</span><span style="font-size:16px">Pay anyone in USDC and prove it settled on-chain.</span></div>
+      <div class="type-row"><span class="tag">body-sm / 14</span><span style="font-size:14px;color:var(--fg-subtle)">Dense table rows run at 14px in fg-subtle.</span></div>
+      <div class="type-row"><span class="tag">overline / 12</span><span style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-subtle)">Operating balance</span></div>
+      <div class="type-row"><span class="tag">mono-figure</span><span class="figure" style="font-size:16px;color:var(--fg-default)">$12,450.00 USDC · ledger 58,204,113 · Proof ID 789</span></div>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Tabular currency column</h3>
+    <div class="card" style="margin-top:12px;padding:0;overflow:hidden">
+      <table>
+        <thead><tr><th>Provider</th><th class="right">Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Jane Doe</td><td class="amount">$500.00 USDC</td></tr>
+          <tr><td>Alice Smith</td><td class="amount">$1,750.00 USDC</td></tr>
+          <tr><td>Bob Johnson</td><td class="amount">$350.00 USDC</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- VISUAL ELEMENTS -->
+<section id="elements">
+  <div class="wrap">
+    <p class="eyebrow">Visual elements</p>
+    <h2>The signature states</h2>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:24px">
+      <div class="card"><p class="eyebrow">Masked</p><span class="chip-masked"></span><p class="muted" style="font-size:13px;margin-top:10px">Slate chip on surface-3, indigo dot cue, sized for a six-figure amount so rows never reflow.</p></div>
+      <div class="card"><p class="eyebrow">Verified badge</p><span class="badge-verified">Verified on-chain · Proof ID 789</span><p class="muted" style="font-size:13px;margin-top:10px">Emerald wash, line, and an earned glow. Lucide ShieldCheck.</p></div>
+      <div class="card"><p class="eyebrow">Privacy slit</p>
+        <svg width="40" height="40" viewBox="0 0 24 24"><path fill="url(#sp-grad)" fill-rule="evenodd" d="M4 4.5C4 3.7 4.7 3 5.5 3H18.5C19.3 3 20 3.7 20 4.5V11C20 16.4 16.6 20 12 21.5C7.4 20 4 16.4 4 11V4.5ZM10.7 14.1L8.6 12C8.2 11.6 7.6 11.6 7.2 12C6.8 12.4 6.8 13 7.2 13.4L10 16.2C10.4 16.6 11 16.6 11.4 16.2L16.8 10.8C17.2 10.4 17.2 9.8 16.8 9.4C16.4 9 15.8 9 15.4 9.4L10.7 14.1Z" /></svg>
+        <p class="muted" style="font-size:13px;margin-top:10px">The cut check recurs as a sparing graphic motif.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section id="components">
+  <div class="wrap">
+    <p class="eyebrow">Components</p>
+    <h2>Built from the tokens</h2>
+
+    <h3 style="margin-top:24px;font-size:16px">Cards by elevation</h3>
+    <div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:12px">
+      <div class="card"><p class="eyebrow">surface-1</p><p>Default card.</p></div>
+      <div class="card card-2"><p class="eyebrow">surface-2</p><p>Nested card.</p></div>
+      <div class="card card-primary"><p class="eyebrow">primary rim</p><p>Indigo top rim. The one cluster that glows.</p></div>
+      <div class="card card-overlay"><p class="eyebrow">overlay</p><p>The only drop shadow.</p></div>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Buttons and input</h3>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">
+      <button class="btn-primary">Run payroll</button>
+      <button class="btn-verified">Confirm and settle</button>
+      <button class="btn-secondary">Cancel</button>
+    </div>
+    <div style="max-width:360px;margin-top:16px">
+      <label class="muted" style="font-size:14px;font-weight:500">Amount</label>
+      <input class="input figure" style="text-align:right;margin-top:6px" placeholder="0.00" />
+      <p class="faint" style="font-size:13px;margin-top:6px">Focus the field to see the indigo glow.</p>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Dense table row + verified column</h3>
+    <div class="card" style="margin-top:12px;padding:0;overflow:hidden">
+      <table>
+        <thead><tr><th>Provider</th><th>Reference</th><th class="right">Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Jane Doe</td><td class="meta">May 2026</td><td class="amount">$500.00 USDC</td><td><span class="badge-verified">Verified on-chain</span></td></tr>
+          <tr><td>Alice Smith</td><td class="meta">May 2026</td><td class="amount">$1,750.00 USDC</td><td><span class="badge-verified">Verified on-chain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:32px;font-size:16px">Payroll stepper</h3>
+    <div class="card" style="margin-top:12px">
+      <div class="stepper">
+        <span class="step settled">1</span><span class="connector filled"></span>
+        <span class="step settled">2</span><span class="connector filled"></span>
+        <span class="step active">3</span><span class="connector"></span>
+        <span class="step pending">4</span>
+      </div>
+      <div class="step-labels"><span>Sending</span><span>Proving</span><span>Verifying</span><span>Settled</span></div>
+      <p class="faint" style="font-size:13px;margin-top:12px">Connector fills indigo to emerald. Settled lands with a subtle emerald confirm. No spinner, no loop.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VOICE -->
+<section id="voice">
+  <div class="wrap">
+    <p class="eyebrow">Voice</p>
+    <h2>Calm, Precise, Trustworthy</h2>
+    <div class="voice-grid" style="margin-top:24px">
+      <div>
+        <h3 style="font-size:16px;margin-bottom:8px">Never</h3>
+        <ul class="never-list">
+          <li>Crypto jargon. Say "Verified on-chain", not "Groth16".</li>
+          <li>Em-dashes, exclamation marks, or emoji in product copy.</li>
+          <li>A lock emoji for verified. The badge is designed.</li>
+          <li>Asterisks or blur for a masked amount.</li>
+          <li>Indigo-500 as body text. Use indigo-400 for text.</li>
+          <li>The gradient as a flat fill, paint, or text decoration.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-size:16px;margin-bottom:8px">Always</h3>
+        <ul class="always-list">
+          <li>Short, exact sentences.</li>
+          <li>Tabular mono on every amount, hash, and ID.</li>
+          <li>Right-align currency so decimals stack.</li>
+          <li>Format exactly: $500.00 USDC, ledger 58,204,113, Proof ID 789.</li>
+          <li>Reserve emerald for confirmation.</li>
+          <li>Elevation by lightness and a 1px top-edge light.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERSONAS -->
+<section id="personas" style="border-bottom:none">
+  <div class="wrap">
+    <p class="eyebrow">Personas</p>
+    <h2>Who reads these surfaces</h2>
+    <div class="personas" style="margin-top:24px">
+      <div class="card"><p class="eyebrow" style="color:var(--brand-text)">CFO</p><p>Commits a batch and trusts the depth. Wants the run to settle and the proof to hold in any dispute.</p></div>
+      <div class="card"><p class="eyebrow" style="color:var(--brand-text)">Worker</p><p>Sees their own pay verified and disclosed, downloads a receipt for tax filing. No jargon, no wallet noise.</p></div>
+      <div class="card"><p class="eyebrow" style="color:var(--brand-text)">Auditor</p><p>Reads a dense table through a temporary link. Verifies hashes and amounts, exports a clean report.</p></div>
+    </div>
+    <p class="faint" style="font-size:13px;margin-top:32px">ShieldPay brand guidelines · generated 2026-06-27 · dark mode only.</p>
+  </div>
+</section>
+
+</body>
+</html>

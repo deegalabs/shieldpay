@@ -91,7 +91,7 @@ export default async function CompanyDashboard() {
                   <p className="font-medium">{r.reference}</p>
                   <p className="text-xs text-muted">{r.payment_count} payments · total proven</p>
                 </div>
-                <span className="font-semibold">{usd(Number(r.total_cents))} USDC</span>
+                <span className="figure font-semibold">{usd(Number(r.total_cents))} USDC</span>
               </Link>
             ))}
           </Card>
@@ -125,7 +125,7 @@ export default async function CompanyDashboard() {
                   <p className="font-medium">{p.worker_name}</p>
                   <p className="text-xs text-muted">{p.reference}</p>
                 </div>
-                <span className="text-sm text-muted">
+                <span className="figure text-sm text-muted">
                   {usdRange(p.range_min, p.range_max)} USDC
                 </span>
                 <Badge variant="success">
@@ -170,7 +170,7 @@ function Stat({
         {icon}
         {label}
       </div>
-      <p className={`mt-2 text-3xl font-bold ${accent ? 'text-primary' : 'text-foreground'}`}>
+      <p className={`figure mt-2 text-3xl font-bold ${accent ? 'text-primary' : 'text-foreground'}`}>
         {value}
       </p>
     </Card>

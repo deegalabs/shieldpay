@@ -63,7 +63,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
         <div className="flex items-center justify-between">
           <div className="text-sm">
             <p className="text-muted">Contractual range</p>
-            <p className="font-medium">{usdRange(contractor.range_min, contractor.range_max)} USDC / month</p>
+            <p className="figure font-medium">{usdRange(contractor.range_min, contractor.range_max)} USDC / month</p>
           </div>
           <ContractorActions id={contractor.id} anchored={contractor.anchored} />
         </div>
@@ -78,7 +78,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
             {payments.map((p) => (
               <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
                 <span className="font-medium">{p.reference}</span>
-                <span className="text-sm text-muted">{usdRange(p.range_min, p.range_max)} USDC</span>
+                <span className="figure text-sm text-muted">{usdRange(p.range_min, p.range_max)} USDC</span>
                 <Badge variant="success"><ShieldCheck size={12} /> Verified</Badge>
                 <div className="flex gap-3 text-sm">
                   <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">

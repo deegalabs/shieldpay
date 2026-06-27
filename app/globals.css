@@ -4,72 +4,205 @@
 
 @layer base {
   :root {
-    --font-mono: ui-monospace, 'SF Mono', monospace;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
     --radius: 0.75rem;
 
-    /* Fintech-premium dark palette (HSL triplets for hsl(var(--x))). */
-    --background: 222 47% 7%;
-    --surface: 222 39% 10%;
-    --surface-2: 221 33% 14%;
-    --foreground: 210 40% 98%;
-    --muted: 215 18% 62%;
-    --border: 215 25% 20%;
-    --ring: 243 75% 63%;
+    /* ShieldPay dark palette. Elevation by lightness, not shadow. HSL triplets
+       feed hsl(var(--x) / <alpha-value>); rgba vars carry baked-in alpha for the
+       foreground tiers, washes, and the gradient-as-light. */
 
-    --primary: 158 64% 42%; /* emerald — primary action / success */
-    --primary-foreground: 160 84% 6%;
-    --brand: 243 75% 63%; /* indigo — identity / accents */
-    --accent: 243 75% 63%;
-    --warning: 38 92% 50%;
-    --danger: 0 84% 60%;
+    /* Elevation ramp (5 steps, ~4-6 LCH-lightness apart, never banded). */
+    --surface-base: 223 49% 8%;     /* #0B1120 page canvas, darkest             */
+    --background: 223 49% 8%;        /* alias of surface-base (keeps `background`)*/
+    --surface: 222 47% 11%;          /* #0F172A cards, panels (surface-1)        */
+    --surface-2: 222 34% 15%;        /* #1A2235 nested, table header, sidebar    */
+    --surface-3: 217 33% 17%;        /* #1E293B hover, raised/selected rows      */
+    --surface-overlay: 221 33% 20%;  /* #232E45 modals, popovers, dropdowns      */
+
+    /* Borders. */
+    --border: 217 32% 18%;           /* #1F2A3C hairline (keeps `border` name)   */
+    --border-strong: 218 30% 25%;    /* #2C3A52 focused/active edges, active row */
+
+    /* Foreground. `foreground` + `muted` stay HSL (alpha-modifier safe); the
+       4-rung tiers are also exposed as raw rgba for new code. */
+    --foreground: 210 40% 98%;       /* fg-default near-white, headings/figures  */
+    --muted: 215 18% 62%;            /* fg-subtle role, secondary/table meta     */
+    --fg-default: rgba(248, 250, 252, 0.98);
+    --fg-strong:  rgba(248, 250, 252, 0.86); /* body, primary labels (NEW tier)  */
+    --fg-subtle:  rgba(248, 250, 252, 0.66);
+    --fg-faint:   rgba(248, 250, 252, 0.45); /* captions, disabled (AA-large)    */
+
+    /* Signal: indigo = protected (brand, primary action, focus). */
+    --brand: 239 84% 67%;            /* #6366F1 fills, borders, focus ring       */
+    --ring: 239 84% 67%;             /* #6366F1 focus ring                       */
+    --brand-text: 234 89% 74%;       /* #818CF8 indigo-400, the only indigo text */
+    --brand-wash: rgba(99, 102, 241, 0.08);
+    --brand-line: rgba(99, 102, 241, 0.40);
+    --accent: 239 84% 67%;           /* legacy alias -> brand indigo             */
+
+    /* Signal: emerald = proven (verified, settled, success). */
+    --primary: 160 84% 39%;          /* #10B981 emerald action / verified        */
+    --primary-foreground: 166 91% 9%;/* #022C22 ink on emerald                   */
+    --verified: 160 84% 39%;
+    --verified-wash: rgba(16, 185, 129, 0.08);
+    --verified-line: rgba(16, 185, 129, 0.40);
+
+    /* Functional only (never decorative). */
+    --warning: 38 92% 50%;           /* #F59E0B amber (ink black)                */
+    --danger: 0 84% 60%;             /* #EF4444 red fills/large                  */
+    --danger-text: 0 91% 71%;        /* #F87171 red-400 danger text on dark      */
+
+    /* The one ornament: the gradient is light, never paint/fill/text. */
+    --gradient: linear-gradient(135deg, #6366F1, #10B981);
+
+    /* Motion (Geist lineage; confirm-or-reveal only). */
+    --ease-physical: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    --dur-instant: 100ms;
+    --dur-fast: 160ms;
+    --dur-base: 240ms;
+    --dur-slow: 360ms;
   }
 
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background antialiased;
+    color: var(--fg-strong); /* body register is fg-strong; headings use text-foreground */
+    font-optical-sizing: auto; /* headings pick up Inter's Display optical size */
     background-image:
-      radial-gradient(60rem 40rem at 110% -10%, hsl(var(--brand) / 0.10), transparent),
-      radial-gradient(50rem 30rem at -10% 0%, hsl(var(--primary) / 0.06), transparent);
+      radial-gradient(60rem 40rem at 15% -10%, rgba(99, 102, 241, 0.06), transparent 60%),
+      radial-gradient(50rem 36rem at 100% 0%, rgba(16, 185, 129, 0.04), transparent 60%);
+    background-color: hsl(var(--surface-base));
     background-attachment: fixed;
   }
   h1, h2, h3 {
-    @apply tracking-tight;
+    @apply tracking-tight text-foreground;
+  }
+
+  /* The gradient-as-light is atmosphere; drop it when high contrast is requested. */
+  @media (prefers-contrast: more) {
+    body { background-image: none; }
+  }
+  /* Motion only confirms or reveals; honor the user's reduced-motion preference. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
   }
 }
 
 @layer components {
-  /* Surfaces */
+  /* Page canvas helper. */
+  .surface-base { background-color: hsl(var(--surface-base)); }
+
+  /* Cards: elevation by lightness + a 1px top-edge highlight, no drop shadow. */
   .card {
-    @apply rounded-xl border border-border bg-surface p-6 shadow-card;
+    @apply rounded-xl border border-border bg-surface p-6;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   .card-2 {
-    @apply rounded-xl border border-border bg-surface-2 p-6 shadow-card;
+    @apply rounded-xl border border-border bg-surface-2 p-6;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  /* The one figure cluster that glows: a faint indigo top rim (gradient-as-light). */
+  .card-primary {
+    @apply rounded-xl border border-border bg-surface p-6;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 2px 0 -1px rgba(99, 102, 241, 0.18);
+  }
+  /* Overlay is the only surface that gets a real drop shadow. */
+  .surface-overlay {
+    @apply rounded-xl border bg-surface-overlay p-4;
+    border-color: hsl(var(--border-strong));
+    box-shadow: 0 16px 48px -16px rgba(0, 0, 0, 0.65);
   }
 
-  /* Buttons (legacy class names kept; restyled) */
+  /* Buttons. Primary = indigo (protected). Verified = emerald (reserved for
+     confirm/settle). Secondary/ghost = neutral surface step. */
   .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5
+           font-medium text-white transition disabled:opacity-50 disabled:pointer-events-none;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-physical);
+  }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-primary:active { filter: brightness(0.95); }
+
+  .btn-verified {
     @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5
-           font-medium text-primary-foreground shadow-card transition
-           hover:brightness-110 active:brightness-95 disabled:opacity-50 disabled:pointer-events-none;
+           font-medium transition disabled:opacity-50 disabled:pointer-events-none;
+    color: hsl(var(--primary-foreground));
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-physical);
   }
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface/50
-           px-4 py-2.5 font-medium text-foreground transition
-           hover:bg-surface-2 hover:border-border disabled:opacity-50 disabled:pointer-events-none;
+  .btn-verified:hover { filter: brightness(1.1); }
+  .btn-verified:active { filter: brightness(0.95); }
+
+  .btn-secondary, .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface-2
+           px-4 py-2.5 font-medium transition disabled:opacity-50 disabled:pointer-events-none;
+    color: var(--fg-strong);
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-physical);
+  }
+  .btn-secondary:hover, .btn-ghost:hover {
+    @apply bg-surface-3;
+    border-color: hsl(var(--border-strong));
   }
 
-  /* Inputs */
+  /* Input: indigo focused-field glow (protected, receiving input). */
   .input {
-    @apply w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-foreground
-           placeholder:text-muted/70 outline-none transition
-           focus:border-ring focus:ring-2 focus:ring-ring/30;
+    @apply w-full rounded-lg border border-border px-3 py-2 outline-none transition;
+    background-color: hsl(var(--surface-base) / 0.6);
+    color: var(--fg-default);
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-physical);
+  }
+  .input::placeholder { color: var(--fg-faint); }
+  .input:focus-visible {
+    border-color: var(--brand-line);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
   }
 
-  /* Status badge */
+  /* Verified badge: emerald wash + line + a small earned glow + tabular Proof ID. */
   .badge-verified {
-    @apply inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5
-           text-sm font-medium text-primary ring-1 ring-inset ring-primary/20;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-medium;
+    color: hsl(var(--verified));
+    background: var(--verified-wash);
+    box-shadow: 0 0 0 1px var(--verified-line), 0 0 16px -4px rgba(16, 185, 129, 0.35);
+  }
+
+  /* Dense table row (52px standard / 44px compact). */
+  .row-dense {
+    height: 52px;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .row-dense.is-compact { height: 44px; }
+  .row-dense:hover { background-color: hsl(var(--surface-3)); }
+  .row-dense[data-selected='true'] {
+    background-color: hsl(var(--surface-3));
+    box-shadow: inset 2px 0 0 0 hsl(var(--brand));
+  }
+
+  /* Figure: the mandatory mono + tabular contract. */
+  .figure, .proof-id, .hash, td.amount {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'ss01' 1;
+  }
+  td.amount { text-align: right; }
+
+  /* Hero lead-number wash: the one figure that glows (gradient-as-light). */
+  .figure-hero {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, #818cf8, #34d399);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }

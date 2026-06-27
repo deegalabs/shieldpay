@@ -1,0 +1,113 @@
+{
+  "$schema": "gsp-palettes-v1",
+  "brand": "ShieldPay",
+  "generated": "2026-06-27",
+  "mode": "dark-only",
+  "composition": "neutral-plus-single-accent (indigo->emerald gradient as one signal)",
+  "scales": {
+    "indigo": {
+      "role": "brand / protected / focus",
+      "source": "#6366F1",
+      "ui_min_step": "400 (indigo-400 #818CF8 for text on dark; 500 for fills/borders)",
+      "50": "oklch(0.958 0.019 282.83)",
+      "100": "oklch(0.915 0.038 285.66)",
+      "200": "oklch(0.832 0.078 283.78)",
+      "300": "oklch(0.748 0.12 282.58)",
+      "400": "oklch(0.667 0.163 280.24)",
+      "500": "oklch(0.585 0.204 277.12)",
+      "600": "oklch(0.505 0.244 272.22)",
+      "700": "oklch(0.421 0.244 268.01)",
+      "800": "oklch(0.329 0.19 268.01)",
+      "900": "oklch(0.238 0.138 267.96)",
+      "950": "oklch(0.187 0.108 268.05)"
+    },
+    "emerald": {
+      "role": "verified / proven / settled / success",
+      "source": "#10B981",
+      "50": "oklch(0.969 0.046 163.12)",
+      "100": "oklch(0.926 0.115 162.47)",
+      "200": "oklch(0.865 0.185 162.62)",
+      "300": "oklch(0.806 0.172 162.56)",
+      "400": "oklch(0.748 0.161 162.23)",
+      "500": "oklch(0.696 0.149 162.47)",
+      "600": "oklch(0.579 0.124 162.71)",
+      "700": "oklch(0.471 0.101 162.71)",
+      "800": "oklch(0.362 0.078 162.31)",
+      "900": "oklch(0.245 0.052 162.67)",
+      "950": "oklch(0.193 0.041 163.33)"
+    },
+    "amber": {
+      "role": "warning (functional only)",
+      "source": "#F59E0B",
+      "50": "oklch(0.976 0.014 57.63)",
+      "100": "oklch(0.95 0.03 56.02)",
+      "200": "oklch(0.908 0.057 56.61)",
+      "300": "oklch(0.86 0.095 61.4)",
+      "400": "oklch(0.819 0.136 66.43)",
+      "500": "oklch(0.769 0.165 70.07)",
+      "600": "oklch(0.645 0.138 69.96)",
+      "700": "oklch(0.514 0.11 69.88)",
+      "800": "oklch(0.392 0.085 69.74)",
+      "900": "oklch(0.262 0.056 71.54)",
+      "950": "oklch(0.2 0.043 70.86)"
+    },
+    "red": {
+      "role": "danger (functional only)",
+      "source": "#EF4444",
+      "text_on_dark_step": "400 (#F87171); 500 for fills/large",
+      "50": "oklch(0.958 0.016 17.55)",
+      "100": "oklch(0.926 0.03 17.76)",
+      "200": "oklch(0.852 0.065 18.53)",
+      "300": "oklch(0.78 0.105 19.71)",
+      "400": "oklch(0.709 0.152 21.67)",
+      "500": "oklch(0.637 0.208 25.33)",
+      "600": "oklch(0.539 0.19 26.43)",
+      "700": "oklch(0.441 0.156 26.46)",
+      "800": "oklch(0.341 0.121 26.45)",
+      "900": "oklch(0.243 0.086 26.52)",
+      "950": "oklch(0.184 0.065 26.54)"
+    },
+    "slate": {
+      "role": "neutral reference family (the surfaces are a bespoke violet-tinted ramp below)",
+      "source": "#64748B",
+      "50": "oklch(0.957 0.006 255.49)",
+      "100": "oklch(0.914 0.012 259.84)",
+      "200": "oklch(0.818 0.029 261.47)",
+      "300": "oklch(0.733 0.043 257.52)",
+      "400": "oklch(0.645 0.047 257.97)",
+      "500": "oklch(0.554 0.041 257.42)",
+      "600": "oklch(0.475 0.035 257.79)",
+      "700": "oklch(0.388 0.029 258.36)",
+      "800": "oklch(0.302 0.021 254.15)",
+      "900": "oklch(0.225 0.016 256.81)",
+      "950": "oklch(0.176 0.014 258.36)"
+    }
+  },
+  "surfaces": {
+    "note": "Bespoke 5-step violet-tinted dark ramp. Elevation by lightness + 1px top-edge highlight, not shadow. Adjacent-step luminance contrast 1.05-1.13 (distinct, never banded).",
+    "surface-base":    { "hex": "#0B1120", "oklch": "oklch(0.179 0.024 268.0)", "use": "page canvas" },
+    "surface-1":       { "hex": "#0F172A", "oklch": "oklch(0.224 0.029 266.9)", "use": "cards, panels" },
+    "surface-2":       { "hex": "#1A2235", "oklch": "oklch(0.278 0.029 266.4)", "use": "nested cards, table header, sidebar" },
+    "surface-3":       { "hex": "#1E293B", "oklch": "oklch(0.311 0.031 266.0)", "use": "hover, raised/selected rows" },
+    "surface-overlay": { "hex": "#232E45", "oklch": "oklch(0.343 0.038 268.0)", "use": "modals, popovers, dropdowns (soft shadow allowed)" },
+    "border-hairline": { "hex": "#1F2A3C", "oklch": "oklch(0.302 0.030 264.0)", "use": "plane separators, dividers" },
+    "border-strong":   { "hex": "#2C3A52", "oklch": "oklch(0.379 0.040 266.0)", "use": "focused/active field edges, active row" },
+    "top-edge-highlight": "rgba(255,255,255,0.04)"
+  },
+  "foreground": {
+    "note": "White composited at alpha. AA contrast vs surfaces measured in color-system.md.",
+    "fg-default": "rgba(248,250,252,0.98)",
+    "fg-strong":  "rgba(248,250,252,0.86)",
+    "fg-subtle":  "rgba(248,250,252,0.66)",
+    "fg-faint":   "rgba(248,250,252,0.45)"
+  },
+  "signal": {
+    "brand":        { "hex": "#6366F1", "wash": "rgba(99,102,241,0.08)", "line": "rgba(99,102,241,0.40)", "text_on_dark": "#818CF8" },
+    "verified":     { "hex": "#10B981", "wash": "rgba(16,185,129,0.08)", "line": "rgba(16,185,129,0.40)" },
+    "gradient":     { "from": "#6366F1", "to": "#10B981", "angle": "135deg", "use": "dimensional light only (hero wash, surface rim, verified glow, focused field, payroll stepper)" }
+  },
+  "functional": {
+    "warning": { "hex": "#F59E0B", "fg": "#000000" },
+    "danger":  { "hex": "#EF4444", "text_on_dark": "#F87171" }
+  }
+}

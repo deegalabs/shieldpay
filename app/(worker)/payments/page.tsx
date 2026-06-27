@@ -86,6 +86,7 @@ export default async function WorkerPayments() {
                 <Field
                   label="Agreed range"
                   value={`${usdRange(o.range_min, o.range_max)} USDC/mo`}
+                  mono
                 />
                 {!o.anchored && (
                   <>
@@ -122,7 +123,7 @@ export default async function WorkerPayments() {
                   <p className="font-medium">{p.reference}</p>
                   <p className="text-sm text-muted">
                     {p.payer_name ? `${p.payer_name} · ` : ''}
-                    {usdRange(p.range_min, p.range_max)} USDC
+                    <span className="figure">{usdRange(p.range_min, p.range_max)}</span> USDC
                   </p>
                 </div>
                 <span className="inline-flex items-center gap-1">
@@ -171,7 +172,7 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
   return (
     <div>
       <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
-      <p className={`mt-1 font-medium ${mono ? 'font-mono text-sm' : ''}`}>{value}</p>
+      <p className={`mt-1 font-medium ${mono ? 'figure text-sm' : ''}`}>{value}</p>
     </div>
   );
 }

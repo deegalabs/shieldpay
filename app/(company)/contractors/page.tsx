@@ -63,7 +63,7 @@ export default async function ContractorsPage() {
                     </p>
                   </Link>
                 )}
-                <span className="text-sm text-muted">
+                <span className="figure text-sm text-muted">
                   {usdRange(c.range_min, c.range_max)} USDC/mo
                 </span>
                 {invited ? (

@@ -165,7 +165,7 @@ export default function PayrollPage() {
 
             <div className="flex items-center justify-between border-t border-border pt-4 text-sm">
               <span className="text-muted">Run total (visible to you)</span>
-              <span className="text-lg font-bold">{formatUsdc(total)} USDC</span>
+              <span className="figure-hero text-lg font-bold">{formatUsdc(total)} USDC</span>
             </div>
 
             <Button className="w-full" size="lg" onClick={run} disabled={busy}>
