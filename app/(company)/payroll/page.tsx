@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { Send, Plus, Trash2, Loader2, Lock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usdRange, formatUsdc } from '@/lib/utils';
+import { nonCustodialAvailable, runPayrollNonCustodial } from '@/lib/payments/client-run';
 
 interface Contractor {
   id: string;
@@ -22,11 +25,21 @@ interface Line {
 }
 
 export default function PayrollPage() {
+  const { user } = usePrivy();
+  const { signRawHash } = useSignRawHash();
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [reference, setReference] = useState('JUN2026');
   const [lines, setLines] = useState<Line[]>([{ contractorId: '', amount: '' }]);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // The company's own Stellar wallet (non-custodial signer). When present and the
+  // public contract id is configured, the company signs its own on-chain calls.
+  const wallet = (user?.linkedAccounts ?? []).find(
+    (a: any) => a?.type === 'wallet' && a?.chainType === 'stellar' && a?.address,
+  ) as any;
+  const walletAddr: string | undefined = wallet?.address;
 
   useEffect(() => {
     fetch('/api/contractors')
@@ -73,7 +86,29 @@ export default function PayrollPage() {
 
     setBusy(true);
     setError(null);
+    setProgress(null);
     try {
+      // Non-custodial path: the company signs its own on-chain calls with its
+      // wallet, the server never holds a company key. Falls back to the custodial
+      // endpoint when no wallet is linked or the public contract id is unset.
+      if (nonCustodialAvailable() && walletAddr) {
+        const { runId } = await runPayrollNonCustodial({
+          walletAddress: walletAddr,
+          signRawHash,
+          reference,
+          lines: built.map((b) => ({
+            workerName: b.workerName,
+            workerAddress: b.workerAddress,
+            amountUsdc: b.amountUsdc,
+            minUsdc: b.minUsdc,
+            maxUsdc: b.maxUsdc,
+          })),
+          onProgress: setProgress,
+        });
+        window.location.href = `/payroll/${runId}`;
+        return;
+      }
+
       const res = await fetch('/api/payroll/run', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -85,6 +120,7 @@ export default function PayrollPage() {
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -170,11 +206,13 @@ export default function PayrollPage() {
 
             <Button className="w-full" size="lg" onClick={run} disabled={busy}>
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              {busy ? 'Proving & recording on-chain…' : 'Run payroll & prove'}
+              {busy ? `${progress ?? 'Proving & recording on-chain'}…` : 'Run payroll & prove'}
             </Button>
             <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
-              <Lock size={12} /> Each individual amount is hidden on-chain (commitment). This may take
-              a few seconds per collaborator.
+              <Lock size={12} />{' '}
+              {nonCustodialAvailable() && walletAddr
+                ? 'You sign each payment with your own wallet. Each amount stays hidden on-chain (commitment).'
+                : 'Each individual amount is hidden on-chain (commitment). This may take a few seconds per collaborator.'}
             </p>
           </Card>
 

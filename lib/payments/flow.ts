@@ -27,20 +27,32 @@ export interface PaymentResult {
 }
 
 /**
- * The core "Pay & Prove" unit, reused by single payments and payroll runs:
- * commit to the amount → Groth16 range proof → verify+record on-chain → persist.
- * The exact amount is never stored in the clear — only the commitment + the
- * public range. When a `viewingKey` is supplied, the witness {amount, randomness}
- * is additionally sealed under it (N4) so an authorized auditor can later reveal
- * and re-verify the amount against the on-chain commitment.
+ * Pure proof preparation: commit to the amount and produce a Groth16 range
+ * proof. No signer, no key, no database. This is the half of the flow that the
+ * server always runs (it needs the circuit artifacts on disk), in BOTH the
+ * custodial and the non-custodial path. Whoever holds the company key (server)
+ * or wallet (browser) then signs the resulting on-chain call.
+ *
+ * `bindTo` is the 32 bytes the proof is bound to (ideally the settlement tx
+ * hash). When absent, a random binding id is used, so the proof is still unique
+ * and cannot be replayed for another payment.
  */
-export async function proveAndRecordPayment(args: {
-  companySecret: string;
-  company: CompanyRow | null;
+export interface PreparedProof {
+  amountCents: number;
+  commitment: string; // field element, persisted as value_commitment
+  randomness: string; // field element, sealed under the viewing key (never on-chain)
+  // 32-byte / serialized inputs for the on-chain verify_and_record call:
+  workerAddressHash: Buffer;
+  paymentTxHash: Buffer;
+  valueCommitment: Buffer;
+  proofBytes: Buffer;
+  publicSignalsBytes: Buffer;
+}
+
+export async function prepareProof(args: {
   input: PaymentInput;
-  runId?: string | null;
-  viewingKey?: string | null;
-}): Promise<PaymentResult> {
+  bindTo?: Buffer | null;
+}): Promise<PreparedProof> {
   const { input } = args;
   const value = Math.round(input.amountUsdc * 100);
   const minValue = Math.round(input.minUsdc * 100);
@@ -52,25 +64,8 @@ export async function proveAndRecordPayment(args: {
   const randomness = randomFieldElement();
   const commitment = await poseidonCommitment(value, randomness);
 
-  // The company signs its own on-chain actions through this signer. Today it is
-  // the server-held key; the non-custodial path swaps in a browser signer.
-  const signer = new ServerSigner(args.companySecret);
-
-  // Settle first (best-effort, recipient-visible, amount-confidential) so the
-  // proof can be bound to the REAL settlement tx hash. If settlement is skipped,
-  // fall back to a random binding id so the proof is still recorded.
-  const settlement = await settlePaymentRecord({
-    signer,
-    workerAddress: input.workerAddress,
-    reference: input.reference,
-  });
-  const paymentTxHash = settlement ? Buffer.from(settlement.hash, 'hex') : randomBytes(32);
-
-  // Bind the proof to the recipient and the settlement tx, as field elements that
-  // become public signals. The contract enforces that these match the recorded
-  // values, so a valid proof cannot be reused for a different recipient or tx.
   const workerAddrField = bytesToField(createHash('sha256').update(input.workerAddress).digest());
-  const txField = bytesToField(paymentTxHash);
+  const txField = bytesToField(args.bindTo ?? randomBytes(32));
 
   const { proof, publicSignals } = await generatePaymentProof({
     value,
@@ -82,37 +77,118 @@ export async function proveAndRecordPayment(args: {
     paymentTxHash: txField,
   });
 
-  const { proofId, txHash } = await recordProofOnChain({
-    signer,
+  return {
+    amountCents: value,
+    commitment,
+    randomness,
     workerAddressHash: fieldToBe32(workerAddrField),
     paymentTxHash: fieldToBe32(txField),
     valueCommitment: fieldToBe32(commitment),
     proofBytes: encodeProof(proof),
     publicSignalsBytes: encodePublicSignals(publicSignals),
-  });
+  };
+}
 
-  const disclosure = args.viewingKey
-    ? sealWitness(args.viewingKey, { amountCents: value, randomness })
-    : null;
+/**
+ * Persist a verified payment. The exact amount is never stored in the clear:
+ * only the commitment and the public range. When a `viewingKey` is supplied the
+ * witness {amount, randomness} is sealed under it (N4), so an authorized auditor
+ * can later reveal and re-verify the amount against the on-chain commitment.
+ *
+ * Pass a pre-sealed `disclosure` (the non-custodial path seals during prepare
+ * and round-trips the ciphertext), or a `viewingKey` to seal here (server path).
+ */
+export async function persistPayment(args: {
+  input: PaymentInput;
+  company: CompanyRow | null;
+  runId?: string | null;
+  amountCents: number;
+  commitment: string;
+  randomness?: string | null;
+  viewingKey?: string | null;
+  disclosure?: string | null;
+  proofId: string;
+  txHash: string;
+  settlement: { hash: string; asset: string } | null;
+}): Promise<PaymentRow> {
+  const { input } = args;
+  const disclosure =
+    args.disclosure ??
+    (args.viewingKey && args.randomness != null
+      ? sealWitness(args.viewingKey, { amountCents: args.amountCents, randomness: args.randomness })
+      : null);
 
-  const payment = await insertPayment({
+  return insertPayment({
     worker_name: input.workerName,
     worker_address: input.workerAddress,
     reference: input.reference,
-    range_min: minValue,
-    range_max: maxValue,
-    value_commitment: commitment,
-    proof_id: proofId,
-    tx_hash: txHash,
+    range_min: Math.round(input.minUsdc * 100),
+    range_max: Math.round(input.maxUsdc * 100),
+    value_commitment: args.commitment,
+    proof_id: args.proofId,
+    tx_hash: args.txHash,
     verified: true,
     company_id: args.company?.id ?? null,
     payer_name: args.company?.name ?? COMPANY.name,
     payer_cnpj: args.company?.cnpj ?? COMPANY.cnpj,
     run_id: args.runId ?? null,
     disclosure,
-    settlement_tx_hash: settlement?.hash ?? null,
-    settlement_asset: settlement?.asset ?? null,
+    settlement_tx_hash: args.settlement?.hash ?? null,
+    settlement_asset: args.settlement?.asset ?? null,
+  });
+}
+
+/**
+ * The custodial "Pay & Prove" unit (server holds the key), reused by the seed
+ * script and `test_flow`, and the demo-safe fallback for payroll. Settle first
+ * so the proof binds to the real settlement tx, then verify+record on-chain,
+ * then persist. The non-custodial path composes prepareProof + persistPayment
+ * around a browser signer instead (see /api/payroll/prepare + /record).
+ */
+export async function proveAndRecordPayment(args: {
+  companySecret: string;
+  company: CompanyRow | null;
+  input: PaymentInput;
+  runId?: string | null;
+  viewingKey?: string | null;
+}): Promise<PaymentResult> {
+  const { input } = args;
+
+  // The company signs its own on-chain actions through this signer.
+  const signer = new ServerSigner(args.companySecret);
+
+  // Settle first (best-effort, recipient-visible, amount-confidential) so the
+  // proof can be bound to the REAL settlement tx hash.
+  const settlement = await settlePaymentRecord({
+    signer,
+    workerAddress: input.workerAddress,
+    reference: input.reference,
+  });
+  const bindTo = settlement ? Buffer.from(settlement.hash, 'hex') : null;
+
+  const prep = await prepareProof({ input, bindTo });
+
+  const { proofId, txHash } = await recordProofOnChain({
+    signer,
+    workerAddressHash: prep.workerAddressHash,
+    paymentTxHash: prep.paymentTxHash,
+    valueCommitment: prep.valueCommitment,
+    proofBytes: prep.proofBytes,
+    publicSignalsBytes: prep.publicSignalsBytes,
   });
 
-  return { amountCents: value, proofId, txHash, settlementTxHash: settlement?.hash ?? null, payment };
+  const payment = await persistPayment({
+    input,
+    company: args.company,
+    runId: args.runId,
+    amountCents: prep.amountCents,
+    commitment: prep.commitment,
+    randomness: prep.randomness,
+    viewingKey: args.viewingKey,
+    proofId,
+    txHash,
+    settlement,
+  });
+
+  return { amountCents: prep.amountCents, proofId, txHash, settlementTxHash: settlement?.hash ?? null, payment };
 }

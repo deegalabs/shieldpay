@@ -9,6 +9,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { sorobanServer, networkPassphrase } from './client';
 import { CONTRACTS } from '@/lib/constants';
+import { buildRecordProofOp } from './record-op';
 import type { CompanySigner } from './signer';
 
 /**
@@ -70,17 +71,15 @@ export async function recordProofOnChain(args: {
   if (!CONTRACTS.paymentVerifier) {
     throw new Error('PAYMENT_VERIFIER_CONTRACT_ID not configured');
   }
-  const contract = new Contract(CONTRACTS.paymentVerifier);
-
-  const op = contract.call(
-    'verify_and_record',
-    nativeToScVal(args.signer.address, { type: 'address' }),
-    bytesScVal(args.workerAddressHash),
-    bytesScVal(args.paymentTxHash),
-    bytesScVal(args.valueCommitment),
-    bytesScVal(args.proofBytes),
-    bytesScVal(args.publicSignalsBytes),
-  );
+  const op = buildRecordProofOp({
+    contractId: CONTRACTS.paymentVerifier,
+    companyAddress: args.signer.address,
+    workerAddressHash: args.workerAddressHash,
+    paymentTxHash: args.paymentTxHash,
+    valueCommitment: args.valueCommitment,
+    proofBytes: args.proofBytes,
+    publicSignalsBytes: args.publicSignalsBytes,
+  });
 
   const { hash, returnValue } = await args.signer.invoke(op);
   return { proofId: String(returnValue ?? ''), txHash: hash };

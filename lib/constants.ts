@@ -44,8 +44,25 @@ export const DEMO_WORKER = {
 } as const;
 
 export const CONTRACTS = {
-  anchorRegistry: process.env.ANCHOR_REGISTRY_CONTRACT_ID ?? '',
-  paymentVerifier: process.env.PAYMENT_VERIFIER_CONTRACT_ID ?? '',
+  anchorRegistry:
+    process.env.ANCHOR_REGISTRY_CONTRACT_ID ??
+    process.env.NEXT_PUBLIC_ANCHOR_REGISTRY_CONTRACT_ID ??
+    '',
+  paymentVerifier:
+    process.env.PAYMENT_VERIFIER_CONTRACT_ID ??
+    process.env.NEXT_PUBLIC_PAYMENT_VERIFIER_CONTRACT_ID ??
+    '',
+} as const;
+
+/**
+ * Contract ids exposed to the browser (non-custodial path). Next.js inlines
+ * `NEXT_PUBLIC_*` at build time, so the company's wallet can build the Soroban
+ * `verify_and_record` call client-side and sign it itself. Set these to the same
+ * deployed ids as the server vars above.
+ */
+export const PUBLIC_CONTRACTS = {
+  anchorRegistry: process.env.NEXT_PUBLIC_ANCHOR_REGISTRY_CONTRACT_ID ?? '',
+  paymentVerifier: process.env.NEXT_PUBLIC_PAYMENT_VERIFIER_CONTRACT_ID ?? '',
 } as const;
 
 /**
