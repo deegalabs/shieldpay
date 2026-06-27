@@ -132,9 +132,10 @@ async function stageSettlement() {
   }
   try {
     const { settlePaymentRecord } = await import('@/lib/stellar/transactions');
+    const { ServerSigner } = await import('@/lib/stellar/signer');
     const worker = Keypair.random().publicKey();
     const settlement = await settlePaymentRecord({
-      companySecret: process.env.COMPANY_SECRET_KEY!,
+      signer: new ServerSigner(process.env.COMPANY_SECRET_KEY!),
       workerAddress: worker,
       reference: 'E2E-VALIDATION',
     });
