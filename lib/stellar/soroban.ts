@@ -9,6 +9,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { sorobanServer, networkPassphrase } from './client';
 import { CONTRACTS } from '@/lib/constants';
+import type { CompanySigner } from './signer';
 
 /**
  * Server-side Soroban invocations against the deployed PaymentVerifier.
@@ -19,7 +20,7 @@ function bytesScVal(buf: Buffer): xdr.ScVal {
   return nativeToScVal(buf, { type: 'bytes' });
 }
 
-async function invokeAndConfirm(
+export async function invokeAndConfirm(
   kp: Keypair,
   operation: xdr.Operation,
 ): Promise<{ hash: string; returnValue: unknown }> {
@@ -59,7 +60,7 @@ async function invokeAndConfirm(
  * Stellar transaction hash (the proof of on-chain verification).
  */
 export async function recordProofOnChain(args: {
-  companySecret: string;
+  signer: CompanySigner; // the company; server-held key or browser wallet
   workerAddressHash: Buffer; // 32 bytes
   paymentTxHash: Buffer; // 32 bytes
   valueCommitment: Buffer; // 32 bytes
@@ -69,12 +70,11 @@ export async function recordProofOnChain(args: {
   if (!CONTRACTS.paymentVerifier) {
     throw new Error('PAYMENT_VERIFIER_CONTRACT_ID not configured');
   }
-  const kp = Keypair.fromSecret(args.companySecret);
   const contract = new Contract(CONTRACTS.paymentVerifier);
 
   const op = contract.call(
     'verify_and_record',
-    nativeToScVal(kp.publicKey(), { type: 'address' }),
+    nativeToScVal(args.signer.address, { type: 'address' }),
     bytesScVal(args.workerAddressHash),
     bytesScVal(args.paymentTxHash),
     bytesScVal(args.valueCommitment),
@@ -82,7 +82,7 @@ export async function recordProofOnChain(args: {
     bytesScVal(args.publicSignalsBytes),
   );
 
-  const { hash, returnValue } = await invokeAndConfirm(kp, op);
+  const { hash, returnValue } = await args.signer.invoke(op);
   return { proofId: String(returnValue ?? ''), txHash: hash };
 }
 

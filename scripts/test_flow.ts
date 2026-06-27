@@ -102,11 +102,12 @@ async function stageOnchainProof() {
   }
   try {
     const { recordProofOnChain, isVerifiedOnChain } = await import('@/lib/stellar/soroban');
+    const { ServerSigner } = await import('@/lib/stellar/signer');
     const { commitment, proof, publicSignals, workerField, txField } = await makeProof(50000, 45000, 55000);
     // The recorded hashes must equal the proof's public signals (the binding).
     const paymentTxHash = fieldToBe32(txField);
     const { proofId, txHash } = await recordProofOnChain({
-      companySecret: process.env.COMPANY_SECRET_KEY!,
+      signer: new ServerSigner(process.env.COMPANY_SECRET_KEY!),
       workerAddressHash: fieldToBe32(workerField),
       paymentTxHash,
       valueCommitment: fieldToBe32(commitment),
@@ -131,9 +132,10 @@ async function stageSettlement() {
   }
   try {
     const { settlePaymentRecord } = await import('@/lib/stellar/transactions');
+    const { ServerSigner } = await import('@/lib/stellar/signer');
     const worker = Keypair.random().publicKey();
     const settlement = await settlePaymentRecord({
-      companySecret: process.env.COMPANY_SECRET_KEY!,
+      signer: new ServerSigner(process.env.COMPANY_SECRET_KEY!),
       workerAddress: worker,
       reference: 'E2E-VALIDATION',
     });

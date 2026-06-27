@@ -1,15 +1,8 @@
-import {
-  Asset,
-  Operation,
-  TransactionBuilder,
-  Memo,
-  BASE_FEE,
-  Keypair,
-  Account,
-} from '@stellar/stellar-sdk';
+import { Asset, Operation, TransactionBuilder, Memo, Account } from '@stellar/stellar-sdk';
 import { createHash } from 'node:crypto';
 import { MEMO_PREFIX, MEMO_VERSION, NETWORK, USDC } from '@/lib/constants';
 import { horizonServer, networkPassphrase, loadAccount, fundTestnetAccount } from './client';
+import type { CompanySigner } from './signer';
 
 /** The native USDC asset used for settlement (testnet issuer by default). */
 export function usdcAsset(): Asset {
@@ -45,48 +38,19 @@ function encodeMemo(text: string): Memo {
 }
 
 /**
- * SETTLEMENT RECORD (layer 3, confidential) — a real, recipient-visible,
- * memo-bound on-chain transaction company → worker. It carries only a SYMBOLIC
- * amount (1 stroop of native XLM); the actual salary stays confidential as the
- * Poseidon commitment + ZK proof. This makes the on-chain payment trail real —
- * destination, timestamp, memo, ledger — WITHOUT printing the amount in clear
- * on a transparent chain. The proof is then bound to this tx's hash.
- */
-export async function buildSettlementRecordTx(args: {
-  companySecret: string;
-  workerAddress: string;
-  reference: string;
-  asset?: Asset; // defaults to native XLM; pass usdcAsset() for the USDC rail
-}): Promise<{ xdr: string; memo: string; hash: string }> {
-  const kp = Keypair.fromSecret(args.companySecret);
-  const account = await loadAccount(kp.publicKey());
-  // e.g. "SHIELDPAY|PAY|v1|JUN2026" — readable on the explorer (≤28 bytes).
-  const memo = [MEMO_PREFIX, 'PAY', MEMO_VERSION, args.reference].join('|');
-
-  const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase })
-    .addOperation(
-      Operation.payment({
-        destination: args.workerAddress,
-        asset: args.asset ?? Asset.native(),
-        amount: '0.0000001', // symbolic — the salary is the commitment, not this
-      }),
-    )
-    .addMemo(encodeMemo(memo))
-    .setTimeout(180)
-    .build();
-
-  tx.sign(kp);
-  return { xdr: tx.toXDR(), memo, hash: tx.hash().toString('hex') };
-}
-
-/**
- * Best-effort settlement: produce a real on-chain settlement record. On testnet
- * an unfunded recipient is auto-funded via Friendbot so the demo always settles;
- * any failure (invalid/placeholder address, mainnet unfunded, etc.) returns null
- * so payroll still records the proof. Never throws.
+ * SETTLEMENT RECORD (layer 3, confidential): a real, recipient-visible,
+ * memo-bound on-chain transaction company to worker. It carries only a SYMBOLIC
+ * amount (the salary stays confidential as the Poseidon commitment + ZK proof),
+ * so the on-chain trail is real (destination, timestamp, memo, ledger) without
+ * printing the amount in clear. The proof is bound to this tx's hash.
+ *
+ * Best-effort: on testnet an unfunded recipient is auto-funded via Friendbot so
+ * the demo always settles; any failure returns null so payroll still records the
+ * proof. Never throws. The company signs through its CompanySigner, so the
+ * server does not need the company key when a browser signer is used.
  */
 export async function settlePaymentRecord(args: {
-  companySecret: string;
+  signer: CompanySigner;
   workerAddress: string;
   reference: string;
 }): Promise<{ hash: string; asset: string } | null> {
@@ -103,15 +67,14 @@ export async function settlePaymentRecord(args: {
       }
     }
 
-    // Prefer the real USDC rail: only when both sides can transact USDC (worker
-    // has the trustline, treasury holds a balance). Otherwise fall back to the
-    // native XLM marker so the settlement always posts. The amount is symbolic
-    // either way; the salary stays in the commitment.
+    // Prefer the real USDC rail only when both sides can transact USDC (worker
+    // has the trustline, treasury holds a balance); else fall back to the native
+    // XLM marker so the settlement always posts. The amount is symbolic either way.
     const usdc = usdcAsset();
-    let asset: Asset | undefined;
+    let asset: Asset = Asset.native();
     let assetLabel = 'XLM';
     try {
-      const treasury = await loadAccount(Keypair.fromSecret(args.companySecret).publicKey());
+      const treasury = await loadAccount(args.signer.address);
       if (hasTrustline(worker, usdc) && hasTrustline(treasury, usdc)) {
         asset = usdc;
         assetLabel = usdc.getCode();
@@ -120,8 +83,13 @@ export async function settlePaymentRecord(args: {
       /* fall back to native */
     }
 
-    const { xdr, hash } = await buildSettlementRecordTx({ ...args, asset });
-    await submit(xdr);
+    const memo = encodeMemo([MEMO_PREFIX, 'PAY', MEMO_VERSION, args.reference].join('|'));
+    const op = Operation.payment({
+      destination: args.workerAddress,
+      asset,
+      amount: '0.0000001', // symbolic — the salary is the commitment, not this
+    });
+    const { hash } = await args.signer.submitClassic([op], memo);
     return { hash, asset: assetLabel };
   } catch {
     return null;
