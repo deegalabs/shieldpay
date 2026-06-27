@@ -1,0 +1,42 @@
+{
+  "version": "0.5.0",
+  "project_type": "brand",
+  "brand_mode": "evolve",
+  "name": "ShieldPay",
+  "system_config": {
+    "system_strategy": "evolve",
+    "style_base": [
+      "modern-dark",
+      "minimal-dark"
+    ]
+  },
+  "evolution_scope": {
+    "preserve": [
+      "indigo-emerald gradient motif",
+      "slate dark palette",
+      "verified-emerald badge",
+      "Inter typeface",
+      "cryptography-is-invisible principle",
+      "semantic token architecture"
+    ],
+    "evolve": [
+      "gradient as dimensional light",
+      "shield glyph to negative-space privacy slit",
+      "text-tier tokens (mid hierarchy)",
+      "real shadow/elevation deployment",
+      "mono/tabular figures",
+      "motion + animated payroll stepper",
+      "ambient glows"
+    ],
+    "replace": [
+      "flat elevation system",
+      "dead accent token",
+      "legacy tagline + pipe-separator copy"
+    ]
+  },
+  "strategy_decisions": {
+    "archetype": "Guardian/Steward",
+    "positioning": "bold: provable-privacy category",
+    "voice": "Calm, Precise, Trustworthy"
+  }
+}

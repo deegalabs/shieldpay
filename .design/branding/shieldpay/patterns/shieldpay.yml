@@ -1,0 +1,277 @@
+# ShieldPay — GSP design-system preset (single source of truth)
+# Phase: guidelines | Brand: ShieldPay | Generated: 2026-06-27
+# Source: brand identity (.design/branding/shieldpay/identity/*)
+# Mode: dark-only. System strategy: EVOLVE (extend the existing HSL-var token
+# architecture in app/globals.css + tailwind.config.ts; do not break names).
+
+name: shieldpay
+source: brand
+mode: dark-only
+archetype: Guardian/Steward
+positioning: provable privacy
+tagline: Private payroll you can prove.
+motif_line: Protected, then proven.
+voice: [Calm, Precise, Trustworthy]
+tags:
+  - fintech
+  - dark
+  - confidential-payroll
+  - restrained
+  - finance-grade
+  - zk
+  - stellar
+  - guardian
+
+# ---------------------------------------------------------------------------
+# INTENSITY — maps the identity dials onto the GSP 1-10 schema.
+# Identity dials: Boldness 2, Density 4, Precision 5, Motion 2, Warmth 2,
+# Ornamentation 1, Contrast 4, Saturation 2.
+# Net: calm + high craft, not flashy. The inverse of modern-dark's
+# variance 6 / motion 8; modern-dark's craft tempered by minimal-dark's restraint.
+# ---------------------------------------------------------------------------
+intensity:
+  variance: 2     # strict, calm grids; one ornament only (the gradient-as-light)
+  motion: 2       # restrained, confirm-only; no loops, no spinners
+  density: 7      # dense-but-legible finance tables (52px / 44px rows)
+
+# ---------------------------------------------------------------------------
+# TOKENS — standard shadcn-compatible slots mapped to the bespoke spine.
+# Components never touch hex; everything is a CSS variable (see token-mapping.md).
+# ---------------------------------------------------------------------------
+tokens:
+  color:
+    background: "#0B1120"          # surface-base, page canvas
+    card: "#0F172A"               # surface-1, primary cards/panels (keeps `surface` name)
+    popover: "#232E45"            # surface-overlay, modals/popovers/dropdowns
+    primary: "#10B981"            # emerald: the action / verified / settled
+    primary-foreground: "#022C22" # ink on emerald (AA 5.97:1)
+    accent: "#6366F1"             # brand indigo: protected / focus
+    accent-foreground: "#FFFFFF"  # ink on indigo fill (4.47:1, button-grade)
+    muted: "#1A2235"              # surface-2, nested/header/sidebar fill
+    muted-foreground: "rgba(248,250,252,0.66)"  # fg-subtle, secondary text
+    destructive: "#EF4444"        # red, functional only
+    destructive-foreground: "#FFFFFF"
+    border: "#1F2A3C"             # border-hairline, dividers
+    input: "#1F2A3C"              # field border at rest
+    ring: "#6366F1"               # indigo focus ring
+    sidebar: "#1A2235"            # surface-2
+    foreground: "rgba(248,250,252,0.98)"  # fg-default
+    warning: "#F59E0B"            # amber, functional only
+    success: "#10B981"            # emerald (== verified)
+
+  # -------------------------------------------------------------------------
+  # shieldpay-extras — the FULL bespoke spine. Standard shadcn slots above
+  # cannot hold the 5-step elevation ramp, the 4-rung foreground, the
+  # wash/line accent variants, the gradient, or the motion tokens. These are
+  # real CSS vars in :root (token-mapping.md has the exact HSL/rgba values).
+  # -------------------------------------------------------------------------
+  shieldpay-extras:
+    # 5-step lightness elevation ramp + 2 borders (elevation by lightness,
+    # NOT shadow; +1px top-edge highlight; shadow ONLY at overlay level)
+    surface-base: "#0B1120"       # page canvas
+    surface-1: "#0F172A"          # cards/panels (== `surface`)
+    surface-2: "#1A2235"          # nested, table header, sidebar
+    surface-3: "#1E293B"          # hover, raised/selected rows
+    surface-overlay: "#232E45"    # modals/popovers/dropdowns (shadow allowed here)
+    border-hairline: "#1F2A3C"    # dividers (== `border`)
+    border-strong: "#2C3A52"      # focused/active edges, active row
+    top-edge-highlight: "rgba(255,255,255,0.04)"   # ~0.06 at level 2
+    # adjacent steps sit at 1.05-1.13 luminance contrast (distinct, never banded)
+
+    # 4-rung foreground (white at alpha)
+    fg-default: "rgba(248,250,252,0.98)"   # headings, lead figures, verified amounts
+    fg-strong: "rgba(248,250,252,0.86)"    # body, primary labels (NEW; repurposed dead `accent`)
+    fg-subtle: "rgba(248,250,252,0.66)"    # secondary, table meta (== old `muted`)
+    fg-faint: "rgba(248,250,252,0.45)"     # captions, disabled, helper (AA-large only)
+
+    # signal accents — each with wash + line, never a flat block
+    brand: "#6366F1"                       # indigo: brand/primary/focus/protected
+    brand-wash: "rgba(99,102,241,0.08)"
+    brand-line: "rgba(99,102,241,0.40)"
+    brand-text: "#818CF8"                  # indigo-400, the ONLY indigo for text on dark
+    verified: "#10B981"                    # emerald: verified/settled/proven (reserved)
+    verified-wash: "rgba(16,185,129,0.08)"
+    verified-line: "rgba(16,185,129,0.40)"
+    danger-text: "#F87171"                 # red-400 for danger text on dark
+
+    # the one ornament: indigo->emerald gradient, ALWAYS light, NEVER paint/fill/text
+    gradient: "linear-gradient(135deg, #6366F1, #10B981)"
+    gradient-angle: "135deg"
+    gradient-use: hero-lead-number-wash | primary-card-top-rim | verified-glow | focused-field-glow | stepper-connector
+
+    # motion tokens (Geist lineage; confirm-or-reveal only)
+    ease-physical: "cubic-bezier(0.175, 0.885, 0.32, 1.1)"
+    dur-instant: "100ms"
+    dur-fast: "160ms"      # state changes, hovers
+    dur-base: "240ms"      # popovers, tooltips, amount reveal
+    dur-slow: "360ms"      # modals
+
+# ---------------------------------------------------------------------------
+# TYPOGRAPHY — Inter (body ~450) + Inter Display (headings, opsz axis) +
+# Geist Mono (figures/hashes/IDs; JetBrains Mono fallback). Minor-third 1.200,
+# base 16px. Figure CSS contract is MANDATORY (tabular-nums + mono on every
+# amount/hash/proof-id; currency columns right-aligned).
+# ---------------------------------------------------------------------------
+typography:
+  fonts:
+    sans: "Inter"
+    display: "Inter Display"          # Inter variable, opsz axis, font-optical-sizing:auto
+    mono: "Geist Mono"                # fallback: JetBrains Mono
+  scale_ratio: 1.200                  # minor third
+  base_px: 16
+  optical_sizing: auto
+  weights:
+    body: 450
+    label: 500
+    overline: 550
+    heading: 600                      # never 700 (Boldness 2)
+    figure: 480
+  levels:
+    display-2xl: { px: 48, clamp: "clamp(2.25rem, 1.6rem + 2.6vw, 3rem)", weight: 600, lh: 1.05, tracking: "-0.03em", face: display }
+    display-xl:  { px: 40, clamp: "clamp(2rem, 1.6rem + 1.6vw, 2.5rem)",   weight: 600, lh: 1.10, tracking: "-0.025em", face: display }
+    h1:          { px: 33, clamp: "clamp(1.75rem, 1.5rem + 1vw, 2.074rem)", weight: 600, lh: 1.15, tracking: "-0.02em", face: display }
+    h2:          { px: 28, weight: 600, lh: 1.20, tracking: "-0.015em", face: display }
+    h3:          { px: 23, weight: 600, lh: 1.25, tracking: "-0.01em", face: display }
+    body-lg:     { px: 19, weight: 450, lh: 1.55, tracking: 0, face: sans }
+    body:        { px: 16, weight: 450, lh: 1.55, tracking: 0, face: sans }
+    body-sm:     { px: 14, weight: 450, lh: 1.45, tracking: 0, face: sans }   # dense table rows
+    caption:     { px: 13, weight: 450, lh: 1.40, tracking: 0, face: sans }
+    overline:    { px: 12, weight: 550, lh: 1.30, tracking: "+0.06em", transform: uppercase, face: sans }
+    mono-figure: { px: "14-16", weight: 480, lh: 1.40, tracking: 0, face: mono }
+  figure_contract:
+    font-family: mono                 # Geist Mono / JetBrains Mono
+    font-variant-numeric: tabular-nums
+    feature-settings: '"tnum" 1, "ss01" 1'
+    currency-align: right
+    format-examples: ["$500.00 USDC", "ledger 58,204,113", "Proof ID 789"]
+
+# ---------------------------------------------------------------------------
+# SHAPE — radius anchored at --radius 0.75rem; keep the lg/md/sm/xl/2xl derivations.
+# ---------------------------------------------------------------------------
+shape:
+  radius: 0.75rem
+  derivations:
+    sm: "calc(var(--radius) - 8px)"
+    md: "calc(var(--radius) - 4px)"
+    lg: "var(--radius)"
+    xl: "calc(var(--radius) + 4px)"
+    2xl: "calc(var(--radius) + 8px)"
+
+# ---------------------------------------------------------------------------
+# ELEVATION — by lightness, not shadow. 1px top-edge highlight. Shadow only at overlay.
+# ---------------------------------------------------------------------------
+elevation:
+  model: lightness-ramp
+  top-edge-highlight: "inset 0 1px 0 rgba(255,255,255,0.04)"   # ~0.06 at level 2
+  shadow-policy: overlay-only
+  overlay-shadow: "0 16px 48px -16px rgba(0,0,0,0.65)"
+  levels:
+    base: "#0B1120"
+    1: "#0F172A"
+    2: "#1A2235"
+    3: "#1E293B"
+    overlay: "#232E45"
+
+# ---------------------------------------------------------------------------
+# SPACING — base 8.
+# ---------------------------------------------------------------------------
+spacing:
+  base: 8
+  scale: [4, 8, 12, 16, 24, 32, 48, 64, 96]
+  table-row: { standard: 52, compact: 44 }
+
+# ---------------------------------------------------------------------------
+# MOTION — Motion dial 2: motion only confirms or reveals. Everything gated on
+# prefers-reduced-motion (drop to instant state swaps).
+# ---------------------------------------------------------------------------
+motion:
+  ease-physical: "cubic-bezier(0.175, 0.885, 0.32, 1.1)"
+  durations: { instant: 100ms, fast: 160ms, base: 240ms, slow: 360ms }
+  rules:
+    hover-state: "fast + physical"
+    popover-tooltip: "base"
+    modal: "slow"
+    amount-reveal: "base, indigo->emerald border sweep, one-time"
+    payroll-stepper: "discrete stepped; each stage eases in over base; connector fills indigo->emerald; settled lands with subtle emerald confirm; NO spinner, NO loop"
+  reduced-motion: instant-state-swaps
+
+# ---------------------------------------------------------------------------
+# PATTERNS — component recipes (full tables in STYLE.md / components/*).
+# ---------------------------------------------------------------------------
+patterns:
+  card:
+    surface: surface-1
+    border: border-hairline
+    radius: xl
+    elevation: "top-edge highlight; no drop shadow"
+    primary-variant: "faint indigo top rim (gradient-as-light)"
+  button-primary:
+    fill: brand                  # indigo (protected/primary affordance)
+    text: "#FFFFFF"
+    hover: "brightness-110 (fast)"
+    radius: lg
+  button-secondary:
+    fill: "surface-2"
+    border: border-hairline
+    text: fg-strong
+    hover: "surface-3 + border-strong"
+  input:
+    fill: "surface-base/60"
+    border: border-hairline
+    focus: "border-line indigo + 3px indigo inner glow (focused-field)"
+    radius: lg
+  badge:
+    verified: "verified-wash fill + verified-line ring + emerald glow + ShieldCheck + tabular Proof ID"
+    radius: full
+  nav:
+    surface: "surface-1 frosted (backdrop-blur)"
+    border-bottom: border-hairline
+    logo: "slit-shield mark in bg-brand/10 tile + ShieldPay wordmark (Inter 600, tight)"
+  layout:
+    canvas: surface-base
+    ambient: "low-intensity 135deg indigo->emerald light behind canvas, fixed"
+    sidebar: surface-2
+    table-header: surface-2
+
+# ---------------------------------------------------------------------------
+# CONSTRAINTS — hard rules. Violations are bugs.
+# ---------------------------------------------------------------------------
+constraints:
+  never:
+    - drop shadows on non-overlay surfaces (elevation is lightness-based)
+    - indigo-500 (#6366F1) as body text (fails AA on raised surfaces; use brand-text #818CF8)
+    - the gradient as a flat fill, paint, or text decoration (it is light only)
+    - neon, hacker, cyberpunk, or any crypto cliche (chains, coins, circuit textures)
+    - asterisks or blur for masked amounts (use the designed slate chip)
+    - em-dashes, exclamation marks, or emoji in product copy
+    - more than the 4 foreground tiers
+    - emerald used as ambient or decoration (it is earned, confirmation-only)
+    - a third hue for emphasis; indigo and emerald are signal, not highlighter
+  always:
+    - elevation by lightness + a 1px top-edge highlight
+    - tabular-nums + mono on every amount, hash, proof ID, count, and date
+    - right-align currency columns so decimals stack
+    - the gradient behaves as light only (hero wash, card rim, verified glow, focus glow, stepper)
+    - gate all motion on prefers-reduced-motion
+    - reserve emerald for confirmation (verified, settled, disclosed-success)
+    - format figures exactly ($500.00 USDC, ledger 58,204,113, Proof ID 789)
+    - keep lucide ShieldCheck for the functional verified badge; the brand mark is a custom slit-shield SVG
+
+# ---------------------------------------------------------------------------
+# EFFECTS — interaction vocabulary. Calm; no spotlight or glow-sweep.
+# ---------------------------------------------------------------------------
+effects:
+  interaction-vocabulary:
+    - border-brighten      # hairline -> border-strong on hover/active
+    - indigo-rim-focus     # indigo line border + 3px inner indigo glow on focus-visible
+    - emerald-confirm      # one-time emerald settle on verified/settled
+    - alpha-step           # row/surface lightness step on hover (surface-3)
+  forbidden:
+    - spotlight
+    - glow-sweep
+    - pulsing or looping glows
+
+dark_mode: only
+references:
+  identity: ../identity/color-system.md   # WCAG AA audit lives here (already measured)
+  palettes: ../identity/palettes.json      # OKLCH 11-stop scales (do not recompute)

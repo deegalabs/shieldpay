@@ -45,7 +45,7 @@ export default async function ReceiptsPage() {
                     {p.worker_name} · {p.reference}
                   </p>
                   <p className="text-xs text-muted">
-                    {usdRange(p.range_min, p.range_max)} USDC ·{' '}
+                    <span className="figure">{usdRange(p.range_min, p.range_max)}</span> USDC ·{' '}
                     {new Date(p.created_at).toLocaleDateString('en-GB')}
                   </p>
                 </div>

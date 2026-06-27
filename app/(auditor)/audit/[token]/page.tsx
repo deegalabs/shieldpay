@@ -113,7 +113,7 @@ export default async function AuditorView({ params }: { params: { token: string 
             </div>
             <div className="text-right">
               <p className="text-xs uppercase tracking-wide text-muted">Disclosed total</p>
-              <p className="text-2xl font-bold">{fmt(summary.disclosedTotalCents)} USDC</p>
+              <p className="figure-hero text-2xl font-bold">{fmt(summary.disclosedTotalCents)} USDC</p>
               <p className="text-xs text-muted">{summary.disclosedCount} payments</p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default async function AuditorView({ params }: { params: { token: string 
                       <td className="px-5 py-3">
                         {d && d.amountCents !== null ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <span className="font-semibold">{fmt(d.amountCents)}</span>
+                            <span className="figure font-semibold">{fmt(d.amountCents)}</span>
                             {d.matchesOnChain ? (
                               <ShieldCheck size={13} className="text-primary" />
                             ) : (
@@ -179,9 +179,9 @@ export default async function AuditorView({ params }: { params: { token: string 
                         )}
                       </td>
                     ) : null}
-                    <td className="px-5 py-3">{usdRange(p.range_min, p.range_max)}</td>
+                    <td className="px-5 py-3"><span className="figure">{usdRange(p.range_min, p.range_max)}</span></td>
                     <td className="px-5 py-3">
-                      <a className="inline-flex items-center gap-1 font-mono text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                      <a className="proof-id inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                         {truncateKey(p.tx_hash, 6, 4)} <ArrowUpRight size={12} />
                       </a>
                     </td>
@@ -229,7 +229,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <Card className="p-5">
       <p className="text-sm text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
+      <p className="figure mt-1 text-2xl font-bold">{value}</p>
     </Card>
   );
 }
