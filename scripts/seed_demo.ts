@@ -40,7 +40,7 @@ import {
   networkPassphrase,
 } from '@/lib/stellar/client';
 import { hashCpf } from '@/lib/stellar/auth';
-import { CONTRACTS, USDC, COMPANY } from '@/lib/constants';
+import { CONTRACTS, USDC, COMPANY, DEMO_COMPANY_SUB } from '@/lib/constants';
 
 function need(name: string): string {
   const v = process.env[name];
@@ -109,8 +109,10 @@ async function main() {
   need('DATABASE_URL');
 
   console.log('1/6 upserting demo company...');
+  // Owned by the isolated demo identity (A4), never the treasury key; the real
+  // funded treasury address is kept for on-chain settlement.
   const company = await upsertCompany({
-    owner_sub: companyAddress,
+    owner_sub: DEMO_COMPANY_SUB,
     name: COMPANY.name,
     cnpj: COMPANY.cnpj,
     treasury_address: companyAddress,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireCompany } from '@/lib/auth/server';
 import { listContractors, createContractor } from '@/lib/db/client';
+import { toContractorDTO, toContractorDTOs } from '@/lib/db/dto';
 import { hashCpf } from '@/lib/stellar/auth';
 
 export const runtime = 'nodejs';
@@ -10,7 +11,7 @@ export async function GET() {
   const auth = await requireCompany();
   if (!auth.ok) return auth.res;
   try {
-    return NextResponse.json({ contractors: await listContractors(auth.company.id) });
+    return NextResponse.json({ contractors: toContractorDTOs(await listContractors(auth.company.id)) });
   } catch (e) {
     console.error('contractors GET failed', e);
     return NextResponse.json({ error: 'database unavailable' }, { status: 503 });
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       range_min: Math.round(minUsdc * 100),
       range_max: Math.round(maxUsdc * 100),
     });
-    return NextResponse.json({ ok: true, contractor });
+    return NextResponse.json({ ok: true, contractor: toContractorDTO(contractor) });
   } catch (e) {
     console.error('contractors POST failed', e);
     return NextResponse.json({ error: 'database unavailable' }, { status: 503 });
