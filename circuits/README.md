@@ -1,7 +1,9 @@
 # ShieldPay ZK Circuits
 
 The zero-knowledge layer proves a payment is **within the contractual range
-`[min, max]` without revealing the exact amount**.
+`[min, max]` without revealing the exact amount**. It ships in two circuits: a
+per-payment range proof (`payment_proof/`) and an aggregate Proof-of-Payroll over
+a whole run (`payroll_proof/`).
 
 ## Two implementations, one statement
 
@@ -26,6 +28,33 @@ assert  value <= maxValue                                     // upper bound
 
 `value` is in **USDC cents** (e.g. $500.00 → 50000).
 
+## Proof-of-Payroll: the aggregate circuit
+
+`payroll_proof/payroll_proof.circom` proves an entire run in a single Groth16
+proof: the amounts sum to a public total AND each amount sits inside its own
+agreed range, revealing no individual salary. This is the headline innovation,
+proof-of-reserves for payroll.
+
+```
+private:  value[8], randomness[8]
+public:   commitment[8], minValue[8], maxValue[8], total        // 25 signals
+
+for i in 0..8:
+  assert  Poseidon(value[i], randomness[i]) == commitment[i]     // commitment binding
+  assert  value[i] >= minValue[i]                                // lower bound
+  assert  value[i] <= maxValue[i]                                // upper bound
+assert  sum(value) == total                                      // aggregate total
+```
+
+The width is fixed at `N = 8`. Runs with fewer lines are padded with zeros so the
+circuit shape stays constant. The off-chain prover is `lib/zk/payroll-prover.ts`
+(snarkjs), reusing the field encoding in `lib/zk/encode.ts`.
+
+**Honest limitation.** On-chain, the payroll verifier binds only the total to the
+proof, not the per-line ranges or the per-payment commitments to the recorded
+records. So "everyone was paid within their agreed range" currently rests on the
+honest prover supplying the real ranges. Binding those on-chain is future work.
+
 ## Build the primary (Circom) artifacts
 
 ```bash
@@ -40,6 +69,27 @@ contract):
 - `payment_proof/target/payment_proof_js/payment_proof.wasm`
 - `payment_proof/target/payment_proof_final.zkey`
 - `payment_proof/target/verification_key.json` *(committed)*
+
+Runtime artifacts (wasm, final zkey, verification key) are committed. Large,
+regenerable artifacts (r1cs, ptau) are gitignored.
+
+## Build the Proof-of-Payroll (payroll) artifacts
+
+```bash
+scripts/build_payroll.sh    # compile + powers-of-tau + groth16 setup -> target/
+```
+
+This produces the payroll circuit's `wasm`, final `zkey`, and
+`verification_key.json` under `payroll_proof/target/`. The per-payment circuit is
+built by `scripts/setup.sh` / `scripts/ceremony.sh`.
+
+## Two verifier instances
+
+The two circuits verify against two separate on-chain instances of the same
+`PaymentVerifier` contract, each initialized with its own verification key: the
+per-payment instance and the Proof-of-Payroll instance (testnet id
+`CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`). See
+`contracts/README.md` for the on-chain methods.
 
 ## Noir reference
 

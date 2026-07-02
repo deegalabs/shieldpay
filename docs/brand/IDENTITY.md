@@ -1,5 +1,13 @@
 # ShieldPay Brand Identity
 
+> Canonical source. The current, canonical design system now lives in
+> `.design/branding/shieldpay/` (identity, patterns, and `STYLE.md`). It was
+> evolved through the GSP pipeline into a market-grade dark system: indigo
+> (`#6366F1`) and emerald (`#10B981`) as the two-stop signal, a negative-space
+> privacy-slit shield mark, and mono / tabular figures for exact values. Refer to
+> that directory when in doubt. This file holds the earlier identity notes that the
+> canonical system grew out of, kept for context.
+
 > Consolidated visual identity for ShieldPay. This evolves the system already in
 > the codebase (`tailwind.config.ts`, `app/globals.css`, `components/app-shell.tsx`,
 > `app/page.tsx`). It does not reinvent the palette: it codifies it and gives the
