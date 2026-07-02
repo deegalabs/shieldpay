@@ -25,6 +25,7 @@
     "test:flow": "tsx scripts/test_flow.ts",
     "setup:usdc": "tsx scripts/setup_usdc_testnet.ts",
     "seed:demo": "tsx scripts/seed_demo.ts",
+    "cleanup:db": "tsx scripts/cleanup_db.ts",
     "smoke": "node scripts/smoke.mjs",
     "e2e": "node scripts/e2e.mjs"
   },
