@@ -71,11 +71,17 @@ export function AppShell({
           </div>
           <div className="flex shrink-0 items-center gap-3">
             {user?.name && (
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-medium leading-tight">{user.name}</p>
-                {user.role && <p className="text-xs capitalize text-muted">{user.role}</p>}
+              <div className="hidden max-w-[200px] items-center gap-2.5 sm:flex">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/12 text-sm font-semibold uppercase text-brand-text">
+                  {user.name.trim().charAt(0) || '?'}
+                </span>
+                <div className="min-w-0 text-right sm:text-left">
+                  <p className="truncate text-sm font-medium leading-tight text-fg-default">{user.name}</p>
+                  {user.role && <p className="text-xs capitalize text-fg-faint">{user.role}</p>}
+                </div>
               </div>
             )}
+            <div className="h-6 w-px bg-border" />
             {actions}
           </div>
         </header>
