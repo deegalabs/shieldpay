@@ -102,6 +102,22 @@ export interface PayrollRunRow {
   total_cents: string; // bigint as string
   payment_count: number;
   created_at: string;
+  proof_id: string | null;
+  proof_tx_hash: string | null;
+  proof_verified: boolean;
+}
+
+/** Record the aggregate Proof-of-Payroll for a run (proven total, no salary shown). */
+export async function setPayrollProof(
+  id: string,
+  proofId: string,
+  proofTxHash: string,
+): Promise<void> {
+  await ensureSchema();
+  await getPool().query(
+    `UPDATE payroll_runs SET proof_id = $2, proof_tx_hash = $3, proof_verified = true WHERE id = $1`,
+    [id, proofId, proofTxHash],
+  );
 }
 
 export async function createPayrollRun(companyId: string, reference: string): Promise<PayrollRunRow> {

@@ -37,12 +37,28 @@ pub struct ProofRecord {
     pub verified_at_timestamp: u64,
 }
 
+/// Aggregate Proof-of-Payroll record: a whole run proven at once (the sum of all
+/// hidden amounts equals `total`, each within its range), revealing no salary.
+#[derive(Clone)]
+#[contracttype]
+pub struct PayrollRecord {
+    pub proof_id: u64,
+    pub company: Address,
+    pub run_ref: BytesN<32>,
+    pub total: u64,
+    pub verified: bool,
+    pub verified_at_ledger: u32,
+    pub verified_at_timestamp: u64,
+}
+
 #[contracttype]
 enum DataKey {
     Vk,
     NextId,
     Record(u64),
     TxIndex(BytesN<32>),
+    PayrollRecord(u64),
+    PayrollIndex(BytesN<32>),
 }
 
 #[contracterror]
@@ -275,6 +291,82 @@ impl PaymentVerifier {
     /// Fetch a full proof record by id.
     pub fn get_proof_record(env: Env, proof_id: u64) -> Option<ProofRecord> {
         env.storage().persistent().get(&DataKey::Record(proof_id))
+    }
+
+    /// Verify an aggregate Proof-of-Payroll and record it. The proof attests, in
+    /// zero knowledge, that the sum of every (hidden) amount in the run equals
+    /// `total` and that each amount is within its agreed range, revealing no
+    /// individual salary. `run_ref` is a unique id for the run. The last public
+    /// signal is the proven total; it must equal `total`, so the recorded figure
+    /// is bound to the proof. `company` must authorize the call.
+    pub fn verify_and_record_payroll(
+        env: Env,
+        company: Address,
+        run_ref: BytesN<32>,
+        total: u64,
+        proof: Bytes,
+        public_signals: Bytes,
+    ) -> Result<u64, Error> {
+        company.require_auth();
+
+        let vk_bytes: Bytes = env
+            .storage()
+            .instance()
+            .get(&DataKey::Vk)
+            .ok_or(Error::NotInitialized)?;
+
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::PayrollIndex(run_ref.clone()))
+        {
+            return Err(Error::DuplicatePayment);
+        }
+
+        let vk = VerificationKey::from_bytes(&env, &vk_bytes)?;
+        let parsed_proof = Groth16Proof::from_bytes(&env, &proof)?;
+        let signals = parse_public_signals(&env, &public_signals)?;
+
+        if !verify_groth16(&env, &vk, &parsed_proof, &signals)? {
+            return Err(Error::InvalidProof);
+        }
+
+        // Bind the recorded total to the proof: the last public signal is the
+        // proven total, so `total` (as a 32-byte big-endian field element) must
+        // equal it. This prevents recording a different figure than was proven.
+        let last = signals.len().checked_sub(1).ok_or(Error::MalformedPublicSignals)?;
+        let mut tb = [0u8; 32];
+        tb[24..32].copy_from_slice(&total.to_be_bytes());
+        if public_signal(&env, &public_signals, last)? != BytesN::from_array(&env, &tb) {
+            return Err(Error::ProofNotBound);
+        }
+
+        let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);
+        let record = PayrollRecord {
+            proof_id: id,
+            company,
+            run_ref: run_ref.clone(),
+            total,
+            verified: true,
+            verified_at_ledger: env.ledger().sequence(),
+            verified_at_timestamp: env.ledger().timestamp(),
+        };
+        env.storage().persistent().set(&DataKey::PayrollRecord(id), &record);
+        env.storage().persistent().set(&DataKey::PayrollIndex(run_ref), &id);
+        env.storage().instance().set(&DataKey::NextId, &(id + 1));
+        Ok(id)
+    }
+
+    /// Whether a payroll run has a recorded, verified aggregate proof.
+    pub fn is_payroll_verified(env: Env, run_ref: BytesN<32>) -> bool {
+        env.storage()
+            .persistent()
+            .has(&DataKey::PayrollIndex(run_ref))
+    }
+
+    /// Fetch a full payroll record by id.
+    pub fn get_payroll_record(env: Env, proof_id: u64) -> Option<PayrollRecord> {
+        env.storage().persistent().get(&DataKey::PayrollRecord(proof_id))
     }
 }
 
