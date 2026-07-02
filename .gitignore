@@ -74,3 +74,6 @@ circuits/payment_proof/ceremony_out/
 
 # Local scratch, never committed
 temp/
+
+# Remotion pitch/demo video project lives in temp/, never committed
+/video/
