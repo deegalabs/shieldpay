@@ -65,6 +65,12 @@ ALTER TABLE payments ADD COLUMN IF NOT EXISTS run_id BIGINT;
 CREATE INDEX IF NOT EXISTS idx_payments_run ON payments(run_id);
 CREATE INDEX IF NOT EXISTS idx_runs_company ON payroll_runs(company_id);
 
+-- Aggregate Proof-of-Payroll: one on-chain proof per run attesting the sum of
+-- all hidden amounts equals total_cents and each is within range, no salary shown.
+ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS proof_id TEXT;
+ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS proof_tx_hash TEXT;
+ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS proof_verified BOOLEAN NOT NULL DEFAULT false;
+
 -- N4: selective disclosure ("viewing key"). The company holds a viewing key;
 -- with it an authorized auditor can reveal AND re-verify exact amounts against
 -- the on-chain commitments. The chain/public view still only sees commitments.

@@ -7,7 +7,8 @@ import {
   ensureCompanyViewingKey,
   listContractors,
 } from '@/lib/db/client';
-import { proveAndRecordPayment } from '@/lib/payments/flow';
+import { proveAndRecordPayment, recordRunAggregateProof, type PaymentResult } from '@/lib/payments/flow';
+import { ServerSigner } from '@/lib/stellar/signer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -84,12 +85,7 @@ export async function POST(req: NextRequest) {
     // for later authorized disclosure (N4).
     const viewingKey = await ensureCompanyViewingKey(company.id);
     const run = await createPayrollRun(company.id, reference);
-    const results: Array<{
-      workerName: string;
-      proofId: string;
-      txHash: string;
-      settlementTxHash: string | null;
-    }> = [];
+    const results: PaymentResult[] = [];
     let totalCents = 0;
 
     // Sequential: the company key is the source; each tx needs a fresh sequence.
@@ -102,15 +98,19 @@ export async function POST(req: NextRequest) {
         viewingKey,
       });
       totalCents += r.amountCents;
-      results.push({
-        workerName: l.workerName,
-        proofId: r.proofId,
-        txHash: r.txHash,
-        settlementTxHash: r.settlementTxHash,
-      });
+      results.push(r);
     }
 
     await finalizePayrollRun(run.id, totalCents, results.length);
+
+    // Prove the WHOLE run at once: one on-chain proof that the total is correct
+    // and every amount is in range, revealing no salary (Proof-of-Payroll).
+    const aggregate = await recordRunAggregateProof({
+      signer: new ServerSigner(companySecret),
+      runId: run.id,
+      reference,
+      results,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -119,7 +119,13 @@ export async function POST(req: NextRequest) {
       total: totalCents / 100,
       count: results.length,
       settled: results.filter((r) => r.settlementTxHash).length,
-      lines: results,
+      payrollProof: aggregate,
+      lines: results.map((r) => ({
+        workerName: r.payment.worker_name,
+        proofId: r.proofId,
+        txHash: r.txHash,
+        settlementTxHash: r.settlementTxHash,
+      })),
     });
   } catch (e) {
     console.error('payroll run failed', e);

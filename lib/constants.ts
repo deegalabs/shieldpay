@@ -64,6 +64,12 @@ export const CONTRACTS = {
     process.env.PAYMENT_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYMENT_VERIFIER_CONTRACT_ID ??
     '',
+  // Aggregate Proof-of-Payroll verifier (separate instance, payroll VK). Falls
+  // back to the deployed testnet instance so the feature works out of the box.
+  payrollVerifier:
+    process.env.PAYROLL_VERIFIER_CONTRACT_ID ??
+    process.env.NEXT_PUBLIC_PAYROLL_VERIFIER_CONTRACT_ID ??
+    'CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN',
 } as const;
 
 /**

@@ -9,7 +9,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { sorobanServer, networkPassphrase } from './client';
 import { CONTRACTS } from '@/lib/constants';
-import { buildRecordProofOp } from './record-op';
+import { buildRecordProofOp, buildRecordPayrollOp } from './record-op';
 import type { CompanySigner } from './signer';
 
 /**
@@ -81,6 +81,33 @@ export async function recordProofOnChain(args: {
     publicSignalsBytes: args.publicSignalsBytes,
   });
 
+  const { hash, returnValue } = await args.signer.invoke(op);
+  return { proofId: String(returnValue ?? ''), txHash: hash };
+}
+
+/**
+ * Verify + record the aggregate Proof-of-Payroll on-chain: one proof that the
+ * run's hidden amounts sum to `total` and each is in range, revealing no salary.
+ * Returns the payroll proof id and the tx hash.
+ */
+export async function recordPayrollProofOnChain(args: {
+  signer: CompanySigner;
+  runRef: Buffer; // 32 bytes
+  total: number; // USDC cents
+  proofBytes: Buffer;
+  publicSignalsBytes: Buffer;
+}): Promise<{ proofId: string; txHash: string }> {
+  if (!CONTRACTS.payrollVerifier) {
+    throw new Error('PAYROLL_VERIFIER_CONTRACT_ID not configured');
+  }
+  const op = buildRecordPayrollOp({
+    contractId: CONTRACTS.payrollVerifier,
+    companyAddress: args.signer.address,
+    runRef: args.runRef,
+    total: args.total,
+    proofBytes: args.proofBytes,
+    publicSignalsBytes: args.publicSignalsBytes,
+  });
   const { hash, returnValue } = await args.signer.invoke(op);
   return { proofId: String(returnValue ?? ''), txHash: hash };
 }

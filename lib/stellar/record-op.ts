@@ -31,3 +31,30 @@ export function buildRecordProofOp(args: {
     bytes(args.publicSignalsBytes),
   );
 }
+
+/**
+ * Build the aggregate `verify_and_record_payroll` operation: proves the sum of a
+ * run's hidden amounts equals `total` and each is within range, revealing no
+ * salary. `runRef` is a unique 32-byte id for the run; `companyAddress` must be
+ * the signer (the contract require_auth's it).
+ */
+export function buildRecordPayrollOp(args: {
+  contractId: string;
+  companyAddress: string;
+  runRef: Buffer; // 32 bytes
+  total: number; // u64, USDC cents
+  proofBytes: Buffer;
+  publicSignalsBytes: Buffer;
+}): xdr.Operation {
+  if (!args.contractId) throw new Error('Payroll verifier contract id not configured');
+  const contract = new Contract(args.contractId);
+  const bytes = (buf: Buffer) => nativeToScVal(buf, { type: 'bytes' });
+  return contract.call(
+    'verify_and_record_payroll',
+    nativeToScVal(args.companyAddress, { type: 'address' }),
+    bytes(args.runRef),
+    nativeToScVal(BigInt(args.total), { type: 'u64' }),
+    bytes(args.proofBytes),
+    bytes(args.publicSignalsBytes),
+  );
+}

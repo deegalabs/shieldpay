@@ -57,6 +57,39 @@ export default async function PayrollRunPage({ params }: { params: { run: string
         </p>
       </Card>
 
+      {run.proof_verified && run.proof_tx_hash && (
+        <Card className="card-primary p-6">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+              <ShieldCheck size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold">Proof-of-Payroll · the whole run, proven at once</p>
+              <p className="mt-1 text-sm text-fg-subtle">
+                A single zero-knowledge proof, verified on-chain in a Stellar smart contract, attests
+                that this run&apos;s total is exactly{' '}
+                <span className="figure">{usd(Number(run.total_cents))} USDC</span> and that every
+                payment is within its agreed range, without revealing a single salary. It is
+                proof-of-reserves, for payroll.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                <Badge variant="brand">
+                  <ShieldCheck size={12} /> Total proven, salaries hidden
+                </Badge>
+                <a
+                  className="proof-id inline-flex items-center gap-1 text-brand-text hover:underline"
+                  href={`${EXPLORER_BASE}/tx/${run.proof_tx_hash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View proof on-chain <ArrowUpRight size={13} />
+                </a>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Payments in this run</h2>
         <Card className="divide-y divide-border overflow-hidden">

@@ -2,11 +2,12 @@ import { randomBytes, createHash } from 'node:crypto';
 import { generatePaymentProof } from '@/lib/zk/prover';
 import { poseidonCommitment, randomFieldElement } from '@/lib/zk/commitment';
 import { encodeProof, encodePublicSignals, fieldToBe32, bytesToField } from '@/lib/zk/encode';
-import { recordProofOnChain } from '@/lib/stellar/soroban';
-import { ServerSigner } from '@/lib/stellar/signer';
+import { recordProofOnChain, recordPayrollProofOnChain } from '@/lib/stellar/soroban';
+import { ServerSigner, type CompanySigner } from '@/lib/stellar/signer';
 import { settlePaymentRecord } from '@/lib/stellar/transactions';
-import { insertPayment, type CompanyRow, type PaymentRow } from '@/lib/db/client';
+import { insertPayment, setPayrollProof, type CompanyRow, type PaymentRow } from '@/lib/db/client';
 import { sealWitness } from '@/lib/zk/disclosure';
+import { generatePayrollProof } from '@/lib/zk/payroll-prover';
 import { COMPANY } from '@/lib/constants';
 
 export interface PaymentInput {
@@ -24,6 +25,8 @@ export interface PaymentResult {
   txHash: string;
   settlementTxHash: string | null;
   payment: PaymentRow;
+  /** Witness for the aggregate Proof-of-Payroll (never persisted in clear). */
+  witness: { commitment: string; randomness: string; minCents: number; maxCents: number };
 }
 
 /**
@@ -139,6 +142,45 @@ export async function persistPayment(args: {
 }
 
 /**
+ * After a run's payments are proven individually, prove the WHOLE run at once:
+ * one aggregate Groth16 proof that the sum of every hidden amount equals the
+ * public total and each is within range, revealing no salary. Verified and
+ * recorded on-chain (Proof-of-Payroll). Best-effort: a failure here never fails
+ * the run, which already has its per-payment proofs.
+ */
+export async function recordRunAggregateProof(args: {
+  signer: CompanySigner;
+  runId: string;
+  reference: string;
+  results: PaymentResult[];
+}): Promise<{ proofId: string; txHash: string; total: number } | null> {
+  try {
+    if (args.results.length === 0) return null;
+    const lines = args.results.map((r) => ({
+      value: r.amountCents,
+      randomness: r.witness.randomness,
+      commitment: r.witness.commitment,
+      minValue: r.witness.minCents,
+      maxValue: r.witness.maxCents,
+    }));
+    const { proof, publicSignals, totalCents } = await generatePayrollProof(lines);
+    const runRef = createHash('sha256').update(`${args.runId}|${args.reference}`).digest();
+    const { proofId, txHash } = await recordPayrollProofOnChain({
+      signer: args.signer,
+      runRef,
+      total: totalCents,
+      proofBytes: encodeProof(proof),
+      publicSignalsBytes: encodePublicSignals(publicSignals),
+    });
+    await setPayrollProof(args.runId, proofId, txHash);
+    return { proofId, txHash, total: totalCents };
+  } catch (e) {
+    console.error('aggregate payroll proof failed', e);
+    return null;
+  }
+}
+
+/**
  * The custodial "Pay & Prove" unit (server holds the key), reused by the seed
  * script and `test_flow`, and the demo-safe fallback for payroll. Settle first
  * so the proof binds to the real settlement tx, then verify+record on-chain,
@@ -190,5 +232,17 @@ export async function proveAndRecordPayment(args: {
     settlement,
   });
 
-  return { amountCents: prep.amountCents, proofId, txHash, settlementTxHash: settlement?.hash ?? null, payment };
+  return {
+    amountCents: prep.amountCents,
+    proofId,
+    txHash,
+    settlementTxHash: settlement?.hash ?? null,
+    payment,
+    witness: {
+      commitment: prep.commitment,
+      randomness: prep.randomness,
+      minCents: Math.round(input.minUsdc * 100),
+      maxCents: Math.round(input.maxUsdc * 100),
+    },
+  };
 }

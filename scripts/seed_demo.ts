@@ -31,7 +31,8 @@ import {
   finalizePayrollRun,
   listContractors,
 } from '@/lib/db/client';
-import { proveAndRecordPayment } from '@/lib/payments/flow';
+import { proveAndRecordPayment, recordRunAggregateProof } from '@/lib/payments/flow';
+import { ServerSigner } from '@/lib/stellar/signer';
 import {
   generateKeypair,
   fundTestnetAccount,
@@ -165,6 +166,16 @@ async function main() {
     viewingKey,
   });
   await finalizePayrollRun(run.id, result.amountCents, 1);
+
+  // Prove the whole run at once (aggregate Proof-of-Payroll), so the demo run
+  // shows the total proven on-chain with no salary revealed.
+  const agg = await recordRunAggregateProof({
+    signer: new ServerSigner(companySecret),
+    runId: run.id,
+    reference: 'JUN2026',
+    results: [result],
+  });
+  console.log(`  payroll proof: ${agg ? `#${agg.proofId}, tx ${agg.txHash.slice(0, 10)}...` : 'skipped'}`);
 
   console.log('6/6 done.');
   console.log(`  company: ${company.name} (${company.id})`);
