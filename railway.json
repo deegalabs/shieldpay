@@ -5,8 +5,7 @@
     "buildCommand": "pnpm run build"
   },
   "deploy": {
-    "preDeployCommand": "SEED_DEMO=1 pnpm run seed:demo",
-    "startCommand": "pnpm run start",
+    "startCommand": "sh -c '(SEED_DEMO=1 pnpm run seed:demo || true) & exec pnpm run start'",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
