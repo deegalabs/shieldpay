@@ -4,7 +4,12 @@ ShieldPay is confidential payroll for DAOs and Web3 teams on Stellar. It pays
 contributors in USDC, keeps each amount private with a zero-knowledge range proof
 verified inside a Soroban contract, posts a real on-chain settlement bound to the
 proof, and lets the company disclose exact amounts to an authorized auditor under
-a viewing key.
+a viewing key. The recipient of each payment is visible; only the amount is hidden.
+
+On top of the per-payment layer sits the headline innovation, Proof-of-Payroll: a
+single aggregate proof over an entire run that proves the amounts sum to a public
+total and that each one sits inside its agreed range, revealing no individual
+salary. Think of it as proof-of-reserves, for payroll.
 
 ## The proof and settlement chain
 
@@ -16,7 +21,15 @@ a viewing key.
 └───────────────────────────┬───────────────────────────────────┘
                             │
 ┌───────────────────────────▼───────────────────────────────────┐
-│  ZK PROOF (Soroban: PaymentVerifier)                         │
+│  PROOF-OF-PAYROLL, AGGREGATE (Soroban: payroll verifier)     │
+│  One Groth16 proof over the whole run: sum of amounts equals   │
+│  a public total AND each amount is in range. No individual     │
+│  salary revealed. Records a PayrollRecord. Separate verifier   │
+│  instance initialized with the payroll VK.                    │
+└───────────────────────────┬───────────────────────────────────┘
+                            │
+┌───────────────────────────▼───────────────────────────────────┐
+│  ZK PROOF, PER PAYMENT (Soroban: PaymentVerifier)            │
 │  Groth16 proof: amount within the contractual range. Verified  │
 │  on-chain. The exact amount is never revealed. Bound to the    │
 │  settlement transaction hash.                                  │
@@ -55,6 +68,39 @@ verifiable privacy collapses.
   exposed via `soroban_sdk::crypto::bn254`. Verified on testnet: a valid proof
   records; a proof with wrong public signals is rejected with `InvalidProof`.
 
+## Proof-of-Payroll (the aggregate proof)
+
+The per-payment layer proves each amount is in range one payment at a time. The
+Proof-of-Payroll layer proves a whole run at once. After a payroll run, the server
+generates a single Groth16 proof that attests two things together: the sum of all
+amounts equals a public total, and each amount is inside its own agreed range. No
+individual salary is revealed. The public total is the one figure the company is
+willing to disclose (for example, "this DAO paid $42,000 to contributors this
+month"), while the split across people stays private.
+
+- **Circuit:** `circuits/payroll_proof/payroll_proof.circom`, fixed width `N = 8`.
+  Short runs are padded with zeros so the circuit shape is constant.
+- **Public signals (25):** `commitment[8]`, `minValue[8]`, `maxValue[8]`, `total`.
+- **Private inputs:** `value[8]`, `randomness[8]`.
+- **Off-chain prover:** `lib/zk/payroll-prover.ts` (snarkjs), reusing the field
+  encoding in `lib/zk/encode.ts`.
+- **On-chain method:** `verify_and_record_payroll` in `contracts/payment_verifier`
+  records a `PayrollRecord` and binds the recorded total to the proof's last
+  public signal.
+- **Deployment:** a separate instance of the `PaymentVerifier` contract,
+  initialized with the payroll verification key (distinct from the per-payment
+  instance). Live on Stellar testnet at
+  `CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`, with a verified
+  aggregate proof at tx
+  `33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b`. All 25
+  public signals verify within the Soroban compute budget.
+
+**Honest limitation.** The on-chain payroll verifier binds only the total to the
+proof, not the per-line ranges or the per-payment commitments to the recorded
+records. So the claim "everyone was paid within their agreed range" currently
+rests on the honest prover supplying the real ranges as public inputs. Binding the
+per-line ranges and commitments on-chain is documented future work.
+
 ## Selective disclosure (the viewing key)
 
 The chain and the public auditor view only ever see the commitment and the range.
@@ -71,9 +117,10 @@ through HKDF-SHA256. This makes disclosure provable rather than a matter of trus
 | Web app (3 portals and API) | Next.js 14, TS, Tailwind | `app/`, `lib/` |
 | Identity anchor contract | Rust, soroban-sdk 26 | `contracts/anchor_registry` |
 | ZK verifier contract | Rust, soroban-sdk 26 | `contracts/payment_verifier` |
-| ZK circuit (primary) | Circom and Groth16 | `circuits/payment_proof` |
+| ZK circuit (per payment) | Circom and Groth16 | `circuits/payment_proof` |
+| ZK circuit (aggregate, Proof-of-Payroll) | Circom and Groth16 | `circuits/payroll_proof` |
 | ZK circuit (reference) | Noir | `circuits/noir_reference` |
-| Off-chain proof generation | snarkjs (pure JS) | `lib/zk/prover.ts` |
+| Off-chain proof generation | snarkjs (pure JS) | `lib/zk/prover.ts`, `lib/zk/payroll-prover.ts` |
 | Commitment and disclosure | Poseidon, AES-256-GCM | `lib/zk/commitment.ts`, `lib/zk/disclosure.ts` |
 | Database | Postgres (Railway) | `lib/db/schema.ts` |
 
@@ -87,9 +134,22 @@ through HKDF-SHA256. This makes disclosure provable rather than a matter of trus
    recipient-visible settlement, and calls `PaymentVerifier.verify_and_record`
    with the proof bound to the settlement transaction hash. When a viewing key is
    present, the witness is sealed for later disclosure.
-3. **Receipt.** Once verified on-chain, the server renders the verifiable PDF.
-4. **Disclosure.** The company mints a read-only auditor link, or a viewing-key
+3. **Proof-of-Payroll.** For the run as a whole, the server generates one
+   aggregate Groth16 proof and calls `verify_and_record_payroll` on the separate
+   payroll verifier instance, recording a `PayrollRecord` bound to the public total.
+4. **Receipt.** Once verified on-chain, the server renders the verifiable PDF.
+5. **Disclosure.** The company mints a read-only auditor link, or a viewing-key
    link that reveals exact amounts and re-verifies them against the commitments.
+
+### Non-custodial signing path
+
+Signing is abstracted behind a `CompanySigner` interface. `ServerSigner` uses a
+server-held testnet key (the demo-safe custodial fallback); `BrowserSigner` has
+the company's own Privy wallet sign client-side, so no key leaves the browser. The
+run is split into two API steps: `/api/payroll/prepare` (the server generates all
+proofs, holding no key) and `/api/payroll/record` (confirms each proof on-chain,
+then persists). `NEXT_PUBLIC_` contract ids expose the contract addresses needed
+for client-side calls.
 
 ## Decisions and honest status
 

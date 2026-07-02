@@ -124,7 +124,8 @@ is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | Layer | What | Where |
 | --- | --- | --- |
 | Receipt and disclosure | Verifiable receipt PDF, plus the viewing-key disclosure | Off-chain |
-| ZK proof | Groth16 proof of in-range payment, bound to the settlement | Soroban, `PaymentVerifier` |
+| Proof-of-Payroll (aggregate) | One proof that the run's total is correct and every amount is in range, no salary revealed | Soroban, payroll `PaymentVerifier` |
+| ZK proof (per payment) | Groth16 proof of in-range payment, bound to the settlement | Soroban, `PaymentVerifier` |
 | Settlement | Recipient-visible, memo-bound on-chain record (symbolic amount) | Stellar classic |
 | Identity anchor | Worker self-anchors their address and contract metadata | Soroban, `AnchorRegistry` |
 | Organization and invite | Company setup and seedless onboarding | Off-chain |
@@ -194,10 +195,13 @@ shieldpay/
 ├── app/              Next.js: landing, 3 portals (company / worker / auditor), API
 ├── lib/              Stellar client, ZK prover, disclosure, PDF receipts, DB
 ├── contracts/        Soroban (Rust): anchor_registry, payment_verifier
-├── circuits/         ZK: Circom (primary, Groth16) and Noir (reference)
-├── scripts/          setup / seed / e2e flow
-└── docs/             ARCHITECTURE · LEGAL · DEMO_SCRIPT
+├── circuits/         ZK: Circom payment_proof + payroll_proof (Groth16), Noir (reference)
+├── scripts/          setup / seed / cleanup / e2e flow
+└── docs/             ARCHITECTURE · PITCH · DEMO_SCRIPT · RUNBOOK · USE_CASES · LEGAL
 ```
+
+The design system (color, typography, the shield mark, component patterns) lives
+in [`.design/branding/shieldpay/`](.design/branding/shieldpay).
 
 ## Authentication
 
@@ -234,6 +238,11 @@ settlement, selective disclosure, and receipt is built and validated on testnet.
 - Off-chain prover (Circom and snarkjs) with a trusted-setup pipeline.
 - Soroban contracts (`AnchorRegistry`, `PaymentVerifier`) deployed to testnet.
 - Confidential payroll runs with a per-payment commitment and a run total.
+- Aggregate Proof-of-Payroll: one on-chain proof per run that the total is
+  correct and every amount is within its agreed range, revealing no salary,
+  verified live on testnet (25 public signals within the Soroban budget).
+- Non-custodial signing option: the company can sign its own on-chain calls with
+  its Privy wallet (the server never holds the key), with a custodial fallback.
 - Selective disclosure with AES-256-GCM sealing, re-verified against the
   on-chain commitment.
 - Real, recipient-visible, memo-bound settlement record, with the proof bound to
@@ -270,7 +279,8 @@ The internal audit log with open findings is kept private until remediated.
 
 - App: https://web-production-f389ce.up.railway.app
 - [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI)
-- [PaymentVerifier contract](https://stellar.expert/explorer/testnet/contract/CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3)
+- [PaymentVerifier contract (per payment)](https://stellar.expert/explorer/testnet/contract/CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3)
+- [Proof-of-Payroll verifier contract (aggregate)](https://stellar.expert/explorer/testnet/contract/CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN)
 
 ### Verify it yourself
 
@@ -288,6 +298,17 @@ stellar contract invoke \
 
 It returns the record with `verified: true`, the recipient address hash, the
 settlement tx hash, and the amount commitment, none of which reveal the salary.
+
+Read an aggregate Proof-of-Payroll record from the payroll verifier, where the
+proven `total` was recorded but no individual salary was:
+
+```bash
+stellar contract invoke \
+  --id CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN \
+  --source-account <any-funded-testnet-key> \
+  --network testnet \
+  -- get_payroll_record --proof_id 0
+```
 
 ## Legal note
 

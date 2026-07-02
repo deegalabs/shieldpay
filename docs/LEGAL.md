@@ -1,5 +1,14 @@
 # ShieldPay: Legal and Compliance Note
 
+> Repositioning note. ShieldPay is now a Web3-native confidential payroll product:
+> the recipient is visible on-chain, the amount is hidden behind a commitment, and
+> the exact figure is disclosed selectively to an authorized auditor through a
+> viewing key. The legal research below was written for the original framing
+> (Brazilian labor compliance and court-grade proof) and is retained here as
+> background. It still describes how the same evidence chain supports compliance
+> and dispute defense, which is a useful secondary property rather than the primary
+> pitch.
+
 > This document is product rationale, not legal advice. ShieldPay is positioned
 > as confidential payroll for Web3 teams and DAOs. The points below explain how
 > the same evidence chain also supports compliance and dispute defense, which is

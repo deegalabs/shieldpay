@@ -96,6 +96,30 @@ The auditor cannot see the current company balance, payments outside the granted
 period, any other company, or perform any financial operation. The portal is
 read-only by construction.
 
+## Cross-persona use case: Proof-of-Payroll
+
+Beyond the per-payment proofs, a payroll run can produce a single aggregate proof,
+Proof-of-Payroll. One Groth16 proof shows that the individual amounts in the run
+sum to a public total and that each amount sits within its agreed range, without
+revealing any individual salary. It is verified on-chain in a dedicated Soroban
+verifier instance.
+
+This lets a company prove the shape of its payroll to an outside party without
+opening the book line by line:
+
+- **To a DAO or its members**: show that the treasury paid a stated total for the
+  period and that every contributor was paid within their agreed band, without
+  publishing who earns what.
+- **To an investor**: demonstrate that reported payroll spend matches what was
+  actually settled on-chain, a proof-of-reserves style attestation for payroll.
+- **To a regulator or auditor**: attest total compensation and range compliance
+  for a period while keeping individual salaries confidential.
+
+Honest limitation: today the on-chain check binds the public total. The per-line
+ranges and commitments are enforced inside the circuit but are not yet bound
+on-chain per line. The exact individual amounts remain disclosable only to a
+holder of the viewing key.
+
 ## Access control summary
 
 | Capability                    | Company | Contractor | Auditor |
