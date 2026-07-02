@@ -57,6 +57,31 @@ amounts and re-verify them against the on-chain commitments.
 The privacy model is deliberate: **recipient visible, amount hidden.** Private by
 default, auditable on demand.
 
+## The innovation: Proof-of-Payroll
+
+Hiding one amount with a range proof is well-trodden. ShieldPay goes further and
+proves the **whole run at once**. After a payroll run, a single zero-knowledge
+proof attests, on-chain, that:
+
+- the sum of every (hidden) amount equals a public total, and
+- each amount is within its agreed range,
+
+revealing no individual salary. It is **proof-of-reserves, for payroll**: a
+company can hand a DAO, an investor, or a regulator one on-chain-verifiable proof
+that "we paid exactly $X in total and everyone was paid within contract," without
+leaking a single number. The headline claim stops being a promise and becomes
+math anyone can check.
+
+This is the ZK doing real, load-bearing work. The aggregate Groth16 proof (Circom
+/ BN254, in `circuits/payroll_proof/payroll_proof.circom`) is verified inside a
+Soroban smart contract via Stellar's native BN254 pairing (Protocol 25/26), in
+`verify_and_record_payroll`. It is **live on testnet**, and the 25 public signals
+verify within the Soroban budget:
+
+- Payroll verifier: `CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`
+- A verified aggregate proof (total proven, salaries hidden):
+  [tx 33c78362…](https://stellar.expert/explorer/testnet/tx/33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b)
+
 ## Why ZK is essential here
 
 ZK is load-bearing, not decoration. The core promise is "prove the payment was
