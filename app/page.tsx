@@ -7,8 +7,6 @@ import {
   FileCheck,
   Lock,
   Github,
-  Twitter,
-  Linkedin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -185,12 +183,6 @@ export default function HomePage() {
               <div className="mt-5 flex items-center gap-2">
                 <SocialLink href="https://github.com/deegalabs/shieldpay" label="GitHub">
                   <Github size={16} />
-                </SocialLink>
-                <SocialLink href="https://x.com" label="X (Twitter)">
-                  <Twitter size={16} />
-                </SocialLink>
-                <SocialLink href="https://www.linkedin.com" label="LinkedIn">
-                  <Linkedin size={16} />
                 </SocialLink>
               </div>
             </div>
