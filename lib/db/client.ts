@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { SCHEMA_SQL } from './schema';
 import { encryptAtRest, decryptAtRest } from '@/lib/crypto/at-rest';
+import { DEMO_COMPANY_SUB } from '@/lib/constants';
 
 /**
  * Postgres access for the portals. Lazy pool + idempotent schema bootstrap,
@@ -269,7 +270,7 @@ export async function upsertCompany(c: {
   const company = rows[0]!;
   // Backfill pre-existing demo payments (no company) to the demo company so the
   // dashboard keeps showing the seeded history.
-  if (c.owner_sub === process.env.COMPANY_PUBLIC_KEY) {
+  if (c.owner_sub === DEMO_COMPANY_SUB) {
     await getPool().query(
       `UPDATE payments SET company_id = $1, payer_name = COALESCE(payer_name, $2)
        WHERE company_id IS NULL`,

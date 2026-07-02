@@ -5,7 +5,7 @@ import { CompanyForm } from '@/components/company-form';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { getSession } from '@/lib/auth/server';
 import { getCompanyByOwner } from '@/lib/db/client';
-import { COMPANY } from '@/lib/constants';
+import { COMPANY, DEMO_COMPANY_SUB } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,7 @@ export default async function OnboardingPage() {
   }
   if (existing) redirect('/dashboard');
 
-  const isDemo = session!.sub === process.env.COMPANY_PUBLIC_KEY;
+  const isDemo = session!.sub === DEMO_COMPANY_SUB;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-12">

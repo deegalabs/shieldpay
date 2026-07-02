@@ -43,6 +43,18 @@ export const DEMO_WORKER = {
   address: 'GWORKER1EXAMPLEADDRESSDONOTUSE000000000000000000000000000',
 } as const;
 
+/**
+ * Isolated identity for the one-click demo company (A4). The demo login is
+ * scoped to this owner, never to the real treasury-owning account
+ * (`COMPANY_PUBLIC_KEY`), so a demo session cannot act as the company that holds
+ * funds. The seeded demo company keeps the real treasury_address for on-chain
+ * settlement, but its owner_sub is this fixed, non-key identity.
+ */
+export const DEMO_COMPANY_SUB = 'demo:acme-dao';
+
+/** Whether the one-click demo login is enabled. Off only if explicitly disabled. */
+export const ALLOW_DEMO_LOGIN = process.env.ALLOW_DEMO_LOGIN !== 'false';
+
 export const CONTRACTS = {
   anchorRegistry:
     process.env.ANCHOR_REGISTRY_CONTRACT_ID ??
