@@ -82,6 +82,17 @@ verify within the Soroban budget:
 - A verified aggregate proof (total proven, salaries hidden):
   [tx 33c78362…](https://stellar.expert/explorer/testnet/tx/33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b)
 
+**What it proves today, honestly.** The on-chain proof attests that the run's
+amounts sum to the recorded total and that each amount lies inside the range
+carried in the proof, revealing no individual salary. The circuit and the sum are
+sound (range checks are overflow-safe, all signals constrained). One limitation
+we are upfront about: the verifier currently binds only the **total** to the
+proof, not the per-line ranges or per-payment commitments. So "everyone was paid
+within their agreed range" rests on the prover using the real, recorded ranges
+(which the app does). Binding the per-line ranges and commitments to the stored
+records on-chain (so a company cannot invent ranges at proof time) is the next
+step. We would rather state this than overclaim.
+
 ## Why ZK is essential here
 
 ZK is load-bearing, not decoration. The core promise is "prove the payment was

@@ -9,6 +9,7 @@ import { Scene1Hook } from "./scenes/Scene1Hook";
 import { Scene2Problem } from "./scenes/Scene2Problem";
 import { Scene3Reveal } from "./scenes/Scene3Reveal";
 import { Scene4ZK } from "./scenes/Scene4ZK";
+import { ScenePayrollProof } from "./scenes/ScenePayrollProof";
 import { Scene5Real } from "./scenes/Scene5Real";
 import { Scene6Disclosure } from "./scenes/Scene6Disclosure";
 import { Scene7Portals } from "./scenes/Scene7Portals";
@@ -20,6 +21,7 @@ export const SCENE_DURATIONS = {
   problem: 120, // 4.0s
   reveal: 135, // 4.5s
   zk: 240, // 8.0s
+  payroll: 210, // 7.0s — the innovation: Proof-of-Payroll
   real: 195, // 6.5s
   disclosure: 210, // 7.0s
   portals: 165, // 5.5s
@@ -28,10 +30,10 @@ export const SCENE_DURATIONS = {
 
 const TRANSITION = 18; // 0.6s crossfade
 
-// Total = sum(durations) - 7 transitions * 18
-// 1410 - 126 = 1284 frames = 42.8s
+// Total = sum(durations) - (scenes - 1) crossfades.
 export const TOTAL_DURATION =
-  Object.values(SCENE_DURATIONS).reduce((a, b) => a + b, 0) - 7 * TRANSITION;
+  Object.values(SCENE_DURATIONS).reduce((a, b) => a + b, 0) -
+  (Object.keys(SCENE_DURATIONS).length - 1) * TRANSITION;
 
 const cross = (
   <TransitionSeries.Transition
@@ -58,6 +60,10 @@ export const ShieldPayVideo: React.FC = () => {
         {cross}
         <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.zk}>
           <Scene4ZK />
+        </TransitionSeries.Sequence>
+        {cross}
+        <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.payroll}>
+          <ScenePayrollProof />
         </TransitionSeries.Sequence>
         {cross}
         <TransitionSeries.Sequence durationInFrames={SCENE_DURATIONS.real}>
