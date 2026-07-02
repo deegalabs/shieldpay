@@ -29,8 +29,7 @@ A short walkthrough of the product, from confidential payroll to a private,
 independently verifiable receipt.
 
 - **Live app:** https://web-production-f389ce.up.railway.app
-- **Explainer video:** [`video/out/demo.mp4`](video/out/demo.mp4) (about 45s, 1080p).
-  Reproducible from source with Remotion: `cd video && pnpm install && pnpm render`.
+- **Pitch video:** [Watch on YouTube](https://www.youtube.com/watch?v=frtzjAtgiaY)
 
 > The one-click demo login (Company / Contractor on the sign-in screen) runs on an
 > isolated demo identity, so it never touches the treasury-owning account.
