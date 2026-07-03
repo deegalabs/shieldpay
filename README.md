@@ -114,6 +114,49 @@ Where we are still upfront about the limits, rather than overclaim:
   amount); it binds a settlement tx hash. Validating the settlement on-chain
   (atomic verify-and-release) is the roadmap step that would close this.
 
+## A second ZK capability: proof of income
+
+Proof-of-Payroll faces the company outward (prove a whole run). Proof of income
+faces the worker outward, and reuses the same on-chain machinery. A worker can
+prove to a bank, a landlord, or a consulate that they received income within a
+claimed range, attested by their employer, verifiable on-chain by anyone, without
+revealing any single monthly amount.
+
+The circuit (`circuits/income_credential/income_credential.circom`) takes 6
+monthly records. For each record the employer's BabyJubJub key signs
+`Poseidon([amountCents, month, workerId])`, and the circuit verifies that
+signature in-circuit (EdDSA-Poseidon via circomlib), sums the 6 amounts, and
+proves `rangeMin <= sum <= rangeMax`. It also emits a nullifier,
+`Poseidon([secret, verifierId])`, so a credential is replay-safe per verifier.
+
+A separate Soroban contract instance, the income verifier
+(`CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT`), runs the same real
+BN254 Groth16 pairing check on-chain through `verify_and_record_credential`,
+enforces that the proof is bound to its nullifier, rejects an already-presented
+nullifier, and records the credential. A public, wallet-free `/verify-income`
+page reads a credential straight from the contract. The company issues a
+credential over the worker's 6 most recent recorded payments (amounts unsealed
+with the company viewing key, which never leaves the server). Validated on
+testnet: a real credential verified and recorded, tampered proof and replay both
+rejected.
+
+Alongside the credential, ShieldPay generates a formal, downloadable
+**Proof-of-Income statement** (PDF) that a bank, consulate, or tax office can
+read. It reuses the same credential and shows the payer, the recipient, the
+period, the proven income range (no exact amount), the attesting employer key,
+the on-chain credential id, and a QR to the public verifier.
+
+The same credential plus the statement also serve cross-border proof of funds or
+employment: the verifier label is free text and the verify page is public, so a
+visa or lender use case needs no new ZK surface.
+
+**Honest limits.** The credential proves that an employer key signed the records,
+but that key is not yet bound to a named company on-chain (an employer registry
+is roadmap). The issuing company can mint further credentials, so the guarantee
+is the proven range and the attesting employer key, not scarcity. The employer
+key is currently derived from the company viewing key, which is sound but couples
+two secrets. Decoupling it is roadmap.
+
 ## How the ZK is load-bearing
 
 Remove the proof and there is nothing left to stand on: the amount either goes
@@ -264,10 +307,10 @@ pnpm zk:prove -- --value 50000 --min 45000 --max 55000   # in-range proof passes
 shieldpay/
 ├── app/              Next.js: landing, 3 portals (company / worker / auditor), API
 ├── lib/              Stellar client, ZK prover, disclosure, PDF receipts, DB
-├── contracts/        Soroban (Rust): anchor_registry, payment_verifier
-├── circuits/         ZK: Circom payment_proof + payroll_proof (Groth16), Noir (reference)
+├── contracts/        Soroban (Rust): anchor_registry, payment_verifier, income_verifier
+├── circuits/         ZK: Circom payment_proof + payroll_proof + income_credential (Groth16), Noir (reference)
 ├── scripts/          setup / seed / cleanup / e2e flow
-└── docs/             ARCHITECTURE · PITCH · DEMO_SCRIPT · RUNBOOK · USE_CASES · LEGAL
+└── docs/             ARCHITECTURE · PITCH · ROADMAP · DEMO_SCRIPT · RUNBOOK · USE_CASES · LEGAL
 ```
 
 The design system (color, typography, the shield mark, component patterns) lives
@@ -314,6 +357,8 @@ concepts for non-technical users.
 A working, deployed product on Stellar testnet. The full flow from invite to
 onboarding and on-chain anchor, confidential payroll run, on-chain proof and
 settlement, selective disclosure, and receipt is built and validated on testnet.
+What is shipped, what is scaffolded, and what is deferred is tracked in
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 - Real on-chain Groth16 and BN254 proof verification in `PaymentVerifier` via
   `soroban_sdk::crypto::bn254`. A valid proof records; a tampered proof is
@@ -324,6 +369,12 @@ settlement, selective disclosure, and receipt is built and validated on testnet.
 - Aggregate Proof-of-Payroll: one on-chain proof per run that the total is
   correct and every amount is within its agreed range, revealing no salary,
   verified live on testnet (25 public signals within the Soroban budget).
+- Proof of income: a worker-facing, employer-attested credential that proves
+  income over six months sits in a claimed range without revealing any monthly
+  amount, verified on-chain by the income verifier contract, with a public
+  wallet-free `/verify-income` page and a downloadable Proof-of-Income statement
+  PDF. Validated on testnet (credential recorded, tampered proof and replay
+  rejected).
 - Non-custodial signing option: the company can sign its own on-chain calls with
   its Privy wallet (the server never holds the key), with a custodial fallback.
 - Selective disclosure with AES-256-GCM sealing, re-verified against the
@@ -348,6 +399,12 @@ Honest limitations:
   in clear would leak it on a transparent chain, so the salary stays in the
   commitment. When a worker or treasury has no USDC trustline yet, the
   settlement falls back to a native XLM marker so it always posts.
+- Proof of income proves that an employer key signed the monthly records, but that
+  key is not yet bound to a named company on-chain (an employer registry is
+  roadmap). The issuing company can mint further credentials, so the guarantee is
+  the proven range and the attesting employer key, not scarcity. The employer key
+  is currently derived from the company viewing key, which is sound but couples
+  two secrets, and decoupling it is roadmap.
 - The deployed Groth16 setup uses a multi-party ceremony: three independent
   contributions per phase plus a public random beacon, scripted in
   `circuits/scripts/ceremony.sh`. The verifier was redeployed and initialized
@@ -371,6 +428,7 @@ The internal audit log with open findings is kept private until remediated.
 - App: https://web-production-f389ce.up.railway.app
 - [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5)
 - [Verifier contract (one instance: per-payment + aggregate Proof-of-Payroll)](https://stellar.expert/explorer/testnet/contract/CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q)
+- [Income verifier contract (proof of income)](https://stellar.expert/explorer/testnet/contract/CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT)
 
 ### Verify it yourself
 

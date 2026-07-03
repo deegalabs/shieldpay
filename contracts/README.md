@@ -1,11 +1,12 @@
 # ShieldPay Soroban Contracts
 
-Two Rust/Soroban contracts form the on-chain trust layer.
+Three Rust/Soroban contracts form the on-chain trust layer.
 
 | Contract | Layer | Responsibility |
 | --- | --- | --- |
 | `anchor_registry` | 2, Identity anchor | Binds a worker's Stellar address to their contract metadata (self-anchored). |
 | `payment_verifier` | 4, ZK proof | Verifies a Groth16 proof of in-range payment and records it immutably. Also verifies the aggregate Proof-of-Payroll (deployed as a second instance). |
+| `income_verifier` | 4, ZK proof | Verifies a Groth16 proof of income (an employer-attested credential that a worker's income is within a claimed range) and records its nullifier immutably. |
 
 ## Contract methods
 
@@ -15,6 +16,9 @@ Two Rust/Soroban contracts form the on-chain trust layer.
   `get_proof_record`.
 - Proof-of-Payroll (aggregate): `verify_and_record_payroll`,
   `is_payroll_verified`, `get_payroll_record`.
+
+`income_verifier` exposes: `verify_and_record_credential`, `is_presented`,
+`get_credential`.
 
 `anchor_registry` is unchanged: `anchor`, `is_anchored`, `get_anchor`.
 
@@ -103,10 +107,39 @@ crafting raw calls (a mismatched identity hash), coverage is a snapshot not an
 escrowed reserve, and the proof does not validate the USDC transfer itself. Binding
 the real recipient and settlement to the anchored identity on-chain is roadmap.
 
+## Proof of income: credential verification
+
+`income_verifier` is a separate contract instance that runs the same on-chain
+Groth16 / BN254 pairing check, but against the income credential circuit
+(`circuits/income_credential`). It verifies one proof that a worker's income over
+six months, each month signed by the employer's key, sums to within a claimed
+range, revealing no monthly amount. `verify_and_record_credential(nullifier,
+proof, public_signals)` enforces `public_signal(0) == nullifier` (rejecting an
+unbound proof with `ProofNotBound`), rejects an already-seen nullifier with
+`AlreadyPresented`, and records a `CredentialRecord`. `is_presented(nullifier)`
+and `get_credential(id)` read the recorded credentials.
+
+The seven public signals are, in order: `nullifier`, `employerAx`, `employerAy`,
+`workerId`, `rangeMin`, `rangeMax`, `verifierId`. The per-verifier nullifier
+(`Poseidon([secret, verifierId])`) makes each credential replay-safe against a
+given verifier.
+
+Live on Stellar testnet at
+`CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT`. Validated on testnet:
+a real credential verified and recorded (credential id 0), a tampered proof and a
+replay both rejected. Unit tests (`cargo test -p income_verifier`, 4 tests) run
+the real pairing against committed fixtures.
+
+**Honest limits.** The proof attests that an employer key signed the records, but
+that key is not yet bound to a named company on-chain (an employer registry is
+roadmap). The issuing company can mint further credentials, so the guarantee is
+the proven range and the attesting employer key, not scarcity.
+
 ### Deployed instances (testnet)
 
 | Instance | Contract id |
 | --- | --- |
 | PaymentVerifier (per payment) | `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q` |
 | Payroll verifier (Proof-of-Payroll) | `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q` |
+| Income verifier (proof of income) | `CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT` |
 | AnchorRegistry | `CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5` |

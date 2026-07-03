@@ -1,9 +1,10 @@
 # ShieldPay ZK Circuits
 
 The zero-knowledge layer proves a payment is **within the contractual range
-`[min, max]` without revealing the exact amount**. It ships in two circuits: a
-per-payment range proof (`payment_proof/`) and an aggregate Proof-of-Payroll over
-a whole run (`payroll_proof/`).
+`[min, max]` without revealing the exact amount**. It ships in three circuits: a
+per-payment range proof (`payment_proof/`), an aggregate Proof-of-Payroll over a
+whole run (`payroll_proof/`), and a worker-facing proof of income
+(`income_credential/`).
 
 ## Two implementations, one statement
 
@@ -57,6 +58,47 @@ with invented lines or ranges. The remaining limit we are upfront about: the
 worker-cosigned range enforcement protects the honest payment flow, not a company
 crafting raw contract calls; binding the real on-chain USDC recipient to the
 anchored identity is roadmap.
+
+## Proof of income: the credential circuit
+
+`income_credential/income_credential.circom` (`IncomeCredential(6, 40)`) lets a
+worker prove to a third party (a bank, a landlord, a consulate) that their income
+over six months sits inside a claimed range, attested by their employer, revealing
+no single monthly amount. For each of the 6 monthly records the employer's
+BabyJubJub key signs `Poseidon([amountCents, month, workerId])`, and the circuit
+verifies that signature in-circuit (EdDSA-Poseidon via circomlib), sums the 6
+amounts, and proves `rangeMin <= sum <= rangeMax`. It also emits a nullifier so a
+credential is replay-safe per verifier.
+
+```
+private:  amountCents[6], month[6], employer signatures over each record
+public:   nullifier, employerAx, employerAy, workerId, rangeMin, rangeMax, verifierId
+
+for i in 0..6:
+  assert  EdDSA-Poseidon verify(employer key, Poseidon([amountCents[i], month[i], workerId]))
+assert  rangeMin <= sum(amountCents) <= rangeMax
+assert  nullifier == Poseidon([secret, verifierId])
+```
+
+The 7 public signals are, in order: `[0] nullifier`, `[1] employerAx`,
+`[2] employerAy`, `[3] workerId`, `[4] rangeMin`, `[5] rangeMax`,
+`[6] verifierId`. Amounts are in USDC cents. The width is fixed at `N = 6`. The
+circuit is 52,759 constraints and its trusted setup uses `ptau 2^16`. The
+off-chain prover is `lib/zk/income.ts` (snarkjs) and the employer signing lives in
+`lib/zk/income-signer.ts`.
+
+Build it with `scripts/build_income.sh` (compile + powers-of-tau + groth16 setup
+-> `income_credential/target/`). As with the other circuits, the runtime artifacts
+(wasm, final zkey, verification key) are committed; the large regenerable
+artifacts (r1cs, ptau) are gitignored. It verifies against the `income_verifier`
+Soroban instance (testnet id
+`CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT`); see
+`contracts/README.md` for the on-chain methods.
+
+**Honest limits.** The proof attests that an employer key signed the records, but
+that key is not yet bound to a named company on-chain (an employer registry is
+roadmap). The employer signing key is currently derived from the company viewing
+key, which is sound but couples two secrets; decoupling it is roadmap.
 
 ## Build the primary (Circom) artifacts
 

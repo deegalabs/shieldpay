@@ -33,6 +33,19 @@ headline claim, "prove your total and range compliance without revealing
 salaries," from a promise into on-chain math. Remove the ZK and the product does
 not exist.
 
+**4b. A second, complementary ZK capability: proof of income.**
+Proof-of-Payroll faces the company outward. Proof of income faces the worker
+outward and reuses the same on-chain machinery. A worker proves to a bank, a
+landlord, or a consulate that they received income within a claimed range,
+attested by their employer, without revealing any single monthly amount. The
+employer key signs each monthly record, the circuit verifies those signatures
+in-circuit and proves the six-month sum is in range, and a separate Soroban
+income verifier runs the same BN254 pairing check on-chain, with a per-verifier
+nullifier for replay safety. It is verified on testnet, exposed on a public,
+wallet-free verify page, and paired with a downloadable Proof-of-Income statement
+for real-world income verification. Payroll stays the lead; this shows the same
+proof engine serves two sides of the market.
+
 **5. Why ZK is load-bearing.**
 The promise is "prove the payment was correct without revealing the salary." That
 is a zero-knowledge statement. A Groth16 proof over BN254 shows: the amount is in
@@ -78,10 +91,12 @@ verification is cheap on-chain. We use the proven Circom and Groth16 path.
 Working end to end on testnet and live: three portals (company, worker, auditor),
 seedless auth, non-custodial signing (the company can sign its own on-chain calls
 with its Privy wallet, custodial server-signer as fallback), the aggregate
-Proof-of-Payroll verified on-chain, selective disclosure, receipts. Multi-party
-trusted setup scripted. Roadmap: fiat on and off ramp, mainnet, and binding the
-aggregate to the per-line records. ShieldPay makes confidential payroll real on
-Stellar.
+Proof-of-Payroll verified on-chain, worker-facing proof of income with a public
+verify page and a Proof-of-Income statement, selective disclosure, receipts.
+Multi-party trusted setup scripted. Roadmap (see `docs/ROADMAP.md`): fiat on and
+off ramp, mainnet, binding the aggregate to the per-line records, and an employer
+registry that binds the attesting key to a named company. ShieldPay makes
+confidential payroll real on Stellar.
 
 ## Proof at a glance (tables for judges)
 
@@ -126,6 +141,11 @@ Rejection paths (each guarantee maps to a real on-chain error, reproducible with
 > appear. Anyone can re-verify it. I will be honest about one limit: today the
 > on-chain aggregate binds the total, not yet each line back to its record, so
 > range compliance still trusts the prover. That binding is our next step.
+>
+> The same proof engine works the other way too. A worker can prove to a bank or a
+> consulate that their income over six months sits in a claimed range, signed by
+> their employer, without revealing any monthly figure. It verifies on-chain on
+> the same kind of contract, and comes with a printable Proof-of-Income statement.
 >
 > We are honest about the model. The recipient is public, the amount is private.
 > And when an accountant needs the numbers, the company shares a viewing-key link.
