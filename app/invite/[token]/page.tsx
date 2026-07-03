@@ -48,7 +48,7 @@ export default async function InvitePage({ params }: { params: { token: string }
           <p className="mt-1 text-sm text-muted">
             Sign in to your portal to see your payments.
           </p>
-          <a href="/login" className="mt-3 inline-block text-accent hover:underline">Go to my portal</a>
+          <a href="/login" className="mt-3 inline-block text-brand-text hover:underline">Go to my portal</a>
         </Card>
       ) : (
         <Card className="space-y-4 p-6">

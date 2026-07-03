@@ -24,23 +24,23 @@ export default async function ContractorsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Collaborators</h1>
+          <h1 className="text-2xl font-bold">Contributors</h1>
           <p className="text-sm text-muted">Invite, track status, and set each one&apos;s agreed range.</p>
         </div>
         <Button asChild>
           <Link href="/contractors/new">
-            <UserPlus size={16} /> Invite collaborator
+            <UserPlus size={16} /> Invite contributor
           </Link>
         </Button>
       </div>
 
       {contractors.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="font-medium">No collaborators yet</p>
-          <p className="mt-1 text-sm text-muted">Invite your first collaborator to start paying with proof.</p>
+          <p className="font-medium">No contributors yet</p>
+          <p className="mt-1 text-sm text-muted">Invite your first contributor to start paying with proof.</p>
           <Button asChild className="mt-4">
             <Link href="/contractors/new">
-              <UserPlus size={16} /> Invite collaborator
+              <UserPlus size={16} /> Invite contributor
             </Link>
           </Button>
         </Card>
@@ -76,7 +76,7 @@ export default async function ContractorsPage() {
                 {invited ? (
                   <InviteLinkButton id={c.id} />
                 ) : (
-                  <Link href={`/contractors/${c.id}`} className="text-sm text-accent hover:underline">
+                  <Link href={`/contractors/${c.id}`} className="text-sm text-brand-text hover:underline">
                     Details
                   </Link>
                 )}

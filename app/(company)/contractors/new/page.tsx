@@ -7,9 +7,9 @@ export default function NewContractorPage() {
   return (
     <div className="mx-auto max-w-xl">
       <Link href="/contractors" className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft size={14} /> Back to contractors
+        <ArrowLeft size={14} /> Back to contributors
       </Link>
-      <h1 className="text-2xl font-bold">Invite a collaborator</h1>
+      <h1 className="text-2xl font-bold">Invite a contributor</h1>
       <p className="mt-1 text-sm text-muted">
         Set their name and agreed range. They accept the invite, connect their own wallet, and
         confirm their identity, you never handle their keys.

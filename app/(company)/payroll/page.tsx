@@ -136,10 +136,10 @@ export default function PayrollPage() {
 
       {contractors.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="font-medium">No active collaborators yet</p>
-          <p className="mt-1 text-sm text-muted">Invite collaborators and have them accept before running payroll.</p>
+          <p className="font-medium">No active contributors yet</p>
+          <p className="mt-1 text-sm text-muted">Invite contributors and have them accept before running payroll.</p>
           <Button asChild className="mt-4">
-            <a href="/contractors/new">Invite collaborator</a>
+            <a href="/contractors/new">Invite contributor</a>
           </Button>
         </Card>
       ) : (
@@ -156,7 +156,7 @@ export default function PayrollPage() {
                 return (
                   <div key={i} className="flex items-end gap-2">
                     <div className="flex-1">
-                      <Label htmlFor={`c${i}`}>Collaborator</Label>
+                      <Label htmlFor={`c${i}`}>Contributor</Label>
                       <select
                         id={`c${i}`}
                         className="input"
@@ -186,6 +186,7 @@ export default function PayrollPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Remove contributor"
                         onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
                       >
                         <Trash2 size={16} />
@@ -195,7 +196,7 @@ export default function PayrollPage() {
                 );
               })}
               <Button variant="ghost" size="sm" onClick={() => setLines((ls) => [...ls, { contractorId: '', amount: '' }])}>
-                <Plus size={14} /> Add collaborator
+                <Plus size={14} /> Add contributor
               </Button>
             </div>
 
@@ -206,13 +207,13 @@ export default function PayrollPage() {
 
             <Button className="w-full" size="lg" onClick={run} disabled={busy}>
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              {busy ? `${progress ?? 'Proving & recording on-chain'}…` : 'Run payroll & prove'}
+              {busy ? `${progress ?? 'Proving & recording on-chain'}…` : 'Run payroll'}
             </Button>
             <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
               <Lock size={12} />{' '}
               {nonCustodialAvailable() && walletAddr
-                ? 'You sign each payment with your own wallet. Each amount stays hidden on-chain (commitment).'
-                : 'Each individual amount is hidden on-chain (commitment). This may take a few seconds per collaborator.'}
+                ? 'You sign each payment with your own wallet. Each amount stays kept private on-chain.'
+                : 'Each individual amount is kept private on-chain. This may take a few seconds per contributor.'}
             </p>
           </Card>
 

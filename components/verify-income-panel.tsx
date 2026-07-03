@@ -122,7 +122,7 @@ export function VerifyIncomePanel() {
         <Button
           onClick={() => verify(nullifier, credentialId)}
           disabled={loading}
-          variant="success"
+          variant="primary"
           className="sm:w-auto"
         >
           <Search size={16} /> {loading ? 'Checking…' : 'Verify on-chain'}
@@ -191,7 +191,7 @@ export function VerifyIncomePanel() {
         Only the agreed range and the employer that attested it are shown.{' '}
         <span className="inline-flex">
           <InfoHint>
-            The credential is a zero-knowledge proof: it confirms the income falls within the range
+            The credential is verified on-chain: it confirms the income falls within the range
             without revealing any single payment.
           </InfoHint>
         </span>

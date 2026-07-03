@@ -31,8 +31,8 @@ export default async function CompanyLayout({ children }: { children: React.Reac
 
   const nav = [
     { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
-    { href: '/contractors', label: 'Contractors', icon: <Users size={16} /> },
-    { href: '/payroll', label: 'Pay & Prove', icon: <Send size={16} /> },
+    { href: '/contractors', label: 'Contributors', icon: <Users size={16} /> },
+    { href: '/payroll', label: 'Payroll', icon: <Send size={16} /> },
     { href: '/receipts', label: 'Receipts', icon: <FileText size={16} /> },
     { href: '/settings', label: 'Settings', icon: <Settings size={16} /> },
   ];

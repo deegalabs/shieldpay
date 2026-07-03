@@ -122,15 +122,15 @@ export default async function AuditorView({ params }: { params: { token: string 
         <Card className="mb-8 border-accent/30 bg-accent/5 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
+              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-brand-text">
                 <KeyRound size={18} />
               </span>
               <div>
                 <p className="font-semibold">Selective disclosure unlocked</p>
                 <p className="text-sm text-muted">
                   {summary.verifiedLive
-                    ? 'Exact amounts are revealed and each was re-checked live against the commitment read straight from the Stellar contract.'
-                    : 'Exact amounts are revealed and each was re-checked against the recorded commitment (a live contract read was unavailable).'}
+                    ? 'Exact amounts are revealed and each was re-checked live against the private on-chain record read straight from the Stellar contract.'
+                    : 'Exact amounts are revealed and each was re-checked against the recorded on-chain record (a live contract read was unavailable).'}
                 </p>
               </div>
             </div>
@@ -143,11 +143,11 @@ export default async function AuditorView({ params }: { params: { token: string 
           <div className="mt-4 border-t border-border pt-3 text-sm">
             {summary.allMatch ? (
               <span className="inline-flex items-center gap-1.5 text-primary">
-                <ShieldCheck size={15} /> All disclosed amounts match their on-chain commitments.
+                <ShieldCheck size={15} /> All disclosed amounts match their private on-chain records.
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-danger">
-                <AlertTriangle size={15} /> One or more amounts do NOT match the on-chain commitment.
+                <AlertTriangle size={15} /> One or more amounts do NOT match the private on-chain record.
               </span>
             )}
           </div>
@@ -204,7 +204,7 @@ export default async function AuditorView({ params }: { params: { token: string 
                     ) : null}
                     <td className="px-5 py-3"><span className="figure">{usdRange(p.range_min, p.range_max)}</span></td>
                     <td className="px-5 py-3">
-                      <a className="proof-id inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                      <a className="proof-id inline-flex items-center gap-1 text-brand-text hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                         {truncateKey(p.tx_hash, 6, 4)} <ArrowUpRight size={12} />
                       </a>
                     </td>
@@ -230,17 +230,17 @@ export default async function AuditorView({ params }: { params: { token: string 
         {disclose ? (
           <>
             {' '}Amounts are disclosed under the company viewing key and re-verified against the
-            on-chain commitments.
+            private on-chain records.
           </>
         ) : (
           <>
-            {' '}Exact amounts are private; each row is backed by an on-chain zero-knowledge proof.
+            {' '}Exact amounts are private; each row is backed by an on-chain proof.
           </>
         )}
         <InfoHint>
           Each payment carries a proof, verified by a Stellar smart contract, that the amount fell
           within the agreed range, provable to a third party without disclosing the figure. A
-          viewing-key link additionally reveals the exact amount and re-derives the same commitment
+          viewing-key link additionally reveals the exact amount and re-derives the same private on-chain record
           the contract checked, so the disclosed figure is cryptographically tied to the chain.
         </InfoHint>
       </p>

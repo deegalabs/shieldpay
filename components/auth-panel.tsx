@@ -134,9 +134,9 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
 
       <p className="mt-6 text-center text-sm text-muted">
         {mode === 'signup' ? (
-          <>Already have an account? <a className="text-accent hover:underline" href="/login">Sign in</a></>
+          <>Already have an account? <a className="text-brand-text hover:underline" href="/login">Sign in</a></>
         ) : (
-          <>New to ShieldPay? <a className="text-accent hover:underline" href="/signup">Create an account</a></>
+          <>New to ShieldPay? <a className="text-brand-text hover:underline" href="/signup">Create an account</a></>
         )}
       </p>
     </div>

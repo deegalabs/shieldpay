@@ -132,7 +132,7 @@ export default async function CompanyDashboard() {
                   <ShieldCheck size={12} /> Verified
                 </Badge>
                 <div className="flex gap-3 text-sm">
-                  <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                  <a className="inline-flex items-center gap-1 text-brand-text hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                     Proof <ArrowUpRight size={13} />
                   </a>
                   <a className="inline-flex items-center gap-1 text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
@@ -146,8 +146,7 @@ export default async function CompanyDashboard() {
       </section>
 
       <p className="text-xs text-muted">
-        Exact amounts are private. Each payment is backed by a zero-knowledge proof, verified
-        on-chain, that the amount is within the agreed contractual range.
+        Exact amounts stay private. Every payment is verified on-chain to be within the agreed range.
       </p>
     </div>
   );

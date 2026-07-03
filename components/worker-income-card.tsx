@@ -16,7 +16,7 @@ export function WorkerIncomeCard({ companyName }: { companyName?: string }) {
       <div className="flex items-center gap-2 text-sm text-muted">
         <FileCheck size={16} className="text-brand" /> Proof of income
         <InfoHint>
-          Your employer can attest, in zero knowledge, that your income falls within an agreed
+          Your employer can attest on-chain, without revealing your exact monthly amounts, that your income falls within an agreed
           range over recent payments. Anyone you share it with can verify it on-chain without
           seeing any exact amount.
         </InfoHint>

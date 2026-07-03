@@ -102,7 +102,7 @@ export function VerifyPanel() {
           aria-label="Proof id"
           className="sm:max-w-40"
         />
-        <Button onClick={onVerify} disabled={loading} variant="success" className="sm:w-auto">
+        <Button onClick={onVerify} disabled={loading} variant="primary" className="sm:w-auto">
           <Search size={16} /> {loading ? 'Checking…' : 'Verify on-chain'}
         </Button>
       </div>

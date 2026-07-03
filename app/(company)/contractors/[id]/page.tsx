@@ -25,9 +25,9 @@ export default async function ContractorDetail({ params }: { params: { id: strin
   if (!contractor) {
     return (
       <div className="mx-auto max-w-xl text-center">
-        <p className="font-medium">Contractor not found</p>
-        <Link href="/contractors" className="mt-2 inline-block text-accent hover:underline">
-          Back to contractors
+        <p className="font-medium">Contributor not found</p>
+        <Link href="/contractors" className="mt-2 inline-block text-brand-text hover:underline">
+          Back to contributors
         </Link>
       </div>
     );
@@ -45,7 +45,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Link href="/contractors" className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft size={14} /> Back to contractors
+        <ArrowLeft size={14} /> Back to contributors
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -87,7 +87,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Payment history</h2>
         {payments.length === 0 ? (
-          <Card className="p-6 text-sm text-muted">No payments to this contractor yet.</Card>
+          <Card className="p-6 text-sm text-muted">No payments to this contributor yet.</Card>
         ) : (
           <Card className="divide-y divide-border overflow-hidden">
             {payments.map((p) => (
@@ -96,7 +96,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
                 <span className="figure text-sm text-muted">{usdRange(p.range_min, p.range_max)} USDC</span>
                 <Badge variant="success"><ShieldCheck size={12} /> Verified</Badge>
                 <div className="flex gap-3 text-sm">
-                  <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                  <a className="inline-flex items-center gap-1 text-brand-text hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                     Proof <ArrowUpRight size={13} />
                   </a>
                   <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">

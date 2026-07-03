@@ -23,7 +23,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
     return (
       <div className="mx-auto max-w-xl text-center">
         <p className="font-medium">Run not found</p>
-        <Link href="/payroll" className="mt-2 inline-block text-accent hover:underline">Back to payroll</Link>
+        <Link href="/payroll" className="mt-2 inline-block text-brand-text hover:underline">Back to payroll</Link>
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
             <div className="min-w-0">
               <p className="font-semibold">Proof-of-Payroll · the whole run, proven at once</p>
               <p className="mt-1 text-sm text-fg-subtle">
-                A single zero-knowledge proof, verified on-chain in a Stellar smart contract, attests
+                A single on-chain proof, verified on-chain in a Stellar smart contract, attests
                 that this run&apos;s total is exactly{' '}
                 <span className="figure">{usd(Number(run.total_cents))} USDC</span> and that every
                 payment is within its agreed range, without revealing a single salary. It is
@@ -103,11 +103,11 @@ export default async function PayrollRunPage({ params }: { params: { run: string
               <Badge variant="success"><ShieldCheck size={12} /> Verified</Badge>
               <div className="flex gap-3 text-sm">
                 {p.settlement_tx_hash && (
-                  <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.settlement_tx_hash}`} target="_blank" rel="noreferrer">
+                  <a className="inline-flex items-center gap-1 text-brand-text hover:underline" href={`${EXPLORER_BASE}/tx/${p.settlement_tx_hash}`} target="_blank" rel="noreferrer">
                     Settlement <ArrowUpRight size={13} />
                   </a>
                 )}
-                <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                <a className="inline-flex items-center gap-1 text-brand-text hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
                   Proof <ArrowUpRight size={13} />
                 </a>
                 <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">

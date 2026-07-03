@@ -55,7 +55,7 @@ export default async function ReceiptsPage() {
                   <ShieldCheck size={12} /> Verified
                 </Badge>
                 <a
-                  className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
+                  className="inline-flex items-center gap-1 text-sm text-brand-text hover:underline"
                   href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
                   target="_blank"
                   rel="noreferrer"
