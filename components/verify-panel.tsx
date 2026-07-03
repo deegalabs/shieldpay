@@ -5,7 +5,6 @@ import { ShieldCheck, ExternalLink, Search, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { EXPLORER_BASE } from '@/lib/constants';
 
 interface ProofRecord {
@@ -78,18 +77,19 @@ export function VerifyPanel() {
 
   return (
     <Card className="p-6 sm:p-8">
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <ShieldCheck size={16} className="text-primary" /> Independent verification
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={15} className="text-fg-subtle" aria-hidden />
+        <span className="overline">Independent verification</span>
       </div>
-      <h3 className="mt-2 text-xl font-semibold tracking-tight">
-        Verify a proof on-chain, no wallet needed
+      <h3 className="mt-3 text-xl font-semibold tracking-tight text-fg-default">
+        Verify a payment proof, no wallet needed
       </h3>
-      <p className="mt-2 text-sm text-muted">
-        Read a recorded payment proof straight from the Stellar contract. No account, no signing,
-        nothing to install. Try proof <span className="figure">0</span>.
+      <p className="mt-2 text-sm text-fg-subtle">
+        Read a recorded payment proof straight from the Stellar network. No account, no signing,
+        nothing to install. Try proof <span className="figure text-fg-strong">0</span>.
       </p>
 
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
         <Input
           type="number"
           min={0}
@@ -100,7 +100,7 @@ export function VerifyPanel() {
             if (e.key === 'Enter') onVerify();
           }}
           aria-label="Proof id"
-          className="sm:max-w-40"
+          className="figure sm:max-w-40"
         />
         <Button onClick={onVerify} disabled={loading} variant="primary" className="sm:w-auto">
           <Search size={16} /> {loading ? 'Checking…' : 'Verify on-chain'}
@@ -114,78 +114,72 @@ export function VerifyPanel() {
       )}
 
       {success && record && (
-        <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-5">
-          <div className="flex items-center justify-between">
-            <Badge variant="success">
-              <ShieldCheck size={12} /> Verified on-chain
-            </Badge>
-            <span className="text-xs text-muted">
-              Recorded at ledger {String(record.verified_at_ledger ?? '—')}
+        <div
+          className="mt-6 rounded-xl border border-border bg-surface-2 p-5 sm:p-6"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="badge-verified">
+              <ShieldCheck size={14} strokeWidth={1.75} aria-hidden /> Verified on-chain
+            </span>
+            <span className="overline">
+              Ledger <span className="figure normal-case tracking-normal text-fg-subtle">{String(record.verified_at_ledger ?? '—')}</span>
             </span>
           </div>
-          <div className="mt-4 space-y-2.5 text-sm">
-            <ResultRow k="Recipient (address hash)" v={truncate(record.worker_address_hash ?? '')} mono />
-            <div className="flex items-center justify-between border-b border-border pb-2.5">
-              <span className="text-fg-subtle">Settlement transaction</span>
-              {record.payment_tx_hash ? (
-                <a
-                  href={`${EXPLORER_BASE}/tx/${record.payment_tx_hash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="figure inline-flex items-center gap-1 font-medium text-brand-text hover:underline"
-                >
-                  {truncate(record.payment_tx_hash)} <ExternalLink size={13} />
-                </a>
-              ) : (
-                <span className="text-fg-faint">—</span>
-              )}
+
+          <p className="mt-4 text-sm text-fg-strong">
+            This payment is genuine. It was proven and recorded on the Stellar network.
+          </p>
+
+          <dl className="mt-5 space-y-3 border-t border-border pt-4">
+            <ResultRow k="Recipient (address hash)" v={truncate(record.worker_address_hash ?? '')} />
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="overline shrink-0">Settlement transaction</dt>
+              <dd className="min-w-0 text-right">
+                {record.payment_tx_hash ? (
+                  <a
+                    href={`${EXPLORER_BASE}/tx/${record.payment_tx_hash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hash inline-flex items-center gap-1 font-medium text-brand-text hover:underline"
+                  >
+                    {truncate(record.payment_tx_hash)} <ExternalLink size={13} className="shrink-0" />
+                  </a>
+                ) : (
+                  <span className="text-fg-faint">—</span>
+                )}
+              </dd>
             </div>
-            <ResultRow k="Amount commitment" v={truncate(record.value_commitment ?? '')} mono />
+            <ResultRow k="Amount commitment" v={truncate(record.value_commitment ?? '')} />
             <ResultRow
               k="Proven range"
               v={`${formatUsdc(record.range_min)} to ${formatUsdc(record.range_max)} USDC`}
-              mono
-              last
             />
-          </div>
+          </dl>
         </div>
       )}
 
       {result && !success && (
-        <div className="mt-6 rounded-lg border border-border bg-surface-2 p-5 text-sm text-muted">
-          No verified proof recorded at that id. Try <span className="figure">0</span> for a real
-          on-chain record.
+        <div className="mt-6 rounded-xl border border-border bg-surface-2 p-5 text-sm text-fg-subtle">
+          No verified proof recorded at that id. Try <span className="figure text-fg-strong">0</span>{' '}
+          for a real on-chain record.
         </div>
       )}
 
-      <p className="mt-4 flex items-start gap-2 text-xs text-fg-faint">
-        <Info size={13} className="mt-0.5 shrink-0" /> The exact amount stays private; only the
-        commitment and the agreed range are public.
+      <p className="mt-5 flex items-start gap-2 text-xs text-fg-faint">
+        <Info size={13} className="mt-0.5 shrink-0" /> The exact amount stays private; only the proof
+        that it falls within the agreed range is public.
       </p>
     </Card>
   );
 }
 
-function ResultRow({
-  k,
-  v,
-  mono,
-  last,
-}: {
-  k: string;
-  v: string;
-  mono?: boolean;
-  last?: boolean;
-}) {
+function ResultRow({ k, v }: { k: string; v: string }) {
   return (
-    <div
-      className={[
-        'flex items-center justify-between',
-        last ? '' : 'border-b border-border pb-2.5',
-      ].join(' ')}
-    >
-      <span className="text-fg-subtle">{k}</span>
-      <span className={['font-medium text-fg-default', mono ? 'figure' : ''].join(' ')}>{v}</span>
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="overline shrink-0">{k}</dt>
+      <dd className="hash min-w-0 truncate text-right font-medium text-fg-default">{v}</dd>
     </div>
   );
 }

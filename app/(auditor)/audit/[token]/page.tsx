@@ -17,6 +17,15 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeaderCell,
+  TableCell,
+} from '@/components/ui/data-table';
+import { MaskedAmount } from '@/components/ui/masked-amount';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +33,7 @@ const fmt = (cents: number) =>
   `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /**
- * Auditor portal — read-only, time-boxed access via a signed, expiring token.
+ * Auditor portal, read-only, time-boxed access via a signed, expiring token.
  * No wallet required. Minted by a company (/api/auth/auditor-link).
  *
  * Two tiers:
@@ -41,7 +50,7 @@ export default async function AuditorView({ params }: { params: { token: string 
           <Lock size={22} />
         </span>
         <h1 className="text-2xl font-bold">Link expired or invalid</h1>
-        <p className="mt-2 text-muted">
+        <p className="mt-2 text-fg-subtle">
           This audit link is no longer valid. Ask the company to generate a new one.
         </p>
       </main>
@@ -68,7 +77,7 @@ export default async function AuditorView({ params }: { params: { token: string 
       const company = await getCompanyById(claims.companyId);
       if (!company || (claims.epoch ?? 0) !== company.disclose_epoch) disclose = false;
     } catch {
-      disclose = false; // cannot confirm the epoch — fail closed to read-only
+      disclose = false; // cannot confirm the epoch, fail closed to read-only
     }
   }
   // One-time link: spend it on the first disclosure. A second view (or a DB we
@@ -104,11 +113,13 @@ export default async function AuditorView({ params }: { params: { token: string 
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Audit report</h1>
-          <p className="text-sm text-muted">
-            {disclose ? 'Viewing-key access' : 'Read-only access'} · token {truncateKey(params.token)}
+          <p className="overline mb-1">Audit report</p>
+          <h1 className="text-2xl font-bold tracking-tight">Payment settlement</h1>
+          <p className="mt-1 text-sm text-fg-subtle">
+            {disclose ? 'Viewing-key access' : 'Read-only access'} ·{' '}
+            <span className="proof-id">token {truncateKey(params.token)}</span>
           </p>
         </div>
         <Button asChild variant="ghost">
@@ -119,15 +130,21 @@ export default async function AuditorView({ params }: { params: { token: string 
       </header>
 
       {disclose && (
-        <Card className="mb-8 border-accent/30 bg-accent/5 p-5">
+        <Card
+          className="mb-8 p-5"
+          style={{ background: 'var(--brand-wash)', borderColor: 'var(--brand-line)' }}
+        >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-brand-text">
+              <span
+                className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-brand-text"
+                style={{ background: 'var(--brand-wash)' }}
+              >
                 <KeyRound size={18} />
               </span>
               <div>
-                <p className="font-semibold">Selective disclosure unlocked</p>
-                <p className="text-sm text-muted">
+                <p className="font-semibold text-fg-default">Selective disclosure unlocked</p>
+                <p className="mt-0.5 text-sm text-fg-subtle">
                   {summary.verifiedLive
                     ? 'Exact amounts are revealed and each was re-checked live against the private on-chain record read straight from the Stellar contract.'
                     : 'Exact amounts are revealed and each was re-checked against the recorded on-chain record (a live contract read was unavailable).'}
@@ -135,9 +152,9 @@ export default async function AuditorView({ params }: { params: { token: string 
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs uppercase tracking-wide text-muted">Disclosed total</p>
-              <p className="figure-hero text-2xl font-bold">{fmt(summary.disclosedTotalCents)} USDC</p>
-              <p className="text-xs text-muted">{summary.disclosedCount} payments</p>
+              <p className="overline">Disclosed total</p>
+              <p className="figure-hero mt-1 text-2xl font-bold">{fmt(summary.disclosedTotalCents)} USDC</p>
+              <p className="mt-0.5 text-xs text-fg-faint">{summary.disclosedCount} payments</p>
             </div>
           </div>
           <div className="mt-4 border-t border-border pt-3 text-sm">
@@ -165,63 +182,88 @@ export default async function AuditorView({ params }: { params: { token: string 
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase tracking-wide text-muted">
+          <Table caption="Payments in the audited period, with on-chain proofs.">
+            <TableHead>
               <tr>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Contractor</th>
-                <th className="px-5 py-3">Reference</th>
-                {disclose ? <th className="px-5 py-3">Amount</th> : null}
-                <th className="px-5 py-3">Range</th>
-                <th className="px-5 py-3">Proof</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Receipt</th>
+                <TableHeaderCell>Date</TableHeaderCell>
+                <TableHeaderCell>Contractor</TableHeaderCell>
+                <TableHeaderCell>Reference</TableHeaderCell>
+                {disclose ? <TableHeaderCell align="money">Amount</TableHeaderCell> : null}
+                <TableHeaderCell align="money">Agreed range</TableHeaderCell>
+                <TableHeaderCell>Proof</TableHeaderCell>
+                <TableHeaderCell>Status</TableHeaderCell>
+                <TableHeaderCell>Receipt</TableHeaderCell>
               </tr>
-            </thead>
-            <tbody>
+            </TableHead>
+            <TableBody>
               {payments.map((p) => {
                 const d = disclosed.get(p.id);
+                const range = { minCents: p.range_min, maxCents: p.range_max };
                 return (
-                  <tr key={p.id} className="border-b border-border last:border-0 hover:bg-surface-2/40">
-                    <td className="px-5 py-3">{new Date(p.created_at).toLocaleDateString('en-GB')}</td>
-                    <td className="px-5 py-3 font-medium">{p.worker_name}</td>
-                    <td className="px-5 py-3">{p.reference}</td>
+                  <TableRow key={p.id} compact>
+                    <TableCell className="text-fg-subtle">
+                      {new Date(p.created_at).toLocaleDateString('en-GB')}
+                    </TableCell>
+                    <TableCell className="font-medium text-fg-default">{p.worker_name}</TableCell>
+                    <TableCell className="text-fg-subtle">{p.reference}</TableCell>
                     {disclose ? (
-                      <td className="px-5 py-3">
+                      <TableCell align="money">
                         {d && d.amountCents !== null ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="figure font-semibold">{fmt(d.amountCents)}</span>
-                            {d.matchesOnChain ? (
-                              <ShieldCheck size={13} className="text-primary" />
-                            ) : (
-                              <AlertTriangle size={13} className="text-danger" />
+                          <span className="inline-flex items-center justify-end gap-1.5">
+                            <MaskedAmount state="disclosed" amountCents={d.amountCents} range={range} />
+                            {!d.matchesOnChain && (
+                              <AlertTriangle
+                                size={13}
+                                className="text-danger"
+                                aria-label="Does not match the on-chain record"
+                              />
                             )}
                           </span>
                         ) : (
-                          <span className="text-muted">-</span>
+                          <span className="inline-flex justify-end">
+                            <MaskedAmount state="verified" range={range} />
+                          </span>
                         )}
-                      </td>
+                      </TableCell>
                     ) : null}
-                    <td className="px-5 py-3"><span className="figure">{usdRange(p.range_min, p.range_max)}</span></td>
-                    <td className="px-5 py-3">
-                      <a className="proof-id inline-flex items-center gap-1 text-brand-text hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                    <TableCell align="money">{usdRange(p.range_min, p.range_max)}</TableCell>
+                    <TableCell>
+                      <a
+                        className="proof-id inline-flex items-center gap-1 text-brand-text hover:underline"
+                        href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
                         {truncateKey(p.tx_hash, 6, 4)} <ArrowUpRight size={12} />
                       </a>
-                    </td>
-                    <td className="px-5 py-3">
-                      <Badge variant="success"><ShieldCheck size={12} /> Verified</Badge>
-                    </td>
-                    <td className="px-5 py-3">
-                      <a className="text-foreground hover:underline" href={`/api/receipt?id=${p.id}&token=${params.token}`} target="_blank" rel="noreferrer">PDF</a>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="success">
+                        <ShieldCheck size={12} /> Verified
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <a
+                        className="text-fg-strong hover:underline"
+                        href={`/api/receipt?id=${p.id}&token=${params.token}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        PDF
+                      </a>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
               {payments.length === 0 && (
-                <tr><td colSpan={disclose ? 8 : 7} className="px-5 py-6 text-muted">No payments in this period.</td></tr>
+                <tr>
+                  <TableCell colSpan={disclose ? 8 : 7} className="py-10 text-center text-fg-subtle">
+                    No payments in this period.
+                  </TableCell>
+                </tr>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </Card>
 
@@ -251,8 +293,8 @@ export default async function AuditorView({ params }: { params: { token: string 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <Card className="p-5">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="figure mt-1 text-2xl font-bold">{value}</p>
+      <p className="overline">{label}</p>
+      <p className="figure mt-1.5 text-2xl font-bold text-fg-default">{value}</p>
     </Card>
   );
 }

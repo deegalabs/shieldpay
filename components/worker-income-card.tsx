@@ -11,49 +11,56 @@ import { InfoHint } from '@/components/ui/tooltip';
  * holds. No issue/generate button, no credentials list.
  */
 export function WorkerIncomeCard({ companyName }: { companyName?: string }) {
+  const employer = companyName || 'Your employer';
+
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <FileCheck size={16} className="text-brand" /> Proof of income
-        <InfoHint>
-          Your employer can attest on-chain, without revealing your exact monthly amounts, that your income falls within an agreed
-          range over recent payments. Anyone you share it with can verify it on-chain without
-          seeing any exact amount.
-        </InfoHint>
+    <Card className="space-y-5 p-6">
+      <div className="space-y-2">
+        <span className="overline inline-flex items-center gap-1.5">
+          <FileCheck size={13} strokeWidth={1.75} className="text-fg-subtle" aria-hidden />
+          Proof of income
+          <InfoHint>
+            Your employer can attest on-chain that your income falls within an agreed range over
+            recent payments, without revealing your exact monthly amounts. Anyone you share it with
+            can verify it on-chain without seeing any exact amount.
+          </InfoHint>
+        </span>
+        <p className="text-sm font-medium text-fg-default">Issued by your employer, not by you.</p>
       </div>
 
-      <p className="mt-2 text-sm text-muted">
-        Need to show your income to a bank, a landlord, or a consulate?{' '}
-        {companyName || 'Your employer'} can issue a proof that your income sits within an agreed
-        range, verifiable on-chain, without revealing any exact amount.
+      <p className="text-sm text-fg-strong">
+        Need to show your income to a bank, a landlord, or a consulate? {employer} can issue a proof
+        that your income sits within an agreed range, verifiable on-chain, without revealing any
+        exact amount.
       </p>
 
-      <ul className="mt-4 space-y-2 text-sm">
+      <ul className="space-y-2 text-sm text-fg-strong">
         {POINTS.map((l) => (
           <li key={l} className="flex items-start gap-2">
-            <Check size={16} className="mt-0.5 text-primary" /> {l}
+            <Check size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-fg-subtle" aria-hidden />
+            {l}
           </li>
         ))}
       </ul>
 
-      <div className="mt-5 rounded-lg border border-border bg-background/50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-fg-faint">How to get yours</p>
-        <p className="mt-1.5 text-sm text-muted">
+      <div className="rounded-lg border border-border bg-surface-2 p-4">
+        <p className="overline">How to get yours</p>
+        <p className="mt-1.5 text-sm text-fg-strong">
           Ask {companyName || 'your company'} to issue a proof of income for you. They will send you
           a verification link you can forward to whoever needs it.
         </p>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Button asChild variant="outline" size="sm">
           <a href="/verify-income" target="_blank" rel="noreferrer">
             <ShieldCheck size={14} /> Open the verifier
           </a>
         </Button>
+        <p className="text-xs text-fg-faint">
+          Already have a link from your company? Open it to check or pass it on.
+        </p>
       </div>
-      <p className="mt-2 text-xs text-fg-faint">
-        Already have a link from your company? Open it to check or pass it on.
-      </p>
     </Card>
   );
 }
