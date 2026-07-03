@@ -13,10 +13,11 @@ ShieldPay. Confidential payroll on Stellar. Private by default, auditable on
 demand, verifiable by anyone.
 
 **2. The problem.**
-DAOs and Web3 teams want to pay contributors on-chain. But salaries are private,
-and on a transparent chain the amount is public to the whole world. Today the
-choice is bad: pay in the open and leak every salary, or move off-chain and lose
-the proof.
+On-chain payroll publishes every salary. A rival reads the ledger and poaches
+your best engineer with the number in hand. DAOs and Web3 teams want to pay
+contributors on-chain, but salaries are private, and on a transparent chain the
+amount is public to the whole world. Today the choice is bad: pay in the open and
+leak every salary, or move off-chain and lose the proof.
 
 **3. The solution.**
 ShieldPay pays contributors with the amount kept as a commitment, proves on-chain
@@ -81,6 +82,28 @@ Proof-of-Payroll verified on-chain, selective disclosure, receipts. Multi-party
 trusted setup scripted. Roadmap: fiat on and off ramp, mainnet, and binding the
 aggregate to the per-line records. ShieldPay makes confidential payroll real on
 Stellar.
+
+## Proof at a glance (tables for judges)
+
+How it compares:
+
+| | Raw USDC payroll | Shielded wallet | ShieldPay |
+| --- | --- | --- | --- |
+| Amount private | no | yes | yes |
+| Recipient visible / auditable | yes | no | yes |
+| Provably correct on-chain | no | partial | yes |
+| Selective disclosure to an auditor | no | rare | yes |
+| One aggregate proof for a whole run | no | no | yes |
+
+Rejection paths (each guarantee maps to a real on-chain error, reproducible with
+`pnpm demo`):
+
+| Guarantee | Mechanism | On-chain rejection |
+| --- | --- | --- |
+| A forged proof cannot be recorded | BN254 pairing check | `InvalidProof` (#3) |
+| A payment cannot be replayed | tx-hash / run-ref dedup | `DuplicatePayment` (#4) |
+| A proof cannot be rebound to another recipient, commitment, or tx | signals 0/3/4 bound to the record | `ProofNotBound` (#8) |
+| An aggregate line must be a real recorded payment with a matching range | commitment to record index plus stored range | `ProofNotBound` (#8) |
 
 ## Spoken script (2 to 3 minutes)
 
