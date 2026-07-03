@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
 import { CompleteAnchor } from '@/components/complete-anchor';
+import { WorkerIncomeCard } from '@/components/worker-income-card';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ function shortAddr(a: string | null): string {
 }
 
 /**
- * Worker portal — the collaborator's own profile plus received payments and
+ * Worker portal, the collaborator's own profile plus received payments and
  * their proofs. Scoped to the authenticated worker's address; a company
  * session sees all payments.
  */
@@ -45,6 +46,7 @@ export default async function WorkerPayments() {
 
   const latest = payments[0];
   const profile = orgs[0] ?? null;
+  const companyName = orgs[0]?.company_name;
   const displayName = profile?.name || session?.name || 'My account';
 
   return (
@@ -113,6 +115,8 @@ export default async function WorkerPayments() {
           </div>
         </section>
       )}
+
+      {session?.role === 'worker' && <WorkerIncomeCard companyName={companyName} />}
 
       {payments.length === 0 ? (
         <Card className="p-8 text-center text-muted">No payments received yet.</Card>

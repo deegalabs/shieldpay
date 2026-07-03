@@ -33,6 +33,12 @@ export default function HomePage() {
             <a href="#audit" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
               Confidential
             </a>
+            <Link
+              href="/verify-income"
+              className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block"
+            >
+              Verify income
+            </Link>
             <Link href="/help" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
               Help
             </Link>
@@ -150,6 +156,55 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Proof of income */}
+      <section id="income" className="mx-auto max-w-5xl px-6 py-20">
+        <div className="grid items-center gap-10 md:grid-cols-2">
+          <div>
+            <Badge variant="brand" className="mb-4">
+              <FileCheck size={12} /> Proof of income
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight">Prove your income without revealing it</h2>
+            <p className="mt-4 text-muted">
+              When a worker needs to show income to a bank, a landlord, or a consulate, ShieldPay
+              lets their employer attest it on-chain. The proof confirms the income falls within an
+              agreed range over recent payments, and anyone can check it against the Stellar network,
+              without seeing a single exact amount.
+            </p>
+            <ul className="mt-6 space-y-2 text-sm">
+              {INCOME_POINTS.map((l) => (
+                <li key={l} className="flex items-start gap-2">
+                  <Check size={16} className="mt-0.5 text-primary" /> {l}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/verify-income">
+                  Verify a proof of income <ArrowRight size={16} />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <Card className="p-6">
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <FileCheck size={16} /> Proof of income, Jane · GARR…PUKK
+            </div>
+            <div className="mt-4 space-y-2 text-sm">
+              <Row k="Issued by" v="Acme DAO" />
+              <Row k="Covers" v="Last 6 payments" />
+              <Row k="Proven range" v="$2,700 to $3,300 USDC" mono />
+              <Row k="Exact amounts" v="Private" />
+              <Row k="Status" v="Verified on-chain" verified />
+            </div>
+            <div className="mt-5 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted">
+              Attested by the employer and checked against the Stellar network. Share the
+              verification link with a bank, landlord, or consulate, who confirms it without
+              seeing any monthly amount.
+            </div>
+          </Card>
+        </div>
+      </section>
+
       {/* Verify on-chain, no wallet */}
       <section id="verify" className="border-t border-border bg-surface/30 py-20">
         <div className="mx-auto max-w-3xl px-6">
@@ -208,6 +263,9 @@ export default function HomePage() {
                 links={[
                   { label: 'How it works', href: '#how' },
                   { label: 'Confidential', href: '#audit' },
+                  { label: 'Proof of income', href: '#income' },
+                  { label: 'Verify a payment', href: '#verify' },
+                  { label: 'Verify income', href: '/verify-income' },
                   { label: 'Get started', href: '/login' },
                 ]}
               />
@@ -315,6 +373,13 @@ const STEPS = [
   { title: 'Run payroll', body: 'Pay your whole team in one confidential run, each within their agreed range.' },
   { title: 'Prove & settle on-chain', body: 'A zero-knowledge proof is verified inside a Stellar smart contract, and a real, recipient-visible settlement is posted, without the amount.' },
   { title: 'Disclose on your terms', body: 'Share a read-only audit link, or a viewing-key link that reveals and re-verifies amounts for an authorized auditor.' },
+];
+
+const INCOME_POINTS = [
+  'Attested by the employer, verifiable by anyone',
+  'Shows an agreed range, never an exact monthly amount',
+  'No account or wallet needed to verify',
+  'Also available as a printable statement for a bank or consulate',
 ];
 
 const DISCLOSURE = [
