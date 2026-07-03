@@ -14,7 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
 import { DataTable, type Column } from '@/components/ui/data-table';
-import { MaskedAmount } from '@/components/ui/masked-amount';
+import { SealedChip } from '@/components/ui/sealed-chip';
+import { OnChainSeal } from '@/components/ui/on-chain-seal';
 import { ConnectionError } from '@/components/ui/connection-error';
 import { StatFigure } from '@/components/ui/stat-figure';
 import { CompleteAnchor } from '@/components/complete-anchor';
@@ -72,21 +73,17 @@ export default async function WorkerPayments() {
       header: 'Amount',
       align: 'money',
       cell: (p) => (
-        <MaskedAmount
-          state="verified"
-          range={{ minCents: p.range_min, maxCents: p.range_max }}
-          proofId={p.proof_id}
-        />
+        <span className="inline-flex justify-end">
+          <SealedChip range={{ minCents: p.range_min, maxCents: p.range_max }} />
+        </span>
       ),
     },
     {
       key: 'status',
       header: 'Status',
       cell: (p) => (
-        <span className="inline-flex items-center gap-1">
-          <Badge variant="success">
-            <ShieldCheck size={12} /> Received
-          </Badge>
+        <span className="inline-flex items-center gap-2">
+          <OnChainSeal state="verified" label="Received" />
           <InfoHint>
             A mathematical proof, checked inside a Stellar smart contract, confirms this payment was
             within your agreed range, without revealing the exact amount.
@@ -128,8 +125,9 @@ export default async function WorkerPayments() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-fg-default">
+      <header className="space-y-2">
+        <p className="overline">Contributor portal</p>
+        <h1 className="font-headline text-headline-lg-mobile tracking-tight text-fg-default md:text-headline-lg">
           Hello, {displayName}
         </h1>
         <p className="text-sm text-fg-subtle">
@@ -219,6 +217,8 @@ export default async function WorkerPayments() {
                 columns={columns}
                 rows={payments}
                 rowKey={(p) => p.id}
+                indexRail
+                indexHeader="Idx"
                 caption="Your received payments and their on-chain proofs."
                 empty="No payments received yet."
               />

@@ -3,18 +3,18 @@
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSignRawHash } from '@privy-io/react-auth/extended-chains';
-import { Plus, Trash2, Lock, ArrowLeft, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Lock, ArrowRight, ArrowLeft, ShieldCheck, AlertTriangle, Info } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DataTable, type Column } from '@/components/ui/data-table';
-import { MaskedAmount } from '@/components/ui/masked-amount';
+import { SealedChip } from '@/components/ui/sealed-chip';
+import { OnChainSeal } from '@/components/ui/on-chain-seal';
 import { PayrollStepper, type PayrollPhase } from '@/components/ui/payroll-stepper';
 import { usdRange, formatUsdc } from '@/lib/utils';
 import { nonCustodialAvailable, runPayrollNonCustodial } from '@/lib/payments/client-run';
 
-const OVERLINE = 'text-xs font-[550] uppercase tracking-[0.06em] text-fg-subtle';
+const OVERLINE = 'overline';
 
 // Map the run's onProgress strings (see lib/payments/client-run.ts) onto the
 // stepper's four discrete phases. "Preparing your wallet" opens the run, so a
@@ -24,6 +24,20 @@ function phaseFromProgress(msg: string | null): PayrollPhase {
   if (msg?.startsWith('Verifying')) return 'verifying';
   if (msg?.startsWith('Recording')) return 'settled';
   return 'sending';
+}
+
+// Editorial helpers for the Contributor Ledger rows: avatar initials and a
+// short, mono wallet handle (Stellar addresses start with G and are long).
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
+function shortAddr(addr: string): string {
+  return addr.length > 12 ? `${addr.slice(0, 5)}…${addr.slice(-4)}` : addr;
 }
 
 interface Contractor {
@@ -213,37 +227,39 @@ export default function PayrollPage() {
   const reviewTotal = reviewLines.reduce((s, l) => s + l.amountUsdc, 0);
   const formTotal = lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
 
-  const reviewColumns: Array<Column<ReviewLine>> = [
-    {
-      header: 'Contributor',
-      cell: (l) => <span className="font-medium text-fg-strong">{l.workerName}</span>,
-    },
-    {
-      header: 'Agreed range',
-      cell: (l) => <MaskedAmount state="masked" range={{ minCents: l.minCents, maxCents: l.maxCents }} />,
-    },
-    {
-      header: 'Amount to pay',
-      align: 'money',
-      cell: (l) => (
-        <MaskedAmount
-          state="disclosed"
-          range={{ minCents: l.minCents, maxCents: l.maxCents }}
-          amountCents={l.amountCents}
-        />
-      ),
-    },
-  ];
+  const privacyNote =
+    nonCustodialAvailable() && walletAddr
+      ? 'You sign each payment with your own wallet. Each amount stays private on-chain.'
+      : 'Each individual amount is kept private on-chain. This may take a few seconds per contributor.';
+
+  const errorPanel = error && (
+    <div
+      role="alert"
+      className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/5 px-4 py-3"
+    >
+      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden />
+      <p className="text-sm text-fg-strong">{error}</p>
+    </div>
+  );
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-fg-default">Run payroll</h1>
-        <p className="mt-1.5 text-sm text-fg-subtle">
-          Pay your team in one run. Each amount stays private on-chain; only the range is public and
-          the total is yours to prove.
+    <div className="mx-auto flex max-w-3xl flex-col gap-10 md:gap-14">
+      {/* Editorial header: overline + the run reference as the lead figure. */}
+      <header className="flex flex-col items-center gap-2 text-center">
+        <span className={`${OVERLINE} tracking-[0.2em]`}>Run Payroll</span>
+        <h1 className="relative inline-block font-headline text-4xl font-bold tracking-tight text-fg-default md:text-5xl">
+          {reference || '—'}
+          <span
+            aria-hidden
+            className="absolute -right-4 top-2 size-2 rounded-full bg-brand shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+          />
+        </h1>
+        <p className="mt-1 max-w-md text-sm text-fg-subtle">
+          {step === 'review'
+            ? 'Confidential distribution sequence ready. Each amount stays cryptographically masked.'
+            : 'Build the run. Each amount stays private on-chain; only the range is public and the total is yours to prove.'}
         </p>
-      </div>
+      </header>
 
       {contractors.length === 0 ? (
         <Card className="p-8 text-center">
@@ -256,7 +272,7 @@ export default function PayrollPage() {
           </Button>
         </Card>
       ) : step === 'enter' ? (
-        <>
+        <div className="flex flex-col gap-6">
           <Card className="space-y-6 p-6">
             <div className="space-y-1.5">
               <Label htmlFor="ref">Reference (e.g. month)</Label>
@@ -319,96 +335,144 @@ export default function PayrollPage() {
             </div>
 
             <div className="flex items-center justify-between border-t border-border pt-4">
-              <span className="text-sm text-fg-subtle">Run total (visible to you)</span>
-              <span className="figure text-lg font-semibold text-fg-default">{formatUsdc(formTotal)} USDC</span>
+              <span className={OVERLINE}>Run total (visible to you)</span>
+              <span className="mono text-lg font-semibold text-fg-default tabular-nums">
+                {formatUsdc(formTotal)} USDC
+              </span>
             </div>
 
             <Button className="w-full" size="lg" onClick={goToReview}>
               Review payroll <ArrowRight size={16} />
             </Button>
             <p className="flex items-center justify-center gap-1.5 text-xs text-fg-subtle">
-              <Lock size={12} />{' '}
-              {nonCustodialAvailable() && walletAddr
-                ? 'You sign each payment with your own wallet. Each amount stays private on-chain.'
-                : 'Each individual amount is kept private on-chain. This may take a few seconds per contributor.'}
+              <Lock size={12} /> {privacyNote}
             </p>
           </Card>
 
-          {error && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/5 px-4 py-3"
-            >
-              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden />
-              <p className="text-sm text-fg-strong">{error}</p>
-            </div>
-          )}
-        </>
+          {errorPanel}
+        </div>
       ) : (
-        <>
-          <Card className="space-y-6 p-6">
-            <div className="space-y-1">
-              <p className={OVERLINE}>Review and confirm</p>
-              <p className="text-sm text-fg-subtle">
-                Confirm the run before any money moves. This settles on-chain and cannot be undone.
-              </p>
-            </div>
-
-            <div className="flex items-end justify-between border-b border-border pb-5">
-              <div>
-                <p className={OVERLINE}>Run total</p>
-                <p className="figure-hero mt-1 text-3xl font-semibold">{formatUsdc(reviewTotal)} USDC</p>
-              </div>
-              <p className="figure text-sm text-fg-subtle">
-                {reviewLines.length} {reviewLines.length === 1 ? 'payment' : 'payments'} · {reference}
-              </p>
-            </div>
-
-            <div className="overflow-hidden rounded-lg border border-border">
-              <DataTable
-                columns={reviewColumns}
-                rows={reviewLines}
-                rowKey={(l) => l.contractorId}
-                caption="Payments in this run, with each agreed range and the amount to pay."
-              />
-            </div>
-
-            {busy ? (
-              <div className="rounded-lg border border-border bg-surface-2/50 px-4 py-5">
-                <PayrollStepper
-                  phase={phaseFromProgress(progress)}
-                  counter={`${reviewLines.length} ${reviewLines.length === 1 ? 'payment' : 'payments'}`}
-                />
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <Button variant="ghost" size="lg" onClick={() => setStep('enter')} disabled={busy}>
-                  <ArrowLeft size={16} /> Edit
-                </Button>
-                <Button variant="success" size="lg" className="flex-1" onClick={run} disabled={busy}>
-                  <ShieldCheck size={16} /> Confirm and pay {formatUsdc(reviewTotal)} USDC
-                </Button>
-              </div>
-            )}
-
-            <p className="flex items-center justify-center gap-1.5 text-xs text-fg-subtle">
-              <Lock size={12} />{' '}
-              {nonCustodialAvailable() && walletAddr
-                ? 'You sign each payment with your own wallet. Each amount stays private on-chain.'
-                : 'Each individual amount is kept private on-chain. This may take a few seconds per contributor.'}
-            </p>
-          </Card>
-
-          {error && (
+        <div className="flex flex-col gap-12">
+          {/* Sequence Status: the stepper is the hero of the run flow. */}
+          <section className="relative overflow-hidden rounded-2xl border border-border bg-surface-2/40 p-6 backdrop-blur-sm md:p-8">
+            {/* Decorative corner highlights (light, never paint). */}
             <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/5 px-4 py-3"
-            >
-              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden />
-              <p className="text-sm text-fg-strong">{error}</p>
+              aria-hidden
+              className="absolute left-0 top-0 h-px w-16 bg-gradient-to-r from-brand/50 to-transparent"
+            />
+            <div
+              aria-hidden
+              className="absolute left-0 top-0 h-16 w-px bg-gradient-to-b from-brand/50 to-transparent"
+            />
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-headline text-lg font-medium text-fg-strong">Sequence Status</h2>
+              <div className="mono flex items-center gap-2 text-sm text-brand-text">
+                <span
+                  aria-hidden
+                  className={`size-1.5 rounded-full bg-brand ${busy ? 'animate-pulse' : ''}`}
+                />
+                {busy ? 'PROVING' : `${reviewLines.length} QUEUED`}
+              </div>
             </div>
-          )}
-        </>
+            <PayrollStepper phase={busy ? phaseFromProgress(progress) : 'sending'} />
+          </section>
+
+          {/* Contributor Ledger: name + short wallet, sealed range, seal + HIDDEN. */}
+          <section className="flex flex-col gap-4">
+            <div className="flex items-end justify-between px-1">
+              <h3 className={OVERLINE}>Contributor Ledger</h3>
+              <span className="mono rounded border border-border px-2 py-1 text-xs text-fg-subtle">
+                USDC NETWORK
+              </span>
+            </div>
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/20">
+              {reviewLines.map((l, i) => (
+                <div
+                  key={l.contractorId}
+                  className="group flex flex-col gap-3 p-4 transition-colors hover:bg-surface-3/20 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  {/* Index + recipient identity. */}
+                  <div className="flex items-center gap-3 sm:w-[42%]">
+                    <span className="mono hidden w-6 shrink-0 text-xs text-fg-faint sm:block">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-surface-3 font-headline text-sm text-fg-subtle">
+                      {initials(l.workerName)}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-fg-strong">{l.workerName}</div>
+                      <div className="mono mt-0.5 truncate text-xs text-fg-faint">
+                        {shortAddr(l.workerAddress)}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Sealed agreed range. */}
+                  <div className="flex sm:w-[32%] sm:justify-center">
+                    <SealedChip range={{ minCents: l.minCents, maxCents: l.maxCents }} size="md" />
+                  </div>
+                  {/* On-chain status + the amount, sealed as literal HIDDEN. */}
+                  <div className="flex items-center justify-between gap-3 sm:w-[26%] sm:justify-end">
+                    {busy ? (
+                      <OnChainSeal state="computing" />
+                    ) : (
+                      <span
+                        className="grid size-6 shrink-0 place-items-center rounded-full border border-verified/30 bg-verified/15 text-verified-text shadow-[0_0_16px_-6px_rgba(16,185,129,0.5)]"
+                        title="Within agreed range"
+                        aria-label="Within agreed range"
+                      >
+                        <ShieldCheck size={14} strokeWidth={2.25} aria-hidden />
+                      </span>
+                    )}
+                    <span className="mono text-sm text-fg-default">HIDDEN</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Aggregate total + the confirm gate. Money moves only from here. */}
+          <section className="flex flex-col items-center gap-8 border-t border-border pt-12">
+            <div className="relative flex flex-col items-center gap-2 text-center">
+              <div
+                aria-hidden
+                className="absolute left-1/2 top-6 -z-10 h-24 w-72 -translate-x-1/2 rounded-full bg-brand/10 blur-[60px]"
+              />
+              <span className={OVERLINE}>Aggregate Total Run</span>
+              <div className="mono text-4xl font-light tracking-tight text-fg-default tabular-nums md:text-5xl">
+                {formatUsdc(reviewTotal)} <span className="ml-2 text-2xl text-fg-subtle">USDC</span>
+              </div>
+              <p className="mono text-xs text-fg-subtle">
+                {reviewLines.length} {reviewLines.length === 1 ? 'PAYMENT' : 'PAYMENTS'} · {reference}
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full font-label uppercase tracking-wider sm:w-auto"
+                onClick={() => setStep('enter')}
+                disabled={busy}
+              >
+                <ArrowLeft size={16} /> Edit Run
+              </Button>
+              <Button
+                size="lg"
+                className="w-full font-label uppercase tracking-wider shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] sm:w-auto"
+                onClick={run}
+                disabled={busy}
+              >
+                <Lock size={16} /> {busy ? 'Signing…' : 'Confirm & Sign'}
+              </Button>
+            </div>
+
+            <p className="flex items-center gap-2 text-xs text-fg-subtle">
+              <Info size={14} aria-hidden /> Signing initiates the on-chain proofs for every payment.
+            </p>
+          </section>
+
+          {errorPanel}
+        </div>
       )}
     </div>
   );

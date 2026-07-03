@@ -82,9 +82,7 @@ export default async function ProofExplorerPage() {
     <div className="space-y-10">
       <header className="space-y-4">
         <p className="overline">On-chain proofs</p>
-        <h1 className="font-mono text-4xl font-medium tracking-tight text-fg-default">
-          Proof Explorer
-        </h1>
+        <h1 className="font-mono text-display-lg text-fg-default">Proof Explorer</h1>
         <p className="max-w-2xl text-sm text-fg-subtle">
           Every payment and payroll run leaves a proof recorded on-chain. The agreed range is
           shown; the exact amount stays sealed.

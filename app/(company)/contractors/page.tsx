@@ -1,16 +1,27 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { UserPlus, ShieldCheck, AlertCircle, Clock, Users } from 'lucide-react';
+import { UserPlus, Users } from 'lucide-react';
 import { getSession } from '@/lib/auth/server';
 import { getCompanyByOwner, listContractors, type ContractorRow } from '@/lib/db/client';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConnectionError } from '@/components/ui/connection-error';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { SealedChip } from '@/components/ui/sealed-chip';
+import { OnChainSeal } from '@/components/ui/on-chain-seal';
 import { InviteLinkButton } from '@/components/invite-link-button';
-import { truncateKey, usdRange } from '@/lib/utils';
+import { truncateKey } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+/** A quiet mono pill for a non-sealed status (Pending). */
+function StatusTag({ children }: { children: ReactNode }) {
+  return (
+    <span className="mono inline-flex items-center rounded border border-border px-2 py-0.5 text-[10px] uppercase tracking-widest text-fg-subtle">
+      {children}
+    </span>
+  );
+}
 
 export default async function ContractorsPage() {
   let contractors: ContractorRow[] = [];
@@ -23,6 +34,8 @@ export default async function ContractorsPage() {
     dbError = true;
   }
 
+  const anchored = contractors.filter((c) => c.anchored).length;
+
   const columns: Array<Column<ContractorRow>> = [
     {
       key: 'name',
@@ -30,15 +43,23 @@ export default async function ContractorsPage() {
       cell: (c) => {
         const invited = c.status === 'invited';
         return (
-          <div className="min-w-[10rem]">
-            <p className="font-medium text-fg-strong">{c.name}</p>
-            {invited ? (
-              <p className="text-xs text-fg-faint">{c.email || 'Pending acceptance'}</p>
-            ) : (
-              <p className="font-mono text-xs text-fg-subtle">
-                {c.stellar_address ? truncateKey(c.stellar_address, 6, 4) : '-'}
-              </p>
-            )}
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="grid size-8 shrink-0 place-items-center rounded bg-surface-3 font-headline text-sm text-fg-subtle"
+            >
+              {c.name.charAt(0).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate font-medium text-fg-strong">{c.name}</div>
+              {invited ? (
+                <div className="mono text-[10px] text-fg-faint">{c.email || 'Pending acceptance'}</div>
+              ) : (
+                <div className="mono text-[10px] text-fg-faint">
+                  {c.stellar_address ? truncateKey(c.stellar_address, 6, 4) : '-'}
+                </div>
+              )}
+            </div>
           </div>
         );
       },
@@ -51,26 +72,27 @@ export default async function ContractorsPage() {
     {
       key: 'range',
       header: 'Agreed range',
-      align: 'money',
-      cell: (c) => `${usdRange(c.range_min, c.range_max)} / mo`,
+      align: 'right',
+      cell: (c) => (
+        <span className="flex justify-end">
+          <SealedChip range={{ minCents: c.range_min, maxCents: c.range_max }} />
+        </span>
+      ),
     },
     {
       key: 'status',
       header: 'Status',
-      align: 'right',
+      className: 'text-center',
+      headerClassName: 'text-center',
       cell: (c) =>
         c.status === 'invited' ? (
-          <Badge variant="warning">
-            <Clock size={12} /> Invited
-          </Badge>
-        ) : c.anchored ? (
-          <Badge variant="success">
-            <ShieldCheck size={12} /> Anchored
-          </Badge>
+          <StatusTag>Pending</StatusTag>
         ) : (
-          <Badge variant="brand">
-            <AlertCircle size={12} /> Active
-          </Badge>
+          <OnChainSeal
+            state={c.anchored ? 'verified' : 'computing'}
+            label={c.anchored ? 'Anchored' : 'Not anchored'}
+            className="justify-center"
+          />
         ),
     },
     {
@@ -87,20 +109,31 @@ export default async function ContractorsPage() {
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-fg-default">Contributors</h1>
-          <p className="text-sm text-fg-subtle">
-            Invite, track status, and set each one&apos;s agreed range.
-          </p>
+    <div className="space-y-10">
+      <header className="flex flex-col gap-6 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3">
+          <p className="overline">Recipients</p>
+          <h1 className="font-headline text-headline-lg-mobile tracking-tight text-fg-default md:text-headline-lg">
+            Contributors
+          </h1>
+          <div className="flex items-end gap-6">
+            <div>
+              <div className="overline mb-1.5">Total recipients</div>
+              <div className="figure text-lg text-fg-default">{contractors.length}</div>
+            </div>
+            <span aria-hidden className="h-8 w-px self-center bg-border" />
+            <div>
+              <div className="overline mb-1.5">Anchored</div>
+              <div className="figure text-lg text-verified-text">{anchored}</div>
+            </div>
+          </div>
         </div>
-        <Button asChild>
+        <Button asChild className="shrink-0">
           <Link href="/contractors/new">
             <UserPlus size={16} /> Invite contributor
           </Link>
         </Button>
-      </div>
+      </header>
 
       {dbError ? (
         <ConnectionError
@@ -133,6 +166,7 @@ export default async function ContractorsPage() {
             columns={columns}
             rows={contractors}
             rowKey={(c) => c.id}
+            indexRail
             rowHref={(c) => (c.status === 'invited' ? undefined : `/contractors/${c.id}`)}
             rowLabel={(c) => `Open ${c.name}`}
             caption="Contributors, their agreed range and status."

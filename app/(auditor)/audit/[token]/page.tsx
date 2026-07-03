@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import { ShieldCheck, Download, ArrowUpRight, Lock, KeyRound, AlertTriangle } from 'lucide-react';
+import { Download, ArrowUpRight, Lock, KeyRound, AlertTriangle } from 'lucide-react';
+import { BrandMark } from '@/components/ui/brand-mark';
+import { OnChainSeal } from '@/components/ui/on-chain-seal';
+import { StatFigure } from '@/components/ui/stat-figure';
 import {
   listPayments,
   listPaymentsForCompany,
@@ -14,7 +17,6 @@ import { EXPLORER_BASE } from '@/lib/constants';
 import { usdRange, truncateKey } from '@/lib/utils';
 import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
 import { ConnectionError } from '@/components/ui/connection-error';
@@ -114,75 +116,114 @@ export default async function AuditorView({ params }: { params: { token: string 
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="overline mb-1">Audit report</p>
-          <h1 className="text-2xl font-bold tracking-tight">Payment settlement</h1>
-          <p className="mt-1 text-sm text-fg-subtle">
-            {disclose ? 'Viewing-key access' : 'Read-only access'} ·{' '}
-            <span className="proof-id">token {truncateKey(params.token)}</span>
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Slim public header: wordmark + confidential marker, no sidebar. */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10">
+              <BrandMark size={18} />
+            </span>
+            <span className="font-semibold tracking-tight text-fg-default">ShieldPay</span>
+            <span className="overline ml-1 hidden sm:inline">Confidential</span>
+          </div>
+          <Button asChild variant="ghost">
+            <a href={`/api/audit/export?token=${params.token}`}>
+              <Download size={15} /> Export CSV
+            </a>
+          </Button>
         </div>
-        <Button asChild variant="ghost">
-          <a href={`/api/audit/export?token=${params.token}`}>
-            <Download size={15} /> Export CSV
-          </a>
-        </Button>
       </header>
 
-      {disclose && (
-        <Card
-          className="mb-8 p-5"
-          style={{ background: 'var(--brand-wash)', borderColor: 'var(--brand-line)' }}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span
-                className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-brand-text"
-                style={{ background: 'var(--brand-wash)' }}
-              >
-                <KeyRound size={18} />
+      <main className="mx-auto max-w-5xl px-6 py-12">
+        <header className="mb-8">
+          <p className="overline mb-1 text-brand-text">Audit report</p>
+          <h1 className="font-headline text-2xl font-semibold tracking-tight text-fg-default">
+            Payment settlement
+          </h1>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <span className="text-fg-subtle">
+              Access: <span className="text-fg-default">{disclose ? 'Viewing-key' : 'Read-only'}</span>
+            </span>
+            <span className="text-fg-subtle">
+              Generated:{' '}
+              <span className="figure text-fg-default">
+                {new Date().toLocaleDateString('en-GB')}
               </span>
-              <div>
-                <p className="font-semibold text-fg-default">Selective disclosure unlocked</p>
-                <p className="mt-0.5 text-sm text-fg-subtle">
+            </span>
+            <span className="text-fg-subtle">
+              Token <span className="proof-id text-fg-default">{truncateKey(params.token)}</span>
+            </span>
+          </div>
+        </header>
+
+        {/* Read-only, time-boxed posture, stated up front. */}
+        <div className="mb-8 flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          <Lock size={15} className="mt-0.5 shrink-0" />
+          <span>
+            This access is read-only and time-boxed. No financial operation can be performed here,
+            and the link expires.
+          </span>
+        </div>
+
+        {disclose && (
+          <div className="card-primary mb-8">
+            <div aria-hidden className="ambient-wash pointer-events-none absolute inset-0" />
+            <div className="relative z-10">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <span
+                    className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-brand-text"
+                    style={{ background: 'var(--brand-wash)' }}
+                  >
+                    <KeyRound size={18} />
+                  </span>
+                  <div>
+                    <p className="overline">Reconciled disclosed total</p>
+                    <p className="figure-hero mt-2">{fmt(summary.disclosedTotalCents)}</p>
+                    <p className="mt-1 text-sm text-fg-subtle">
+                      {summary.disclosedCount} payments · USDC
+                    </p>
+                  </div>
+                </div>
+                <div className="max-w-sm text-sm text-fg-subtle">
                   {summary.verifiedLive
                     ? 'Exact amounts are revealed and each was re-checked live against the private on-chain record read straight from the Stellar contract.'
                     : 'Exact amounts are revealed and each was re-checked against the recorded on-chain record (a live contract read was unavailable).'}
-                </p>
+                </div>
+              </div>
+              <div className="mt-5 border-t border-border pt-4 text-sm">
+                {summary.allMatch ? (
+                  <span className="inline-flex items-center gap-2 text-verified-text">
+                    <OnChainSeal state="verified" /> All disclosed amounts match their private
+                    on-chain records.
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-danger">
+                    <AlertTriangle size={15} /> One or more amounts do NOT match the private on-chain
+                    record.
+                  </span>
+                )}
               </div>
             </div>
-            <div className="text-right">
-              <p className="overline">Disclosed total</p>
-              <p className="figure-hero mt-1 text-2xl font-bold">{fmt(summary.disclosedTotalCents)} USDC</p>
-              <p className="mt-0.5 text-xs text-fg-faint">{summary.disclosedCount} payments</p>
-            </div>
           </div>
-          <div className="mt-4 border-t border-border pt-3 text-sm">
-            {summary.allMatch ? (
-              <span className="inline-flex items-center gap-1.5 text-primary">
-                <ShieldCheck size={15} /> All disclosed amounts match their private on-chain records.
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-danger">
-                <AlertTriangle size={15} /> One or more amounts do NOT match the private on-chain record.
-              </span>
-            )}
-          </div>
-        </Card>
-      )}
+        )}
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <Stat label="Verified proofs" value={String(payments.filter((p) => p.verified).length)} />
-        <Stat label="Contractors" value={String(contractors)} />
-        <Stat
-          label={disclose ? 'Disclosed total' : 'Payments'}
-          value={disclose ? `${fmt(summary.disclosedTotalCents)}` : String(payments.length)}
-        />
-      </div>
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          <StatFigure
+            variant="secondary"
+            label="Verified proofs"
+            value={payments.filter((p) => p.verified).length}
+          />
+          <StatFigure variant="secondary" label="Contractors" value={contractors} />
+          <StatFigure
+            variant="secondary"
+            label={disclose ? 'Disclosed total' : 'Payments'}
+            value={disclose ? fmt(summary.disclosedTotalCents) : payments.length}
+          />
+        </div>
 
-      {dbError ? (
+        {dbError ? (
         <ConnectionError
           title="We cannot reach these records right now."
           message="No data is missing. Please try again in a moment."
@@ -246,9 +287,7 @@ export default async function AuditorView({ params }: { params: { token: string 
                       </a>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="success">
-                        <ShieldCheck size={12} /> Verified
-                      </Badge>
+                      <OnChainSeal state="verified" label="Verified" />
                     </TableCell>
                     <TableCell>
                       <a
@@ -276,34 +315,25 @@ export default async function AuditorView({ params }: { params: { token: string 
       </Card>
       )}
 
-      <p className="mt-6 flex items-center gap-2 text-sm text-warning">
-        <Lock size={14} /> Read-only access. No financial operation can be performed here.
-        {disclose ? (
-          <>
-            {' '}Amounts are disclosed under the company viewing key and re-verified against the
-            private on-chain records.
-          </>
-        ) : (
-          <>
-            {' '}Exact amounts are private; each row is backed by an on-chain proof.
-          </>
-        )}
-        <InfoHint>
-          Each payment carries a proof, verified by a Stellar smart contract, that the amount fell
-          within the agreed range, provable to a third party without disclosing the figure. A
-          viewing-key link additionally reveals the exact amount and re-derives the same private on-chain record
-          the contract checked, so the disclosed figure is cryptographically tied to the chain.
-        </InfoHint>
-      </p>
-    </main>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <Card className="p-5">
-      <p className="overline">{label}</p>
-      <p className="figure mt-1.5 text-2xl font-bold text-fg-default">{value}</p>
-    </Card>
+        <p className="mt-6 flex flex-wrap items-center gap-1.5 text-sm text-fg-subtle">
+          <Lock size={14} className="shrink-0 text-fg-faint" />
+          {disclose ? (
+            <>
+              Amounts are disclosed under the company viewing key and re-verified against the private
+              on-chain records.
+            </>
+          ) : (
+            <>Exact amounts are private; each row is backed by an on-chain proof.</>
+          )}
+          <InfoHint>
+            Each payment carries a proof, verified by a Stellar smart contract, that the amount fell
+            within the agreed range, provable to a third party without disclosing the figure. A
+            viewing-key link additionally reveals the exact amount and re-derives the same private
+            on-chain record the contract checked, so the disclosed figure is cryptographically tied
+            to the chain.
+          </InfoHint>
+        </p>
+      </main>
+    </div>
   );
 }

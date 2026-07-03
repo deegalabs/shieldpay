@@ -2,19 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { Mail, Building2, User } from 'lucide-react';
+import { Mail, KeyRound, Wallet, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { BrandMark } from '@/components/ui/brand-mark';
 
 type Role = 'company' | 'worker';
 
 export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
   const { ready, authenticated, getAccessToken, login } = usePrivy();
-  const [role, setRole] = useState<Role>('company');
+  // The Privy sign-in bridges into a company session by default. Contributors
+  // arrive through an invite link and auditors through a time-boxed access link,
+  // so this screen self-serves the company path (the demo row below covers the
+  // other roles). The bridge mechanism itself is unchanged.
+  const [role] = useState<Role>('company');
+  const [email, setEmail] = useState('');
   const [intent, setIntent] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   function nextDest(r: string) {
     const p = new URLSearchParams(window.location.search);
@@ -47,8 +52,11 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intent, authenticated]);
 
+  // Email, Google, passkey and wallet all open the same Privy flow (the modal
+  // offers each method); wallet connect runs through Privy too.
   function startPrivy() {
     setError(null);
+    setNote(null);
     setIntent(true);
     if (!authenticated) login();
   }
@@ -56,6 +64,7 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
   async function demo(r: Role) {
     setBusy('demo');
     setError(null);
+    setNote(null);
     try {
       const res = await fetch('/api/auth/demo', {
         method: 'POST',
@@ -70,119 +79,208 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
     }
   }
 
-  const title = mode === 'signup' ? 'Create your account' : 'Welcome back';
-  const cta = mode === 'signup' ? 'Create account' : 'Sign in';
+  const headline = mode === 'signup' ? 'Create your account' : 'Sign in to ShieldPay';
+  const emailCta = mode === 'signup' ? 'Get started with email' : 'Continue with email';
+  const disabled = !ready || !!busy;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <div className="mb-8 text-center">
-        <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-brand/10">
-          <BrandMark size={24} />
-        </span>
-        <h1 className="text-2xl font-semibold tracking-tight text-fg-default">{title}</h1>
-        <p className="mt-1.5 text-sm text-fg-subtle">
-          {mode === 'signup'
-            ? 'Set up payments with proof in minutes.'
-            : 'Sign in to your ShieldPay workspace.'}
-        </p>
-      </div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
+      {/* Ambient wash: indigo -> emerald -> transparent, light, never paint. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[80vh] w-[80vw] -translate-x-1/2 -translate-y-1/2 blur-[60px]"
+        style={{
+          background:
+            'radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(16,185,129,0.05) 50%, rgba(2,6,23,0) 70%)',
+        }}
+      />
 
-      <Card className="space-y-6 p-6 sm:p-7">
-        {/* Role */}
-        <div>
-          <p className="overline mb-2.5">I am a…</p>
-          <div className="grid grid-cols-2 gap-2">
-            <RoleTab active={role === 'company'} onClick={() => setRole('company')} icon={<Building2 size={16} />} label="Company" />
-            <RoleTab active={role === 'worker'} onClick={() => setRole('worker')} icon={<User size={16} />} label="Contractor" />
+      <div className="relative z-10 w-full max-w-md">
+        {/* Glass panel with a bright 1px top edge. */}
+        <div className="flex flex-col gap-8 rounded-xl border border-white/5 border-t-white/15 bg-surface-3/40 p-6 backdrop-blur-[24px] sm:p-8 md:p-10">
+          {/* Header */}
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded bg-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                <BrandMark size={22} />
+              </span>
+              <span className="font-headline text-headline-lg-mobile tracking-tight text-foreground">
+                ShieldPay
+              </span>
+            </div>
+            <div className="text-center">
+              <h1 className="mb-2 font-headline text-headline-lg-mobile text-foreground md:text-headline-lg">
+                {headline}
+              </h1>
+              <p className="font-body text-fg-subtle">Confidential Ledger Technology.</p>
+            </div>
           </div>
-          {mode === 'signup' && role === 'worker' && (
-            <p className="mt-2.5 rounded-lg border border-border bg-surface-2 p-3 text-xs text-fg-subtle">
-              Contractors join through an <span className="text-fg-default">invite link</span> from
-              their organization. Ask them to invite you, or sign in if you already accepted.
+
+          {/* Email + primary action */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="email"
+                className="pl-1 font-mono text-mono-label uppercase tracking-widest text-fg-subtle"
+              >
+                Email Address
+              </label>
+              <div className="flex h-12 items-center rounded-lg border border-border bg-surface-3 px-4 transition-colors focus-within:border-brand">
+                <Mail size={18} className="mr-3 shrink-0 text-fg-subtle" />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="w-full border-none bg-transparent font-mono text-mono-data text-fg-default outline-none placeholder:text-fg-faint focus:ring-0"
+                />
+              </div>
+            </div>
+
+            <Button size="lg" className="w-full" disabled={disabled} onClick={startPrivy}>
+              {busy === 'bridge' ? 'Signing in…' : emailCta}
+              {busy !== 'bridge' && <ArrowRight size={16} />}
+            </Button>
+          </div>
+
+          {error && (
+            <p className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger-text">
+              {error}
             </p>
           )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <span className="h-px flex-1 bg-border" />
+            <span className="font-mono text-mono-label uppercase text-fg-subtle">Or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* Alternative auth methods (all via the existing Privy flow) */}
+          <div className="flex flex-col gap-3">
+            <Button
+              variant="ghost"
+              size="lg"
+              disabled={disabled}
+              onClick={startPrivy}
+              className="w-full gap-3 bg-surface-3 font-body text-fg-default hover:bg-surface-overlay"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              disabled={disabled}
+              onClick={startPrivy}
+              className="w-full gap-3 bg-surface-3 font-body text-fg-default hover:bg-surface-overlay"
+            >
+              <KeyRound size={18} className="text-brand-text" />
+              Sign in with a passkey
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              disabled={disabled}
+              onClick={startPrivy}
+              className="w-full gap-3 bg-surface-3 font-body text-fg-default hover:bg-surface-overlay"
+            >
+              <Wallet size={18} className="text-verified-text" />
+              Connect a wallet
+            </Button>
+          </div>
+
+          {/* Trust note + role row */}
+          <div className="mt-2 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-lowest px-4 py-2">
+              <ShieldCheck size={14} className="text-verified-text" />
+              <span className="font-mono text-mono-label text-fg-subtle">
+                No seed phrases. Your key controls your funds.
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4 font-mono text-mono-label uppercase tracking-widest text-fg-subtle">
+              <button
+                type="button"
+                disabled={!!busy}
+                onClick={() => demo('company')}
+                className="transition-colors hover:text-brand-text disabled:opacity-50"
+              >
+                Company
+              </button>
+              <span className="text-border">•</span>
+              <button
+                type="button"
+                disabled={!!busy}
+                onClick={() => demo('worker')}
+                className="transition-colors hover:text-brand-text disabled:opacity-50"
+              >
+                Contributor
+              </button>
+              <span className="text-border">•</span>
+              <button
+                type="button"
+                disabled={!!busy}
+                onClick={() =>
+                  setNote('Auditors receive a time-boxed access link from a company.')
+                }
+                className="transition-colors hover:text-brand-text disabled:opacity-50"
+              >
+                Auditor
+              </button>
+            </div>
+
+            {note && (
+              <p className="max-w-[280px] text-center font-body text-xs text-fg-subtle">{note}</p>
+            )}
+          </div>
         </div>
 
-        {/* Primary sign-in */}
-        <div className="space-y-2.5">
-          <Button className="w-full" disabled={!ready || !!busy} onClick={startPrivy}>
-            <Mail size={16} />
-            {busy === 'bridge' ? 'Signing in…' : cta}
-          </Button>
-          <p className="text-center text-xs text-fg-faint">
-            Email, Google, or passkey. No seed phrase, a secure wallet is created for you.
-          </p>
-        </div>
-
-        {error && (
-          <p className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger-text">
-            {error}
-          </p>
-        )}
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 text-xs text-fg-faint">
-          <span className="h-px flex-1 bg-border" /> or try the demo{' '}
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
-        {/* Demo */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="ghost" disabled={!!busy} onClick={() => demo('company')}>
-            Demo company
-          </Button>
-          <Button variant="ghost" disabled={!!busy} onClick={() => demo('worker')}>
-            Demo worker
-          </Button>
-        </div>
-      </Card>
-
-      <p className="mt-6 text-center text-sm text-fg-subtle">
-        {mode === 'signup' ? (
-          <>
-            Already have an account?{' '}
-            <a className="font-medium text-brand-text hover:underline" href="/login">
-              Sign in
-            </a>
-          </>
-        ) : (
-          <>
-            New to ShieldPay?{' '}
-            <a className="font-medium text-brand-text hover:underline" href="/signup">
-              Create an account
-            </a>
-          </>
-        )}
-      </p>
+        {/* Quiet cross-navigation between the two entry routes. */}
+        <p className="mt-6 text-center text-sm text-fg-subtle">
+          {mode === 'signup' ? (
+            <>
+              Already have an account?{' '}
+              <a className="font-medium text-brand-text hover:underline" href="/login">
+                Sign in
+              </a>
+            </>
+          ) : (
+            <>
+              New to ShieldPay?{' '}
+              <a className="font-medium text-brand-text hover:underline" href="/signup">
+                Create an account
+              </a>
+            </>
+          )}
+        </p>
+      </div>
     </div>
   );
 }
 
-function RoleTab({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
+/** Self-contained Google "G" mark (no external asset, CSP-safe). */
+function GoogleIcon() {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={
-        'flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition ' +
-        (active
-          ? 'border-[color:var(--brand-line)] bg-[var(--brand-wash)] text-fg-default'
-          : 'border-border text-fg-subtle hover:bg-surface-2 hover:text-fg-strong')
-      }
-    >
-      {icon}
-      {label}
-    </button>
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden focusable="false">
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
+    </svg>
   );
 }

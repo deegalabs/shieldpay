@@ -1,11 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { ShieldCheck, Search, Fingerprint, UserCheck, Award } from 'lucide-react';
+import { Search, KeyRound, Fingerprint, UserCheck, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { MaskedAmount } from '@/components/ui/masked-amount';
+import { OnChainSeal } from '@/components/ui/on-chain-seal';
+import { SealedChip } from '@/components/ui/sealed-chip';
 import { InfoHint } from '@/components/ui/tooltip';
 
 interface CredentialRecord {
@@ -87,101 +88,84 @@ export function VerifyIncomePanel() {
   const hasRange = record?.range_min != null && record?.range_max != null;
 
   return (
-    <Card className="p-6 sm:p-8">
-      <div className="flex items-center gap-2">
-        <ShieldCheck size={15} className="text-fg-subtle" aria-hidden />
-        <span className="overline">Independent verification</span>
-      </div>
-      <h3 className="mt-3 text-xl font-semibold tracking-tight text-fg-default">
-        Verify a proof of income, no wallet needed
-      </h3>
-      <p className="mt-2 text-sm text-fg-subtle">
-        Paste a credential reference (or open a shared link) to confirm it straight from the Stellar
-        network. No account, no signing, nothing to install.
-      </p>
+    <Card className="overflow-hidden p-0 shadow-edge">
+      <div className="border-b border-border bg-surface-2 p-6 sm:p-8">
+        <label htmlFor="credential-ref" className="overline block">
+          Credential reference
+        </label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <KeyRound
+              size={16}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-faint"
+              aria-hidden
+            />
+            <Input
+              id="credential-ref"
+              value={nullifier}
+              onChange={(e) => setNullifier(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') verify(nullifier, credentialId);
+              }}
+              placeholder="SP-CRED-XXXX-YYYY"
+              aria-label="Credential reference"
+              className="figure h-12 pl-11"
+            />
+          </div>
+          <Button
+            onClick={() => verify(nullifier, credentialId)}
+            disabled={loading}
+            variant="primary"
+            className="h-12 sm:w-auto"
+          >
+            <Search size={16} /> {loading ? 'Checking…' : 'Verify on-chain'}
+          </Button>
+        </div>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-        <Input
-          value={nullifier}
-          onChange={(e) => setNullifier(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') verify(nullifier, credentialId);
-          }}
-          placeholder="Credential reference"
-          aria-label="Credential reference"
-          className="figure"
-        />
-        <Button
-          onClick={() => verify(nullifier, credentialId)}
-          disabled={loading}
-          variant="primary"
-          className="sm:w-auto"
-        >
-          <Search size={16} /> {loading ? 'Checking…' : 'Verify on-chain'}
-        </Button>
+        {error && (
+          <p className="mt-4 text-sm text-danger-text" role="alert">
+            {error}
+          </p>
+        )}
       </div>
-
-      {error && (
-        <p className="mt-4 text-sm text-danger-text" role="alert">
-          {error}
-        </p>
-      )}
 
       {success && (
-        <div
-          className="mt-6 rounded-xl border border-border bg-surface-2 p-5 sm:p-6"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="badge-verified">
-              <ShieldCheck size={14} strokeWidth={1.75} aria-hidden /> Verified on-chain
-            </span>
-            {record?.verified_at_ledger != null && (
-              <span className="overline">
-                Ledger{' '}
-                <span className="figure normal-case tracking-normal text-fg-subtle">
-                  {String(record.verified_at_ledger)}
-                </span>
-              </span>
-            )}
-          </div>
-
-          <p className="mt-4 text-sm text-fg-strong">
-            This income credential is genuine. It was verified and recorded on the Stellar network.
+        <div className="animate-reveal p-6 text-center sm:p-8" role="status" aria-live="polite">
+          <OnChainSeal state="verified" size="md" className="mx-auto justify-center" />
+          <p className="mt-4 font-headline text-lg font-semibold tracking-tight text-fg-default">
+            Verification successful
+          </p>
+          <p className="mt-1 text-sm text-fg-subtle">
+            This income credential is genuine. It was recorded on the Stellar network.
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          {hasRange && (
+            <div className="mt-6 flex justify-center">
+              <SealedChip
+                range={{ minCents: Number(record?.range_min), maxCents: Number(record?.range_max) }}
+                size="md"
+              />
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Claim icon={<Award size={12} />}>Employer-attested</Claim>
             <Claim icon={<UserCheck size={12} />}>Recipient-bound</Claim>
             <Claim icon={<Fingerprint size={12} />}>Amount-private</Claim>
           </div>
 
-          {record && (
-            <dl className="mt-5 space-y-3 border-t border-border pt-4">
-              <div className="flex items-center justify-between gap-4">
-                <dt className="overline shrink-0">Proven income range</dt>
-                <dd>
-                  {hasRange ? (
-                    <MaskedAmount
-                      state="verified"
-                      range={{
-                        minCents: Number(record.range_min),
-                        maxCents: Number(record.range_max),
-                      }}
-                    />
-                  ) : (
-                    <span className="text-fg-faint">—</span>
-                  )}
-                </dd>
-              </div>
-              <ResultRow k="Attesting employer" v={truncate(record.employer_ax ?? '')} />
-              <ResultRow k="Recipient reference" v={truncate(record.worker_id ?? '')} />
+          {record ? (
+            <dl className="mt-6 grid gap-3 border-t border-border pt-5 text-left sm:grid-cols-3">
+              <FieldBox label="Issuer" value={truncate(record.employer_ax ?? '')} />
+              <FieldBox label="Recipient reference" value={truncate(record.worker_id ?? '')} />
+              <FieldBox
+                label="Ledger ref"
+                value={record.verified_at_ledger != null ? String(record.verified_at_ledger) : '—'}
+                accent
+              />
             </dl>
-          )}
-
-          {!record && (
-            <p className="mt-5 border-t border-border pt-4 text-xs text-fg-faint">
+          ) : (
+            <p className="mt-6 border-t border-border pt-5 text-xs text-fg-faint">
               Open the full shared link to also see the proven range and the attesting employer.
             </p>
           )}
@@ -189,13 +173,13 @@ export function VerifyIncomePanel() {
       )}
 
       {result && !success && (
-        <div className="mt-6 rounded-xl border border-border bg-surface-2 p-5 text-sm text-fg-subtle">
-          No income credential found for that reference. Check the code, or ask the issuer for a fresh
-          link.
+        <div className="p-6 text-sm text-fg-subtle sm:p-8">
+          No income credential found for that reference. Check the code, or ask the issuer for a
+          fresh link.
         </div>
       )}
 
-      <p className="mt-5 flex items-start gap-2 text-xs text-fg-faint">
+      <p className="flex items-start gap-2 border-t border-border bg-surface-2 px-6 py-4 text-xs text-fg-faint sm:px-8">
         <Fingerprint size={13} className="mt-0.5 shrink-0" /> The exact monthly amounts stay private.
         Only the agreed range and the employer that attested it are shown.{' '}
         <span className="inline-flex">
@@ -211,18 +195,20 @@ export function VerifyIncomePanel() {
 
 function Claim({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 px-2.5 py-0.5 text-xs font-medium text-fg-subtle ring-1 ring-inset ring-border">
+    <span className="overline inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-3 px-3 py-1 text-fg-subtle">
       {icon}
       {children}
     </span>
   );
 }
 
-function ResultRow({ k, v }: { k: string; v: string }) {
+function FieldBox({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className="overline shrink-0">{k}</dt>
-      <dd className="hash min-w-0 truncate text-right font-medium text-fg-default">{v}</dd>
+    <div className="rounded-lg border border-border bg-surface p-3">
+      <p className="overline">{label}</p>
+      <p className={`hash mt-1.5 truncate font-medium ${accent ? 'text-brand-text' : 'text-fg-default'}`}>
+        {value}
+      </p>
     </div>
   );
 }
