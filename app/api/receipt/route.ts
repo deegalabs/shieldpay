@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPayment, getCompanyByOwner, type PaymentRow } from '@/lib/db/client';
 import { getSession } from '@/lib/auth/server';
 import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
-import { generateReceiptPdf } from '@/lib/pdf/receipt';
+import { generateReceiptPdf, receiptJson } from '@/lib/pdf/receipt';
 import { COMPANY, EXPLORER_BASE } from '@/lib/constants';
 
 export const runtime = 'nodejs';
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  const pdf = await generateReceiptPdf({
+  const receipt = {
     companyName: payment.payer_name || COMPANY.name,
     companyCnpj: payment.payer_cnpj || COMPANY.cnpj,
     workerName: payment.worker_name,
@@ -67,7 +67,15 @@ export async function GET(req: NextRequest) {
     txHash: payment.tx_hash,
     explorerUrl: `${EXPLORER_BASE}/tx/${payment.tx_hash}`,
     issuedAt: payment.created_at,
-  });
+  };
+
+  // Machine-readable variant. The exact amount is never disclosed on this path
+  // (no viewing key here), so viewKeyDisclosed is false and the figure is absent.
+  if (req.nextUrl.searchParams.get('format') === 'json') {
+    return NextResponse.json(receiptJson({ ...receipt, viewKeyDisclosed: false }));
+  }
+
+  const pdf = await generateReceiptPdf(receipt);
 
   return new NextResponse(Buffer.from(pdf), {
     headers: {

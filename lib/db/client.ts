@@ -197,6 +197,35 @@ export async function rotateDiscloseEpoch(companyId: string): Promise<number> {
   return rows[0]?.disclose_epoch ?? 1;
 }
 
+/**
+ * Record a disclose-tier disclosure (N4 accountability). Best-effort: callers
+ * wrap this so a logging failure never breaks the auditor view. Stores totals
+ * and flags only, never per-line amounts, and only a sha256 of the token.
+ */
+export async function logDisclosure(row: {
+  companyId: string;
+  tokenHash: string;
+  paymentCount: number;
+  disclosedTotalCents: number;
+  allMatch: boolean;
+  verifiedLive: boolean;
+}): Promise<void> {
+  await ensureSchema();
+  await getPool().query(
+    `INSERT INTO disclosure_log
+       (company_id, token_hash, payment_count, disclosed_total_cents, all_match, verified_live)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [
+      row.companyId,
+      row.tokenHash,
+      row.paymentCount,
+      row.disclosedTotalCents,
+      row.allMatch,
+      row.verifiedLive,
+    ],
+  );
+}
+
 export async function getCompanyByOwner(ownerSub: string): Promise<CompanyRow | null> {
   await ensureSchema();
   const { rows } = await getPool().query<CompanyRow>(

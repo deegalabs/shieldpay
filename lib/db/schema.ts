@@ -82,6 +82,20 @@ ALTER TABLE payments  ADD COLUMN IF NOT EXISTS disclosure TEXT; -- sealed {amoun
 -- leaked viewing-key link can be revoked without rotating the key or re-sealing.
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS disclose_epoch INTEGER NOT NULL DEFAULT 1;
 
+-- Disclosure audit log: one row every time a disclose-tier disclosure is served.
+-- Records totals and match/live flags for accountability, never per-line amounts,
+-- and stores only a sha256 of the auditor token (never the raw token).
+CREATE TABLE IF NOT EXISTS disclosure_log (
+  id                    BIGSERIAL PRIMARY KEY,
+  company_id            BIGINT,
+  token_hash            TEXT,
+  payment_count         INT,
+  disclosed_total_cents BIGINT,
+  all_match             BOOLEAN,
+  verified_live         BOOLEAN,
+  created_at            TIMESTAMPTZ DEFAULT now()
+);
+
 -- N5: real, recipient-visible, memo-bound on-chain settlement record. Carries a
 -- symbolic amount only (the salary stays confidential as the commitment); the
 -- proof is bound to this tx hash. Null when settlement was skipped (best-effort).

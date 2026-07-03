@@ -24,10 +24,19 @@ export function newViewingKey(): string {
   return randomBytes(32).toString('hex');
 }
 
-/** Derive the symmetric encryption key from the viewing key (domain-separated). */
+/**
+ * Derive the symmetric encryption key from the viewing key (domain-separated).
+ * The intermediate keying material (the raw viewing-key bytes) is zeroed as soon
+ * as the derived key exists, so it does not linger in a heap buffer. The caller
+ * is responsible for zeroing the returned key once it is done with it.
+ */
 function aesKey(viewingKeyHex: string): Buffer {
   const ikm = Buffer.from(viewingKeyHex, 'hex');
-  return Buffer.from(hkdfSync('sha256', ikm, Buffer.alloc(0), INFO, 32));
+  try {
+    return Buffer.from(hkdfSync('sha256', ikm, Buffer.alloc(0), INFO, 32));
+  } finally {
+    ikm.fill(0);
+  }
 }
 
 export interface Witness {
@@ -37,22 +46,34 @@ export interface Witness {
 
 /** Seal {amountCents, randomness} under the viewing key → base64 (iv|tag|ct). */
 export function sealWitness(viewingKeyHex: string, w: Witness): string {
-  const iv = randomBytes(IV_LEN);
-  const cipher = createCipheriv(ALG, aesKey(viewingKeyHex), iv);
-  const pt = Buffer.from(JSON.stringify(w), 'utf8');
-  const ct = Buffer.concat([cipher.update(pt), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, ct]).toString('base64');
+  const key = aesKey(viewingKeyHex);
+  try {
+    const iv = randomBytes(IV_LEN);
+    const cipher = createCipheriv(ALG, key, iv);
+    const pt = Buffer.from(JSON.stringify(w), 'utf8');
+    const ct = Buffer.concat([cipher.update(pt), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return Buffer.concat([iv, tag, ct]).toString('base64');
+  } finally {
+    key.fill(0); // best-effort: do not leave the derived key in a heap buffer
+  }
 }
 
-/** Open a sealed witness with the viewing key (null if key/blob mismatch or tampered). */
+/**
+ * Open a sealed witness with the viewing key (null if key/blob mismatch or
+ * tampered). The AES key derived from the viewing key is best-effort zeroed in a
+ * finally, so the key material used to reveal the amount does not linger in
+ * memory after the witness is opened.
+ */
 export function openWitness(viewingKeyHex: string, blob: string): Witness | null {
+  let key: Buffer | null = null;
   try {
     const buf = Buffer.from(blob, 'base64');
     const iv = buf.subarray(0, IV_LEN);
     const tag = buf.subarray(IV_LEN, IV_LEN + TAG_LEN);
     const ct = buf.subarray(IV_LEN + TAG_LEN);
-    const decipher = createDecipheriv(ALG, aesKey(viewingKeyHex), iv);
+    key = aesKey(viewingKeyHex);
+    const decipher = createDecipheriv(ALG, key, iv);
     decipher.setAuthTag(tag);
     const pt = Buffer.concat([decipher.update(ct), decipher.final()]);
     const w = JSON.parse(pt.toString('utf8')) as Witness;
@@ -60,5 +81,7 @@ export function openWitness(viewingKeyHex: string, blob: string): Witness | null
     return w;
   } catch {
     return null;
+  } finally {
+    key?.fill(0); // best-effort: zero the derived key once the witness is open
   }
 }

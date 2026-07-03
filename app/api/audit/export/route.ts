@@ -1,13 +1,15 @@
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   listPayments,
   listPaymentsForCompany,
   ensureCompanyViewingKey,
   getCompanyById,
+  logDisclosure,
   type PaymentRow,
 } from '@/lib/db/client';
 import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
-import { disclosePayments } from '@/lib/payments/disclose';
+import { disclosePayments, summarizeDisclosure } from '@/lib/payments/disclose';
 import { EXPLORER_BASE } from '@/lib/constants';
 
 export const runtime = 'nodejs';
@@ -57,6 +59,20 @@ export async function GET(req: NextRequest) {
   if (disclose && claims.companyId) {
     const vk = await ensureCompanyViewingKey(claims.companyId);
     disclosed = await disclosePayments(vk, payments);
+    // Record the disclosure (best-effort: never break the export).
+    try {
+      const summary = summarizeDisclosure(disclosed);
+      await logDisclosure({
+        companyId: claims.companyId,
+        tokenHash: createHash('sha256').update(token).digest('hex'),
+        paymentCount: summary.disclosedCount,
+        disclosedTotalCents: summary.disclosedTotalCents,
+        allMatch: summary.allMatch,
+        verifiedLive: summary.verifiedLive,
+      });
+    } catch {
+      /* logging is best-effort */
+    }
   }
 
   const cols = [
