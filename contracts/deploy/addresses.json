@@ -1,11 +1,12 @@
 {
   "network": "testnet",
-  "deployer": "GALMHHXIV746ULVLMQ576Q34ISJ4V62DDU3ALXLIE6ZNSY5VAAGQZNLQ",
+  "deployer": "GB2LVR2TN44DI6NYFECX4XREWDUF2223KO75NOBAVQ2L77W7YNJ7GSF6",
   "anchor_registry": "CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
-  "payment_verifier": "CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3",
-  "notes": "payment_verifier is the binding circuit (5 public signals): it verifies the Groth16/BN254 proof on-chain AND enforces that the public signals for the commitment, recipient, and settlement tx equal the recorded values. Initialized with the multi-party ceremony verification key (3 contributions plus a public beacon). Validated on testnet (proof_id 0, verified=true). Supersedes CCLEDEZ2 (single-contributor setup) and CB6LJ2YR (3-signal, range-only). anchor_registry is unchanged.",
+  "payment_verifier": "CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ",
+  "payroll_verifier": "CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ",
+  "notes": "Unified verifier: one instance holds BOTH circuit keys. initialize() stores the 5-signal per-payment key, initialize_payroll() the 25-signal aggregate key. verify_and_record enforces the commitment/recipient/tx binding AND stores the proven range and a commitment index; verify_and_record_payroll binds each aggregate line to a recorded payment of the same company with a matching range (closes P1). Validated on testnet (per-payment proof_id 0, verified=true, range 45000..55000 stored). Supersedes payment_verifier CAUK3NRZ (5-signal only) and payroll_verifier CCI4WXRQ (aggregate, total-only binding).",
   "explorer": {
-    "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
-    "payment_verifier": "https://stellar.expert/explorer/testnet/contract/CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3"
+    "verifier": "https://stellar.expert/explorer/testnet/contract/CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ",
+    "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI"
   }
 }

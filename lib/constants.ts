@@ -60,16 +60,17 @@ export const CONTRACTS = {
     process.env.ANCHOR_REGISTRY_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_ANCHOR_REGISTRY_CONTRACT_ID ??
     '',
+  // Unified verifier instance: holds BOTH circuit keys (per-payment + aggregate)
+  // so the Proof-of-Payroll can bind each line to a recorded payment on-chain.
   paymentVerifier:
     process.env.PAYMENT_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYMENT_VERIFIER_CONTRACT_ID ??
-    '',
-  // Aggregate Proof-of-Payroll verifier (separate instance, payroll VK). Falls
-  // back to the deployed testnet instance so the feature works out of the box.
+    'CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ',
+  // Same unified instance (aggregate verify + per-line binding live here too).
   payrollVerifier:
     process.env.PAYROLL_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYROLL_VERIFIER_CONTRACT_ID ??
-    'CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN',
+    'CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ',
 } as const;
 
 /**
