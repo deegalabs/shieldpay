@@ -73,6 +73,12 @@ export const CONTRACTS = {
     process.env.PAYROLL_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYROLL_VERIFIER_CONTRACT_ID ??
     'CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q',
+  // Income Credential verifier (feature F1): records proof-of-income
+  // presentations, keyed by nullifier so a presentation cannot be replayed.
+  incomeVerifier:
+    process.env.INCOME_VERIFIER_CONTRACT_ID ??
+    process.env.NEXT_PUBLIC_INCOME_VERIFIER_CONTRACT_ID ??
+    'CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT',
 } as const;
 
 /**

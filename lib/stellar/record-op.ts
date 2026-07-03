@@ -58,3 +58,28 @@ export function buildRecordPayrollOp(args: {
     bytes(args.publicSignalsBytes),
   );
 }
+
+/**
+ * Build the `verify_and_record_credential` IncomeVerifier operation: proves an
+ * employer paid a worker a sum within a claimed range over N months, revealing no
+ * monthly amount. `nullifier` is public signal 0 (Poseidon(secret, verifierId));
+ * the contract binds the passed nullifier to the proof and rejects a repeat
+ * presentation of the same nullifier. This call takes no company address and does
+ * not require_auth, so any funded account can source and pay for it.
+ */
+export function buildRecordCredentialOp(args: {
+  contractId: string;
+  nullifier: Buffer; // 32 bytes
+  proofBytes: Buffer; // 256 bytes
+  publicSignalsBytes: Buffer;
+}): xdr.Operation {
+  if (!args.contractId) throw new Error('Income verifier contract id not configured');
+  const contract = new Contract(args.contractId);
+  const bytes = (buf: Buffer) => nativeToScVal(buf, { type: 'bytes' });
+  return contract.call(
+    'verify_and_record_credential',
+    bytes(args.nullifier),
+    bytes(args.proofBytes),
+    bytes(args.publicSignalsBytes),
+  );
+}

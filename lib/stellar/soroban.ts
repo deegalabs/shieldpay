@@ -9,7 +9,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { sorobanServer, networkPassphrase } from './client';
 import { CONTRACTS } from '@/lib/constants';
-import { buildRecordProofOp, buildRecordPayrollOp } from './record-op';
+import { buildRecordProofOp, buildRecordPayrollOp, buildRecordCredentialOp } from './record-op';
 import type { CompanySigner } from './signer';
 
 /**
@@ -110,6 +110,32 @@ export async function recordPayrollProofOnChain(args: {
   });
   const { hash, returnValue } = await args.signer.invoke(op);
   return { proofId: String(returnValue ?? ''), txHash: hash };
+}
+
+/**
+ * Verify + record an Income Credential on-chain against the IncomeVerifier: one
+ * proof that an employer paid a worker a sum within a claimed range over N months,
+ * revealing no monthly amount. Returns the credential id and the tx hash. The
+ * nullifier is per (secret, verifierId); presenting the same nullifier twice to
+ * this verifier is rejected on-chain (AlreadyPresented).
+ */
+export async function recordCredentialOnChain(args: {
+  signer: CompanySigner; // sources and pays for the tx (no require_auth on this call)
+  nullifier: Buffer; // 32 bytes, public signal 0
+  proofBytes: Buffer;
+  publicSignalsBytes: Buffer;
+}): Promise<{ credentialId: string; txHash: string }> {
+  if (!CONTRACTS.incomeVerifier) {
+    throw new Error('INCOME_VERIFIER_CONTRACT_ID not configured');
+  }
+  const op = buildRecordCredentialOp({
+    contractId: CONTRACTS.incomeVerifier,
+    nullifier: args.nullifier,
+    proofBytes: args.proofBytes,
+    publicSignalsBytes: args.publicSignalsBytes,
+  });
+  const { hash, returnValue } = await args.signer.invoke(op);
+  return { credentialId: String(returnValue ?? ''), txHash: hash };
 }
 
 /** Read-only check whether a payment tx hash has a recorded proof. */

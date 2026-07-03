@@ -4,7 +4,7 @@
 
 [workspace]
 resolver = "2"
-members = ["anchor_registry", "payment_verifier"]
+members = ["anchor_registry", "payment_verifier", "income_verifier"]
 
 [workspace.dependencies]
 soroban-sdk = "26"
