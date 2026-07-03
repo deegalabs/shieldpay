@@ -2,11 +2,13 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * The dense, finance-grade table. ShieldPay's primary reading surface: payment
- * history, receipts, contributors, the audit export. A real semantic `<table>`
- * that replaces the flex-div "lists" the app shipped with, so a currency column
- * can right-align and its decimals can stack down the column (the core
- * credibility move). See patterns/components/data-table.md and STYLE.md.
+ * The signature LEDGER table. ShieldPay's primary reading surface: payment
+ * history, receipts, contributors, the audit export, the proof explorer. A real
+ * semantic `<table>` so a currency column can right-align and its decimals stack
+ * down the column (the core credibility move). The Confidential Ledger look adds
+ * a thin left INDEX RAIL of mono line numbers (01, 02, 03), a mono-label header,
+ * hairline separators, and a calm surface-container-high hover. See
+ * patterns/components/data-table.md and DESIGN.md.
  *
  * Two ways to use it, pick per screen:
  *
@@ -23,7 +25,8 @@ import { cn } from '@/lib/utils';
  * matches the `.overline` utility in globals.css and identity/typography.md.
  */
 
-const OVERLINE = 'text-xs font-[550] uppercase tracking-[0.06em] text-fg-subtle';
+// Mono-label header per the Confidential Ledger spec (Space Mono, +0.1em).
+const OVERLINE = 'overline text-fg-subtle';
 
 /* ------------------------------------------------------------------ */
 /* Composable primitives                                               */
@@ -41,8 +44,17 @@ export const Table = React.forwardRef<
 Table.displayName = 'Table';
 
 export function TableHead({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  // surface-2 header fill with a hairline bottom, per the anatomy spec.
+  // surface-container-low header fill with a hairline bottom, per the anatomy spec.
   return <thead className={cn('bg-surface-2 [&_tr]:border-b [&_tr]:border-border', className)} {...props} />;
+}
+
+/** Left-aligned index cell for the ledger index rail: mono line number, faint. */
+export function IndexCell({ index }: { index: number }) {
+  return (
+    <td className="w-10 px-3 text-center align-middle">
+      <span className="mono text-xs text-fg-faint">{String(index + 1).padStart(2, '0')}</span>
+    </td>
+  );
 }
 
 export function TableBody(props: React.HTMLAttributes<HTMLTableSectionElement>) {
@@ -169,6 +181,13 @@ export interface DataTableProps<T>
   /** 44px compact rows for full-screen tables (audit export). Default 52px. */
   compact?: boolean;
   /**
+   * Render the signature left index rail: a thin leading column of mono line
+   * numbers (01, 02, 03). Off by default so existing callers are unchanged.
+   */
+  indexRail?: boolean;
+  /** Header label for the index-rail column (defaults to "#"). */
+  indexHeader?: React.ReactNode;
+  /**
    * Rendered in place of the body when there are no rows. Keep it calm: a single
    * 20px glyph and one line of `fg-subtle` copy.
    */
@@ -185,14 +204,20 @@ export function DataTable<T>({
   selected,
   caption,
   compact,
+  indexRail,
+  indexHeader = '#',
   empty,
   className,
   ...props
 }: DataTableProps<T>) {
+  const totalCols = columns.length + (indexRail ? 1 : 0);
   return (
     <Table caption={caption} className={className} {...props}>
       <TableHead>
         <tr>
+          {indexRail && (
+            <TableHeaderCell className="w-10 px-3 text-center">{indexHeader}</TableHeaderCell>
+          )}
           {columns.map((col, ci) => (
             <TableHeaderCell key={col.key ?? ci} align={col.align} className={col.headerClassName}>
               {col.header}
@@ -203,7 +228,7 @@ export function DataTable<T>({
       <TableBody>
         {rows.length === 0 && empty != null ? (
           <tr>
-            <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-fg-subtle">
+            <td colSpan={totalCols} className="px-4 py-10 text-center text-sm text-fg-subtle">
               {empty}
             </td>
           </tr>
@@ -232,6 +257,7 @@ export function DataTable<T>({
                     : undefined
                 }
               >
+                {indexRail && <IndexCell index={ri} />}
                 {columns.map((col, ci) => (
                   <TableCell key={col.key ?? ci} align={col.align} className={col.className}>
                     {ci === 0 && href && (

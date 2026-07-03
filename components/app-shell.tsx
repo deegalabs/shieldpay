@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { HelpCircle } from 'lucide-react';
 import { NavLink } from '@/components/nav-link';
+import { MobileNav } from '@/components/mobile-nav';
 import { BrandMark } from '@/components/ui/brand-mark';
 
 export interface NavItem {
@@ -10,8 +11,12 @@ export interface NavItem {
 }
 
 /**
- * Authenticated app shell: brand + sidebar nav (desktop) / top nav (mobile) +
- * topbar (title, user, actions). Used by the company and worker layouts.
+ * The Confidential Ledger app shell: a fixed left sidebar (the shield wordmark,
+ * the company/vault block in Space Grotesk + mono-label, the vertical nav with
+ * an indigo-tinted active pill, and a bottom action slot), plus a slim top strip
+ * that carries the page actions. On mobile it collapses to a sticky mini-header
+ * with a hamburger (see MobileNav). Slots are unchanged from the previous shell
+ * so the company and worker layouts keep passing the same props.
  */
 export function AppShell({
   title,
@@ -29,16 +34,29 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar (desktop) */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 md:flex">
-        <Link href="/" className="mb-8 flex items-center gap-2 px-2">
+    <div className="min-h-screen md:flex">
+      {/* Sidebar (desktop): fixed, tonal, hairline right edge. */}
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col gap-4 border-r border-border bg-surface-2 p-4 md:flex">
+        {/* Shield wordmark */}
+        <Link href="/" className="flex items-center gap-2 px-1 pt-1">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10">
             <BrandMark size={18} />
           </span>
-          <span className="font-semibold tracking-tight">ShieldPay</span>
+          <span className="font-grotesk text-base font-semibold tracking-tight text-foreground">
+            ShieldPay
+          </span>
         </Link>
-        <nav className="flex flex-col gap-1">
+
+        {/* Company / vault block */}
+        <div className="mt-2 flex flex-col gap-0.5 px-1">
+          <span className="truncate font-grotesk text-xl font-semibold tracking-tight text-brand-text">
+            {title}
+          </span>
+          {subtitle && <span className="overline truncate">{subtitle}</span>}
+        </div>
+
+        {/* Vertical nav */}
+        <nav className="mt-4 flex flex-1 flex-col gap-1">
           {nav.map((item) => (
             <NavLink key={item.href} href={item.href}>
               {item.icon}
@@ -46,61 +64,41 @@ export function AppShell({
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto space-y-2">
+
+        {/* Bottom: help, private-by-default note, primary action slot. */}
+        <div className="mt-auto flex flex-col gap-3">
           <NavLink href="/help">
             <HelpCircle size={16} />
             Help &amp; docs
           </NavLink>
-          <div className="rounded-lg border border-border bg-surface-2/40 p-3 text-xs text-muted">
-            Payments backed by on-chain proofs. Exact amounts stay private.
-          </div>
+          <p className="rounded-lg border border-border bg-surface p-3 text-xs text-fg-subtle top-edge">
+            Payments backed by on-chain proofs. Exact amounts stay sealed.
+          </p>
+          {user?.name && (
+            <div className="flex items-center gap-2.5 border-t border-border pt-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/12 font-mono text-sm font-semibold uppercase text-brand-text">
+                {user.name.trim().charAt(0) || '?'}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium leading-tight text-fg-default">
+                  {user.name}
+                </p>
+                {user.role && <p className="text-xs capitalize text-fg-faint">{user.role}</p>}
+              </div>
+            </div>
+          )}
+          {actions && <div className="flex flex-col gap-2">{actions}</div>}
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Topbar */}
-        <header className="flex items-center justify-between gap-4 border-b border-border bg-surface/30 px-4 py-3 backdrop-blur sm:px-6">
-          <div className="flex min-w-0 items-center gap-2">
-            <Link href="/" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/10 md:hidden">
-              <BrandMark size={18} />
-            </Link>
-            <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{title}</h1>
-              {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            {user?.name && (
-              <div className="hidden max-w-[200px] items-center gap-2.5 sm:flex">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/12 text-sm font-semibold uppercase text-brand-text">
-                  {user.name.trim().charAt(0) || '?'}
-                </span>
-                <div className="min-w-0 text-right sm:text-left">
-                  <p className="truncate text-sm font-medium leading-tight text-fg-default">{user.name}</p>
-                  {user.role && <p className="text-xs capitalize text-fg-faint">{user.role}</p>}
-                </div>
-              </div>
-            )}
-            <div className="h-6 w-px bg-border" />
-            {actions}
-          </div>
-        </header>
+      {/* Mobile chrome */}
+      <MobileNav brand={title} nav={nav} actions={actions} />
 
-        {/* Mobile nav (horizontal, scrollable) */}
-        <nav className="flex gap-1 overflow-x-auto border-b border-border bg-surface/20 px-3 py-2 md:hidden">
-          {nav.map((item) => (
-            <NavLink key={item.href} href={item.href}>
-              {item.icon}
-              <span className="whitespace-nowrap">{item.label}</span>
-            </NavLink>
-          ))}
-          <NavLink href="/help">
-            <HelpCircle size={16} />
-            <span className="whitespace-nowrap">Help</span>
-          </NavLink>
-        </nav>
-
-        <main className="mx-auto w-full max-w-5xl flex-1 animate-fade-in p-4 sm:p-6">{children}</main>
+      {/* Main content, offset by the fixed sidebar on desktop. */}
+      <div className="flex min-w-0 flex-1 flex-col md:ml-64">
+        <main className="mx-auto w-full max-w-5xl flex-1 animate-fade-in p-4 sm:p-6 md:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

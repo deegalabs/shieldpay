@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { ShieldCheck } from 'lucide-react';
-import { cn, usd, usdRange } from '@/lib/utils';
+import { cn, usd } from '@/lib/utils';
+import { SealedChip } from '@/components/ui/sealed-chip';
+import { OnChainSeal } from '@/components/ui/on-chain-seal';
 
 /**
  * The three-state amount control, the signature pattern of the brand. It shows
@@ -9,10 +10,13 @@ import { cn, usd, usdRange } from '@/lib/utils';
  * contributor detail, the auditor view. See patterns/components/amount-disclosure.md
  * and STYLE.md Bold Bet 4.
  *
- *   masked    slate chip on surface-3 with a hairline and an indigo dot cue,
- *             carrying the agreed range. Never asterisks, never a blur.
- *   verified  the masked chip plus an emerald verified affordance (and Proof ID
- *             when known). The amount stays private; what shows is that it checked out.
+ * In the Confidential Ledger system this renders through the shared signature
+ * primitives, so the look stays consistent across every screen:
+ *
+ *   masked    the Sealed Masked Chip carrying the agreed range (lock + indigo
+ *             dot + Space Mono range). Never asterisks, never a blur.
+ *   verified  the Sealed Chip plus the emerald On-Chain Seal (and Proof ID when
+ *             known). The amount stays sealed; what shows is that it checked out.
  *   disclosed the real figure in mono tabular, shown only to an authorized viewer.
  */
 
@@ -49,21 +53,12 @@ export const MaskedAmount = React.forwardRef<HTMLSpanElement, MaskedAmountProps>
     }
 
     if (resolved === 'verified') {
-      // Masked chip carrying the range, marked with the emerald verified affordance.
+      // Sealed chip carrying the range, marked with the emerald On-Chain Seal.
       // The exact number is still withheld; the proof is what is shown.
       return (
-        <span
-          ref={ref}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-md bg-surface-3 px-2 py-0.5 ring-1 ring-inset',
-            'ring-[color:var(--verified-line)] shadow-[0_0_16px_-6px_rgba(16,185,129,0.35)]',
-            className,
-          )}
-          {...props}
-        >
-          <ShieldCheck size={14} strokeWidth={1.5} className="text-verified" aria-hidden />
-          <span className="sr-only">Verified on-chain.</span>
-          <span className="figure text-xs text-fg-subtle">{usdRange(range.minCents, range.maxCents)}</span>
+        <span ref={ref} className={cn('inline-flex items-center gap-2', className)} {...props}>
+          <OnChainSeal state="verified" />
+          <SealedChip range={range} />
           {proofId != null && (
             <span className="proof-id text-xs text-fg-subtle">Proof ID {proofId}</span>
           )}
@@ -71,22 +66,8 @@ export const MaskedAmount = React.forwardRef<HTMLSpanElement, MaskedAmountProps>
       );
     }
 
-    // Masked: the private-by-default state. Slate chip on surface-3, hairline
-    // border, an indigo dot at the leading edge as the protected cue.
-    return (
-      <span
-        ref={ref}
-        aria-label="Amount private, within the agreed range"
-        className={cn(
-          'inline-flex items-center gap-2 rounded-md bg-surface-3 py-0.5 pl-2 pr-2.5 ring-1 ring-inset ring-border',
-          className,
-        )}
-        {...props}
-      >
-        <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-brand" />
-        <span className="figure text-xs text-fg-subtle">{usdRange(range.minCents, range.maxCents)}</span>
-      </span>
-    );
+    // Masked: the private-by-default state, rendered as the Sealed Masked Chip.
+    return <SealedChip ref={ref} range={range} className={className} {...props} />;
   },
 );
 MaskedAmount.displayName = 'MaskedAmount';

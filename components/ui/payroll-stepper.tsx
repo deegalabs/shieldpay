@@ -30,7 +30,8 @@ const nodeStyle = {
   pending: 'bg-surface-2 shadow-[inset_0_0_0_1px_hsl(var(--border-strong))] text-fg-faint',
   active: 'bg-brand text-white shadow-[0_0_0_3px_rgba(99,102,241,0.18)] animate-reveal',
   done: 'bg-brand text-white',
-  settled: 'bg-verified text-primary-foreground animate-confirm',
+  settled:
+    'bg-verified text-primary-foreground shadow-[0_0_0_4px_rgba(16,185,129,0.18),0_0_18px_-4px_rgba(16,185,129,0.55)] animate-confirm',
   failed: 'bg-danger text-white',
 } as const satisfies Record<NodeState, string>;
 
@@ -92,8 +93,11 @@ export const PayrollStepper = React.forwardRef<HTMLDivElement, PayrollStepperPro
                   </span>
                   <span
                     className={cn(
-                      'text-sm',
-                      state === 'pending' ? 'text-fg-subtle' : 'text-fg-strong',
+                      'overline',
+                      state === 'pending' && 'text-fg-faint',
+                      state === 'active' && 'text-brand-text',
+                      (state === 'done' || state === 'settled') && 'text-fg-strong',
+                      state === 'settled' && 'text-verified-text',
                       state === 'failed' && 'text-danger-text',
                     )}
                   >
