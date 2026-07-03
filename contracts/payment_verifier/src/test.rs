@@ -313,7 +313,7 @@ fn payroll_records_treasury_coverage_true() {
     let (id, client) = payroll_setup(&env);
     let company = Address::generate(&env);
     // Treasury holds 200000 cents >= run total 160000 -> covered.
-    assert!(run_with_treasury(&env, &id, &client, &company, 200_000));
+    assert!(run_with_treasury(&env, &id, &client, &company, 20_000_000_000));
 }
 
 #[test]
@@ -323,7 +323,7 @@ fn payroll_records_treasury_shortfall() {
     let (id, client) = payroll_setup(&env);
     let company = Address::generate(&env);
     // Treasury holds only 100000 cents < run total 160000 -> not covered.
-    assert!(!run_with_treasury(&env, &id, &client, &company, 100_000));
+    assert!(!run_with_treasury(&env, &id, &client, &company, 10_000_000_000));
 }
 
 // ─────────────── A1 Tier 2: worker-cosigned range enforcement ───────────────

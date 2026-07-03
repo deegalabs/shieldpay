@@ -500,7 +500,9 @@ impl PaymentVerifier {
         // any balance-call failure simply records `covered = false`, never an error.
         let covered = match env.storage().instance().get::<DataKey, Address>(&DataKey::UsdcSac) {
             Some(sac) => match TokenClient::new(&env, &sac).try_balance(&company) {
-                Ok(Ok(bal)) => bal >= (total as i128),
+                // `total` is in USDC cents; the SAC balance is in base units. USDC
+                // has 7 decimals, so 1 cent = 10^5 base units. Compare in one unit.
+                Ok(Ok(bal)) => bal >= (total as i128) * 100_000,
                 _ => false,
             },
             None => false,
