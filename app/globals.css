@@ -20,35 +20,35 @@
        --font-grotesk come from next/font in app/layout.tsx. */
     --font-inter: var(--font-sans); /* back-compat alias */
 
-    /* Surface ramp (Confidential Ledger). Level rises with lightness. */
-    --surface-base: 222 55% 10%;     /* #0b1326 page canvas / background         */
-    --background: 222 55% 10%;        /* alias of surface-base                    */
-    --surface-lowest: 222 68% 7%;     /* #060e20 hero well, deepest recess        */
-    --surface: 223 38% 15%;           /* #171f33 cards, panels (surface-container)*/
-    --surface-2: 222 42% 13%;         /* #131b2e sidebar, table header, nested    */
-    --surface-3: 222 28% 19%;         /* #222a3d hover, raised/selected rows      */
-    --surface-overlay: 225 24% 23%;   /* #2d3449 modals, popovers, dropdowns      */
-    --surface-bright: 223 22% 25%;    /* #31394d brightest chip surface           */
+    /* Surface ramp (clean slate scale). Level rises with lightness. */
+    --surface-base: 222 84% 5%;      /* #020617 slate-950 page canvas            */
+    --background: 222 84% 5%;         /* alias of surface-base                    */
+    --surface-lowest: 229 84% 4%;     /* deepest recess (below slate-950)         */
+    --surface: 222 47% 11%;           /* #0f172a slate-900 cards, panels          */
+    --surface-2: 222 47% 11%;         /* #0f172a slate-900 sidebar, table header  */
+    --surface-3: 217 33% 17%;         /* #1e293b slate-800 hover, chips, selected */
+    --surface-overlay: 215 25% 27%;   /* #334155 slate-700 modals, popovers       */
+    --surface-bright: 215 25% 27%;    /* #334155 slate-700 brightest chip surface */
 
-    /* Borders. Hairline = outline-variant; strong = outline. */
-    --border: 244 10% 30%;            /* #464554 outline-variant hairline         */
-    --border-strong: 244 8% 59%;      /* #908fa0 outline, focused/active edges    */
+    /* Borders = slate-800 hairline; strong = slate-700. */
+    --border: 217 33% 17%;            /* #1e293b slate-800 hairline               */
+    --border-strong: 215 25% 27%;     /* #334155 slate-700 focused/active edges   */
 
-    /* Foreground. on-surface #dae2fd; the 4 tiers are opacity steps of it. */
-    --foreground: 226 90% 92%;        /* #dae2fd on-surface, headings/figures     */
-    --muted: 249 19% 81%;             /* #c7c4d7 on-surface-variant, secondary    */
-    --fg-default: rgba(218, 226, 253, 0.98);
-    --fg-strong:  rgba(218, 226, 253, 0.87); /* body, primary labels             */
-    --fg-subtle:  rgba(218, 226, 253, 0.66); /* meta, captions                   */
-    --fg-faint:   rgba(218, 226, 253, 0.45); /* disabled, faint index rail       */
+    /* Foreground = slate-50; the 4 tiers are opacity steps of it. */
+    --foreground: 210 40% 98%;        /* #f8fafc slate-50 headings/figures        */
+    --muted: 215 20% 65%;             /* #94a3b8 slate-400 secondary text         */
+    --fg-default: rgba(248, 250, 252, 0.98);
+    --fg-strong:  rgba(248, 250, 252, 0.87); /* body, primary labels (~slate-200) */
+    --fg-subtle:  rgba(248, 250, 252, 0.60); /* meta, captions (~slate-400)       */
+    --fg-faint:   rgba(248, 250, 252, 0.42); /* disabled, faint index rail (500)  */
 
     /* Signal: indigo = protected (brand, primary action, focus, initiation).
        Fills use #6366F1 with white text; indigo TEXT on dark uses the #c0c1ff
        tint (indigo-300) for AA. */
     --brand: 239 84% 67%;            /* #6366F1 fills, borders, focus ring        */
     --ring: 239 84% 67%;             /* #6366F1 focus ring                        */
-    --brand-text: 239 100% 88%;      /* #c0c1ff indigo-300 tint, indigo text      */
-    --brand-container: 239 100% 75%; /* #8083ff primary-container (active pill)    */
+    --brand-text: 234 89% 74%;       /* #818cf8 indigo-400, indigo text (AA)      */
+    --brand-container: 239 84% 67%;  /* #6366f1 indigo-500 active pill            */
     --brand-wash: rgba(99, 102, 241, 0.08);
     --brand-line: rgba(99, 102, 241, 0.40);
     --accent: 239 84% 67%;           /* legacy alias -> brand indigo              */
@@ -58,7 +58,7 @@
     --primary: 160 84% 39%;          /* #10B981 emerald action / verified         */
     --primary-foreground: 166 91% 9%;/* #022C22 ink on emerald                    */
     --verified: 160 84% 39%;
-    --verified-text: 155 69% 59%;    /* #4edea3 secondary emerald, emerald text   */
+    --verified-text: 158 64% 52%;    /* #34d399 emerald-400, emerald text         */
     --verified-wash: rgba(16, 185, 129, 0.08);
     --verified-line: rgba(16, 185, 129, 0.40);
 
@@ -236,7 +236,7 @@
     font-size: 3rem;          /* 48px display-lg */
     line-height: 1.1;
     letter-spacing: -0.02em;
-    color: hsl(var(--brand-text));
+    color: hsl(var(--foreground)); /* slate-50 white; the ambient wash glows behind it */
   }
 
   /* Ambient lifecycle wash: subdued indigo->emerald light behind hero figures. */
