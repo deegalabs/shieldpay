@@ -10,13 +10,16 @@ The production deployment is live on Railway at
 
 Proof-of-Payroll is the aggregate proof for a run: one Groth16 proof shows the
 per-line amounts sum to a public total and each amount is within its agreed
-range, revealing no individual salary. It is verified on-chain by a **separate**
-`PaymentVerifier` instance initialized with the payroll verification key, so it
-does not share state with the per-payment verifier.
+range, revealing no individual salary. It is verified on-chain by the unified
+`PaymentVerifier` instance, which holds both circuit keys (per-payment and
+aggregate) so the aggregate can read the per-payment records it binds to.
 
-Honest limitation: the on-chain check currently binds only the public total. The
-per-line ranges and commitments are enforced in the circuit off-chain but are not
-yet bound on-chain per line.
+On-chain binding: the aggregate now binds each non-padding line to a recorded
+per-payment proof of the same company with a matching range (a commitment -> record
+index plus the range stored in each record), so a company cannot aggregate with
+invented lines or ranges. The worker-cosigned range enforcement protects the honest
+payment flow; making it adversarial-proof (binding the real USDC recipient
+on-chain) is roadmap.
 
 ### 1. Build the circuit and verification key
 
@@ -41,12 +44,12 @@ stellar contract invoke ... -- initialize ...       # with the payroll VK
 ```
 
 The live testnet instance is
-`CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`.
+`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`.
 
 For reference, the existing per-payment contracts are:
 
-- `PaymentVerifier`: `CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3`
-- `AnchorRegistry`: `CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI`
+- `PaymentVerifier`: `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`
+- `AnchorRegistry`: `CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5`
 
 ### 3. Wire the contract id into the environment
 

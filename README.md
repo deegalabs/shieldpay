@@ -77,20 +77,32 @@ Soroban smart contract via Stellar's native BN254 pairing (Protocol 25/26), in
 `verify_and_record_payroll`. It is **live on testnet**, and the 25 public signals
 verify within the Soroban budget:
 
-- Payroll verifier: `CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`
+- Verifier (holds both circuit keys): `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`
 - A verified aggregate proof (total proven, salaries hidden):
   [tx 33c78362…](https://stellar.expert/explorer/testnet/tx/33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b)
 
-**What it proves today, honestly.** The on-chain proof attests that the run's
-amounts sum to the recorded total and that each amount lies inside the range
-carried in the proof, revealing no individual salary. The circuit and the sum are
-sound (range checks are overflow-safe, all signals constrained). One limitation
-we are upfront about: the verifier currently binds only the **total** to the
-proof, not the per-line ranges or per-payment commitments. So "everyone was paid
-within their agreed range" rests on the prover using the real, recorded ranges
-(which the app does). Binding the per-line ranges and commitments to the stored
-records on-chain (so a company cannot invent ranges at proof time) is the next
-step. We would rather state this than overclaim.
+**What it proves today, honestly.** The aggregate now binds each line to a real,
+individually verified payment: the contract holds a commitment -> record index and
+rejects a run unless every non-padding line matches a recorded per-payment proof
+of the same company with a matching range. A company can no longer aggregate with
+invented lines or ranges that diverge from the recorded payments. This is verified
+on-chain (a widened-range aggregate is rejected with `ProofNotBound`) and by
+contract tests. It also records a point-in-time treasury-coverage flag read from
+the USDC balance on-chain.
+
+Where we are still upfront about the limits, rather than overclaim:
+
+- **Worker-cosigned ranges enforce the honest payment flow, not an adversary.**
+  The worker co-signs their agreed range at anchor time and the verifier enforces
+  it, so the app cannot pay outside the agreed range. A company crafting raw
+  contract calls could still bypass it (by proving against a mismatched identity
+  hash the registry has no range for). Making it adversarial-proof requires binding
+  the actual on-chain USDC recipient to the anchored identity, which is roadmap.
+- **Treasury coverage is a point-in-time snapshot,** read at verification time, not
+  an escrowed reserve guarantee.
+- **The on-chain proof does not validate the USDC transfer itself** (recipient or
+  amount); it binds a settlement tx hash. Validating the settlement on-chain
+  (atomic verify-and-release) is the roadmap step that would close this.
 
 ## Why ZK is essential here
 
@@ -251,6 +263,14 @@ settlement, selective disclosure, and receipt is built and validated on testnet.
 
 Honest limitations:
 
+- The worker-cosigned range enforcement and the treasury-coverage flag protect the
+  honest payment flow, but are not adversarial-proof on-chain: a company crafting
+  raw contract calls could bypass the range check (a mismatched identity hash the
+  registry has no range for), and coverage is a point-in-time snapshot, not an
+  escrowed reserve. The on-chain proof also does not validate the USDC transfer
+  itself, only a settlement tx hash. Binding the real recipient/settlement to the
+  anchored identity on-chain (atomic verify-and-release) is the roadmap step that
+  closes all three.
 - The settlement is a real on-chain transfer over the USDC asset (testnet),
   but of a fixed, symbolic marker amount, not the salary. Moving the real figure
   in clear would leak it on a transparent chain, so the salary stays in the
@@ -277,9 +297,8 @@ The internal audit log with open findings is kept private until remediated.
 ### Live on testnet
 
 - App: https://web-production-f389ce.up.railway.app
-- [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI)
-- [PaymentVerifier contract (per payment)](https://stellar.expert/explorer/testnet/contract/CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3)
-- [Proof-of-Payroll verifier contract (aggregate)](https://stellar.expert/explorer/testnet/contract/CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN)
+- [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5)
+- [Verifier contract (one instance: per-payment + aggregate Proof-of-Payroll)](https://stellar.expert/explorer/testnet/contract/CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q)
 
 ### Verify it yourself
 
@@ -289,7 +308,7 @@ before it is stored):
 
 ```bash
 stellar contract invoke \
-  --id CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3 \
+  --id CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q \
   --source-account <any-funded-testnet-key> \
   --network testnet \
   -- get_proof_record --proof_id 0
@@ -298,15 +317,16 @@ stellar contract invoke \
 It returns the record with `verified: true`, the recipient address hash, the
 settlement tx hash, and the amount commitment, none of which reveal the salary.
 
-Read an aggregate Proof-of-Payroll record from the payroll verifier, where the
-proven `total` was recorded but no individual salary was:
+Read an aggregate Proof-of-Payroll record from the same verifier. It returns the
+proven `total`, `verified: true`, and the treasury-coverage flag `covered`, with no
+individual salary:
 
 ```bash
 stellar contract invoke \
-  --id CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN \
+  --id CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q \
   --source-account <any-funded-testnet-key> \
   --network testnet \
-  -- get_payroll_record --proof_id 0
+  -- get_payroll_record --proof_id 3
 ```
 
 ## Legal note

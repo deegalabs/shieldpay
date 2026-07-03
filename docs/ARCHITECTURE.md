@@ -90,16 +90,22 @@ month"), while the split across people stays private.
 - **Deployment:** a separate instance of the `PaymentVerifier` contract,
   initialized with the payroll verification key (distinct from the per-payment
   instance). Live on Stellar testnet at
-  `CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`, with a verified
+  `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`, with a verified
   aggregate proof at tx
   `33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b`. All 25
   public signals verify within the Soroban compute budget.
 
-**Honest limitation.** The on-chain payroll verifier binds only the total to the
-proof, not the per-line ranges or the per-payment commitments to the recorded
-records. So the claim "everyone was paid within their agreed range" currently
-rests on the honest prover supplying the real ranges as public inputs. Binding the
-per-line ranges and commitments on-chain is documented future work.
+**On-chain binding and honest limits.** The payroll verifier now binds every
+non-padding line to a recorded per-payment proof of the same company with a
+matching range (a commitment -> record index plus the range stored in each record),
+so a company cannot aggregate with invented lines or ranges. It also records a
+point-in-time treasury-coverage flag read from the USDC balance on-chain. Where we
+do not overclaim: the worker-cosigned range enforcement protects the honest payment
+flow but is bypassable by a company crafting raw calls (a mismatched identity
+hash), coverage is a snapshot rather than an escrowed reserve, and the proof does
+not validate the USDC transfer itself. Binding the real recipient and settlement to
+the anchored identity on-chain (atomic verify-and-release) is the roadmap step that
+closes these.
 
 ## Selective disclosure (the viewing key)
 

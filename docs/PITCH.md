@@ -48,7 +48,7 @@ reveal and re-verify amounts against the on-chain commitments.
 
 **7. It is real, not a slide.**
 Show the live testnet transaction on stellar.expert: the payroll verifier
-contract (`CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`) verifying
+contract (`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`) verifying
 the aggregate Proof-of-Payroll with Stellar's native BN254 pairing, plus
 verify_and_record on the PaymentVerifier contract, verified true, with the
 recipient hash, settlement tx hash, and amount commitment, none of which reveal
@@ -61,11 +61,12 @@ aggregate Proof-of-Payroll).
 We are explicit: the recipient and the fact of payment are public; the amount is
 private. The settlement posts a symbolic marker over the USDC rail, because
 moving the real figure in clear would leak it. The exact amount lives in the
-commitment and is disclosed only under the viewing key. One honest limitation on
-the aggregate: the on-chain proof binds only the run total today, not the
-per-line ranges and commitments back to the recorded payment records. So range
-compliance still rests on the honest prover. Tightening that binding is future
-work.
+commitment and is disclosed only under the viewing key. On honesty: the aggregate
+now binds each line back to a recorded payment with a matching range on-chain (so a
+company cannot invent ranges), and the worker co-signs their range. The limit we
+are upfront about is that this range enforcement protects the honest payment flow,
+not a company crafting raw contract calls; binding the real on-chain recipient
+closes that, and is roadmap.
 
 **9. Why Stellar.**
 Native USDC and real payment rails (MoneyGram, anchors, PIX off-ramp on the
