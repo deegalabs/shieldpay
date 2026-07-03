@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ContractorForm } from '@/components/contractor-form';
 import { ContractorActions } from '@/components/contractor-actions';
+import { ProofOfIncomeCard } from '@/components/proof-of-income-card';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +69,20 @@ export default async function ContractorDetail({ params }: { params: { id: strin
           <ContractorActions id={contractor.id} anchored={contractor.anchored} />
         </div>
       </Card>
+
+      {contractor.stellar_address && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+            Proof of income
+          </h2>
+          <ProofOfIncomeCard
+            workerAddress={contractor.stellar_address}
+            workerName={contractor.name}
+            defaultMinCents={contractor.range_min}
+            defaultMaxCents={contractor.range_max}
+          />
+        </section>
+      )}
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Payment history</h2>

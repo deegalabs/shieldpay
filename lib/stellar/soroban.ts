@@ -9,7 +9,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { sorobanServer, networkPassphrase } from './client';
 import { CONTRACTS } from '@/lib/constants';
-import { buildRecordProofOp, buildRecordPayrollOp } from './record-op';
+import { buildRecordProofOp, buildRecordPayrollOp, buildRecordCredentialOp } from './record-op';
 import type { CompanySigner } from './signer';
 
 /**
@@ -112,6 +112,32 @@ export async function recordPayrollProofOnChain(args: {
   return { proofId: String(returnValue ?? ''), txHash: hash };
 }
 
+/**
+ * Verify + record an Income Credential on-chain against the IncomeVerifier: one
+ * proof that an employer paid a worker a sum within a claimed range over N months,
+ * revealing no monthly amount. Returns the credential id and the tx hash. The
+ * nullifier is per (secret, verifierId); presenting the same nullifier twice to
+ * this verifier is rejected on-chain (AlreadyPresented).
+ */
+export async function recordCredentialOnChain(args: {
+  signer: CompanySigner; // sources and pays for the tx (no require_auth on this call)
+  nullifier: Buffer; // 32 bytes, public signal 0
+  proofBytes: Buffer;
+  publicSignalsBytes: Buffer;
+}): Promise<{ credentialId: string; txHash: string }> {
+  if (!CONTRACTS.incomeVerifier) {
+    throw new Error('INCOME_VERIFIER_CONTRACT_ID not configured');
+  }
+  const op = buildRecordCredentialOp({
+    contractId: CONTRACTS.incomeVerifier,
+    nullifier: args.nullifier,
+    proofBytes: args.proofBytes,
+    publicSignalsBytes: args.publicSignalsBytes,
+  });
+  const { hash, returnValue } = await args.signer.invoke(op);
+  return { credentialId: String(returnValue ?? ''), txHash: hash };
+}
+
 /** Read-only check whether a payment tx hash has a recorded proof. */
 export async function isVerifiedOnChain(paymentTxHash: Buffer): Promise<boolean> {
   if (!CONTRACTS.paymentVerifier) return false;
@@ -159,6 +185,63 @@ export async function readOnChainCommitment(proofId: string): Promise<string | n
       if (!rec || !rec.value_commitment) return null;
       const buf = Buffer.from(rec.value_commitment);
       return BigInt('0x' + buf.toString('hex')).toString();
+    }
+  } catch {
+    /* read-only best effort */
+  }
+  return null;
+}
+
+/**
+ * Read-only check, against the IncomeVerifier, whether a credential nullifier has
+ * already been presented (and recorded). Public and wallet-free: a plain Soroban
+ * simulate, no session, no funds. This is the replay flag the income verifier
+ * enforces, so a "one-time, spent" presentation reads as true here.
+ */
+export async function isCredentialPresented(nullifier: Buffer): Promise<boolean> {
+  if (!CONTRACTS.incomeVerifier) return false;
+  const contract = new Contract(CONTRACTS.incomeVerifier);
+  const op = contract.call('is_presented', bytesScVal(nullifier));
+  try {
+    const source = new Account(Keypair.random().publicKey(), '0');
+    const tx = new TransactionBuilder(source, { fee: '100', networkPassphrase })
+      .addOperation(op)
+      .setTimeout(30)
+      .build();
+    const sim = await sorobanServer.simulateTransaction(tx);
+    if ('result' in sim && sim.result?.retval) {
+      return Boolean(scValToNative(sim.result.retval));
+    }
+  } catch {
+    /* read-only best effort */
+  }
+  return false;
+}
+
+/**
+ * Read-only fetch of a full income credential record straight from the
+ * IncomeVerifier contract, by its numeric id. Anyone can read this without a
+ * wallet or a signature. BytesN fields (nullifier, employer key, worker id,
+ * verifier id) come back as hex strings and u64 fields as decimal strings, so the
+ * result is safe to JSON-serialize. Returns null if the record is absent or the
+ * RPC is unavailable. No monthly amount is ever stored on-chain, only the proven
+ * range, so none can be returned here.
+ */
+export async function getCredentialOnChain(id: string): Promise<Record<string, unknown> | null> {
+  if (!CONTRACTS.incomeVerifier || !/^\d+$/.test(id)) return null;
+  const contract = new Contract(CONTRACTS.incomeVerifier);
+  const op = contract.call('get_credential', nativeToScVal(BigInt(id), { type: 'u64' }));
+  try {
+    const source = new Account(Keypair.random().publicKey(), '0');
+    const tx = new TransactionBuilder(source, { fee: '100', networkPassphrase })
+      .addOperation(op)
+      .setTimeout(30)
+      .build();
+    const sim = await sorobanServer.simulateTransaction(tx);
+    if ('result' in sim && sim.result?.retval) {
+      const rec = scValToNative(sim.result.retval);
+      if (!rec || typeof rec !== 'object') return null;
+      return jsonSafe(rec) as Record<string, unknown>;
     }
   } catch {
     /* read-only best effort */
