@@ -64,6 +64,33 @@
               "key": {
                 "vec": [
                   {
+                    "symbol": "CommitmentIndex"
+                  },
+                  {
+                    "bytes": "134381a4ad74d3fb031b5fe397d917beeef31be4d6690622853d230f499a9ae4"
+                  }
+                ]
+              },
+              "durability": "persistent",
+              "val": {
+                "u64": "0"
+              }
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 4095
+      },
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+              "key": {
+                "vec": [
+                  {
                     "symbol": "Record"
                   },
                   {
@@ -96,6 +123,22 @@
                     },
                     "val": {
                       "u64": "0"
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "range_max"
+                    },
+                    "val": {
+                      "u64": "55000"
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "range_min"
+                    },
+                    "val": {
+                      "u64": "45000"
                     }
                   },
                   {
