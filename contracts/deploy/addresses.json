@@ -2,11 +2,11 @@
   "network": "testnet",
   "deployer": "GB2LVR2TN44DI6NYFECX4XREWDUF2223KO75NOBAVQ2L77W7YNJ7GSF6",
   "anchor_registry": "CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI",
-  "payment_verifier": "CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ",
-  "payroll_verifier": "CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ",
+  "payment_verifier": "CADGUFVL2JDVB3Q74K3LXMLFLM7IYOWAHLLQ4HBFMGPDEGQNF4CG6S6K",
+  "payroll_verifier": "CADGUFVL2JDVB3Q74K3LXMLFLM7IYOWAHLLQ4HBFMGPDEGQNF4CG6S6K",
   "notes": "Unified verifier: one instance holds BOTH circuit keys. initialize() stores the 5-signal per-payment key, initialize_payroll() the 25-signal aggregate key. verify_and_record enforces the commitment/recipient/tx binding AND stores the proven range and a commitment index; verify_and_record_payroll binds each aggregate line to a recorded payment of the same company with a matching range (closes P1). Validated on testnet (per-payment proof_id 0, verified=true, range 45000..55000 stored). Supersedes payment_verifier CAUK3NRZ (5-signal only) and payroll_verifier CCI4WXRQ (aggregate, total-only binding).",
   "explorer": {
-    "verifier": "https://stellar.expert/explorer/testnet/contract/CAJ7OWSXYV4P3SDI7CPBH5VC6VWQPAQDACE3YOHDXAAYCCTIHD7WFSMJ",
+    "verifier": "https://stellar.expert/explorer/testnet/contract/CADGUFVL2JDVB3Q74K3LXMLFLM7IYOWAHLLQ4HBFMGPDEGQNF4CG6S6K",
     "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI"
   }
 }
