@@ -89,13 +89,15 @@ signals: `commitment[8]`, `minValue[8]`, `maxValue[8]`, `total`) and records a
 `PayrollRecord`. The recorded total is bound to the proof's last public signal.
 `is_payroll_verified` and `get_payroll_record` read the recorded runs.
 
-This runs as a **separate instance** of the same `payment_verifier` contract,
-initialized with the payroll verification key (distinct from the per-payment
-instance). Live on Stellar testnet at
-`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`, with a verified
-aggregate proof at tx
-`33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b`. All 25 public
-signals verify within the Soroban compute budget.
+This runs on the **same unified instance** of the `payment_verifier` contract:
+the constructor stores both verification keys at deploy time (the 5-signal
+per-payment key and the 25-signal payroll key), so one instance verifies both
+kinds. Live on Stellar testnet at
+`CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ` (the Wave 3 hardened
+instance). All 25 public signals verify within the Soroban compute budget. The
+per-payment path on this instance is re-validated on testnet (proof_id 0, forged
+and replay rejected), and the aggregate is exercised by the demo seed and the
+contract tests.
 
 **On-chain binding and honest limits.** The payroll verifier now binds each
 non-padding line to a recorded per-payment proof of the same company with a
@@ -139,7 +141,7 @@ the proven range and the attesting employer key, not scarcity.
 
 | Instance | Contract id |
 | --- | --- |
-| PaymentVerifier (per payment) | `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q` |
-| Payroll verifier (Proof-of-Payroll) | `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q` |
+| PaymentVerifier (per payment) | `CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ` |
+| Payroll verifier (Proof-of-Payroll) | `CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ` |
 | Income verifier (proof of income) | `CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT` |
-| AnchorRegistry | `CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5` |
+| AnchorRegistry | `CAFFQPDFPN3ZXLQBCAL6372YLKDEOSNT4J37GSCB5H26VRVHYOFPY7QM` |

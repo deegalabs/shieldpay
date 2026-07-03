@@ -62,7 +62,7 @@ reveal and re-verify amounts against the on-chain commitments.
 
 **7. It is real, not a slide.**
 Show the live testnet transaction on stellar.expert: the payroll verifier
-contract (`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`) verifying
+contract (`CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ`) verifying
 the aggregate Proof-of-Payroll with Stellar's native BN254 pairing, plus
 verify_and_record on the PaymentVerifier contract, verified true, with the
 recipient hash, settlement tx hash, and amount commitment, none of which reveal

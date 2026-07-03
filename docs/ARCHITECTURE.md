@@ -87,13 +87,12 @@ month"), while the split across people stays private.
 - **On-chain method:** `verify_and_record_payroll` in `contracts/payment_verifier`
   records a `PayrollRecord` and binds the recorded total to the proof's last
   public signal.
-- **Deployment:** a separate instance of the `PaymentVerifier` contract,
-  initialized with the payroll verification key (distinct from the per-payment
-  instance). Live on Stellar testnet at
-  `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`, with a verified
-  aggregate proof at tx
-  `33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b`. All 25
-  public signals verify within the Soroban compute budget.
+- **Deployment:** one unified instance of the `PaymentVerifier` contract whose
+  constructor stores both verification keys at deploy time (per-payment and
+  payroll), so a single instance verifies both. Live on Stellar testnet at
+  `CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ` (the Wave 3 hardened
+  instance, re-validated on testnet: proof_id 0 recorded, forged and replay
+  rejected). All 25 public signals verify within the Soroban compute budget.
 
 **On-chain binding and honest limits.** The payroll verifier now binds every
 non-padding line to a recorded per-payment proof of the same company with a

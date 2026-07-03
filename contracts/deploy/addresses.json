@@ -1,14 +1,14 @@
 {
   "network": "testnet",
   "deployer": "GB2LVR2TN44DI6NYFECX4XREWDUF2223KO75NOBAVQ2L77W7YNJ7GSF6",
-  "anchor_registry": "CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5",
-  "payment_verifier": "CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q",
-  "payroll_verifier": "CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q",
+  "anchor_registry": "CAFFQPDFPN3ZXLQBCAL6372YLKDEOSNT4J37GSCB5H26VRVHYOFPY7QM",
+  "payment_verifier": "CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ",
+  "payroll_verifier": "CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ",
   "income_verifier": "CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT",
-  "notes": "Unified verifier: one instance holds BOTH circuit keys. initialize() stores the 5-signal per-payment key, initialize_payroll() the 25-signal aggregate key. verify_and_record enforces the commitment/recipient/tx binding AND stores the proven range and a commitment index; verify_and_record_payroll binds each aggregate line to a recorded payment of the same company with a matching range (closes P1). Validated on testnet (per-payment proof_id 0, verified=true, range 45000..55000 stored). Supersedes payment_verifier CAUK3NRZ (5-signal only) and payroll_verifier CCI4WXRQ (aggregate, total-only binding). income_verifier is a separate instance for proof-of-income (F1): a 7-signal credential where an employer BabyJubJub key signs each monthly record and the sum is proven in range, verify_and_record_credential runs the BN254 pairing and records the per-verifier nullifier (replay-safe). Validated on testnet (credential id 0, verified and recorded).",
+  "notes": "Wave 3 hardened instances (redeployed 2026-07-03). PaymentVerifier is constructor-deployed (admin + both VKs; no post-deploy initialize): one instance holds the 5-signal per-payment key and the 25-signal aggregate payroll key. verify_and_record enforces commitment/recipient/tx binding, stores the proven range and a commitment index, rejects a duplicate commitment (DuplicateCommitment #9) and non-canonical field elements (NonCanonicalInput #10); set_treasury_asset and set_anchor_registry require the admin (deployer) auth and are write-once. verify_and_record_payroll binds each aggregate line to a recorded payment of the same company with a matching range. anchor_registry: anchor_with_range now requires BOTH the worker and the company co-signature, and the range is write-once per (worker hash, company). Wired to treasury SAC CDAYTAFUNHTVNB6BOADO3JCVTXIVVGVDPOV4RLG4JX6PAS7H7RLSVOBD (USDC:GCHJZCCM) and the anchor registry above. Validated on testnet: real proof recorded (proof_id 0), forged rejected (InvalidProof), replay rejected (DuplicatePayment), two-party anchor confirmed. Supersedes the pre-hardening verifier CDHKKXV and anchor CA4QF73R. income_verifier is the separate proof-of-income (F1) instance, unchanged this round.",
   "explorer": {
-    "verifier": "https://stellar.expert/explorer/testnet/contract/CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q",
-    "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5",
+    "verifier": "https://stellar.expert/explorer/testnet/contract/CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ",
+    "anchor_registry": "https://stellar.expert/explorer/testnet/contract/CAFFQPDFPN3ZXLQBCAL6372YLKDEOSNT4J37GSCB5H26VRVHYOFPY7QM",
     "income_verifier": "https://stellar.expert/explorer/testnet/contract/CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT"
   }
 }

@@ -87,9 +87,13 @@ Soroban smart contract via Stellar's native BN254 pairing (Protocol 25/26), in
 `verify_and_record_payroll`. It is **live on testnet**, and the 25 public signals
 verify within the Soroban budget:
 
-- Verifier (holds both circuit keys): `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`
-- A verified aggregate proof (total proven, salaries hidden):
-  [tx 33c78362…](https://stellar.expert/explorer/testnet/tx/33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b)
+- Verifier (holds both circuit keys): `CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ`
+- This is the Wave 3 hardened instance (constructor-deployed, admin-gated setters,
+  duplicate-commitment and non-canonical-input rejection). Re-validated on testnet:
+  a real per-payment proof recorded (proof_id 0, reproducible with
+  `get_proof_record`), a forged proof rejected (`InvalidProof`), a replay rejected
+  (`DuplicatePayment`). The aggregate Proof-of-Payroll verifies on this same
+  instance and is exercised by the demo seed and the contract tests.
 
 **What it proves today, honestly.** The aggregate now binds each line to a real,
 individually verified payment: the contract holds a commitment -> record index and
@@ -430,8 +434,8 @@ and the commit rules. By participating you agree to the
 ### Live on testnet
 
 - App: https://web-production-f389ce.up.railway.app
-- [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5)
-- [Verifier contract (one instance: per-payment + aggregate Proof-of-Payroll)](https://stellar.expert/explorer/testnet/contract/CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q)
+- [AnchorRegistry contract](https://stellar.expert/explorer/testnet/contract/CAFFQPDFPN3ZXLQBCAL6372YLKDEOSNT4J37GSCB5H26VRVHYOFPY7QM)
+- [Verifier contract (one instance: per-payment + aggregate Proof-of-Payroll)](https://stellar.expert/explorer/testnet/contract/CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ)
 - [Income verifier contract (proof of income)](https://stellar.expert/explorer/testnet/contract/CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT)
 
 ### Verify it yourself
@@ -442,7 +446,7 @@ before it is stored):
 
 ```bash
 stellar contract invoke \
-  --id CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q \
+  --id CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ \
   --source-account <any-funded-testnet-key> \
   --network testnet \
   -- get_proof_record --proof_id 0
@@ -457,7 +461,7 @@ individual salary:
 
 ```bash
 stellar contract invoke \
-  --id CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q \
+  --id CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ \
   --source-account <any-funded-testnet-key> \
   --network testnet \
   -- get_payroll_record --proof_id 3

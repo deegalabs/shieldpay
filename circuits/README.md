@@ -133,7 +133,7 @@ built by `scripts/setup.sh` / `scripts/ceremony.sh`.
 The two circuits verify against two separate on-chain instances of the same
 `PaymentVerifier` contract, each initialized with its own verification key: the
 per-payment instance and the Proof-of-Payroll instance (testnet id
-`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`). See
+`CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ`). See
 `contracts/README.md` for the on-chain methods.
 
 ## Noir reference

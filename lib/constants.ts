@@ -60,19 +60,21 @@ export const CONTRACTS = {
     process.env.ANCHOR_REGISTRY_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_ANCHOR_REGISTRY_CONTRACT_ID ??
     // Stores worker-cosigned ranges (get_range), the same instance the
-    // PaymentVerifier reads for Tier 2 range enforcement.
-    'CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5',
+    // PaymentVerifier reads for Tier 2 range enforcement. Wave 3 instance:
+    // anchor_with_range now requires the company co-signature and the range is
+    // write-once.
+    'CAFFQPDFPN3ZXLQBCAL6372YLKDEOSNT4J37GSCB5H26VRVHYOFPY7QM',
   // Unified verifier instance: holds BOTH circuit keys (per-payment + aggregate)
   // so the Proof-of-Payroll can bind each line to a recorded payment on-chain.
   paymentVerifier:
     process.env.PAYMENT_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYMENT_VERIFIER_CONTRACT_ID ??
-    'CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q',
+    'CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ',
   // Same unified instance (aggregate verify + per-line binding live here too).
   payrollVerifier:
     process.env.PAYROLL_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYROLL_VERIFIER_CONTRACT_ID ??
-    'CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q',
+    'CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ',
   // Income Credential verifier (feature F1): records proof-of-income
   // presentations, keyed by nullifier so a presentation cannot be replayed.
   incomeVerifier:
@@ -93,7 +95,7 @@ export const PUBLIC_CONTRACTS = {
 } as const;
 
 /**
- * Memo protocol — Stellar memo_text is limited to 28 bytes.
+ * Memo protocol, Stellar memo_text is limited to 28 bytes.
  * For payloads longer than 28 bytes we fall back to a memo_hash of the string.
  */
 export const MEMO_PREFIX = 'SHIELDPAY';

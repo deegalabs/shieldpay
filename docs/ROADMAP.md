@@ -87,17 +87,23 @@ Last updated: 2026-07-03.
   `is_allowed` call before release. That needs the escrow redeploy, so the on-chain
   half is deferred; the app-side gate and interface land now.
 
-## Deferred (needs a redeploy or external partners)
+### Contract hardening (Wave 3), shipped and redeployed
+- M1: `__constructor(admin, vk, vk_payroll)` (no post-deploy initialize), admin
+  `require_auth` on the setters, reject a duplicate commitment (DuplicateCommitment),
+  reject non-canonical field elements (NonCanonicalInput). Done.
+- M2: company co-signature on `anchor_with_range`, plus the range is write-once per
+  (worker hash, company) so a company cannot overwrite a worker's range (the H1
+  adversarial finding). The app and the seed carry the two-party auth. Done.
+- R6-M1: the employer signing key derives from its own per-company seed, decoupled
+  from the viewing key. Done.
+- Redeployed to fresh testnet instances (verifier CC2LBLFI, anchor CAFFQPDF) and
+  validated on-chain: real proof recorded, forged and replay rejected, two-party
+  anchor confirmed, admin-gated setters. See SECURITY_AUDIT round 7 (internal).
+- Residual, honestly noted: the write-once guard blocks the range overwrite, but a
+  company front-running a worker's very first anchor is closed only by on-chain
+  recipient binding (E1 below).
 
-### Contract hardening (Wave 3, one deliberate redeploy)
-- M1: a `__constructor(admin, vk, vk_payroll)` plus admin `require_auth` on the
-  setters, reject duplicate commitments, assert canonical field elements.
-- M2: company co-signature on `anchor_with_range`.
-- R6-M1: give the employer signing key its own secret, decoupled from the company
-  viewing key (today it is derived from it, which is sound but couples two secrets).
-- Why deferred: all three require redeploying live contracts and re-seeding. Not a
-  deadline-day operation. The findings are documented in the internal audit and are
-  honest-flow or defense-in-depth, not live exploits.
+## Deferred (needs a redeploy or external partners)
 
 ### Atomic verify-and-release escrow (E1)
 - Release USDC only when a valid proof binds to the anchored recipient, replay
