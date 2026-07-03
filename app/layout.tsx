@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Public_Sans, Space_Grotesk, Space_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { Providers } from './providers';
@@ -36,6 +36,14 @@ export const metadata: Metadata = {
   title: 'ShieldPay | Payroll & Payment Proof on Stellar',
   description:
     'Pay anyone in the world. Prove mathematically that you paid. Protect your company forever.',
+  manifest: '/manifest.webmanifest',
+};
+
+// Drives the mobile browser chrome color and a correct responsive viewport.
+export const viewport: Viewport = {
+  themeColor: '#020617',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

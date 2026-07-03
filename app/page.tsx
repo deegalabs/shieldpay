@@ -292,7 +292,7 @@ function TransactionSetCard() {
 
       {/* Footer */}
       <div className="flex items-center justify-between border-t border-white/10 bg-slate-950 px-6 py-3">
-        <span className="font-mono text-mono-label text-slate-600">Total Encrypted Payload</span>
+        <span className="font-mono text-mono-label text-slate-400">Total Encrypted Payload</span>
         <div className="flex items-center gap-2">
           <span className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400 bg-emerald-400/20">
             <BadgeCheck size={12} className="text-emerald-400" />

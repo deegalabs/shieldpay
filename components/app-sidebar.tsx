@@ -72,7 +72,7 @@ export function AppSidebar({
             ) : (
               <Link
                 key={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-500 font-mono text-xs uppercase tracking-widest hover:bg-slate-800/30 hover:text-slate-300 transition-all duration-200 ease-in-out"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-400 font-mono text-xs uppercase tracking-widest hover:bg-slate-800/30 hover:text-slate-300 transition-all duration-200 ease-in-out"
                 href={item.href}
               >
                 <span className="flex items-center">{item.icon}</span>
@@ -84,14 +84,14 @@ export function AppSidebar({
         {/* Footer Links */}
         <div className="p-4 border-t border-slate-800 flex flex-col gap-1 px-3">
           <Link
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-500 hover:bg-slate-800/30 hover:text-slate-300 transition-all duration-200 ease-in-out"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:bg-slate-800/30 hover:text-slate-300 transition-all duration-200 ease-in-out"
             href="/settings"
           >
             <ShieldCheck size={14} />
             <span className="font-mono text-[10px] uppercase tracking-widest">Security</span>
           </Link>
           <Link
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-500 hover:bg-slate-800/30 hover:text-slate-300 transition-all duration-200 ease-in-out"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:bg-slate-800/30 hover:text-slate-300 transition-all duration-200 ease-in-out"
             href="/help"
           >
             <LifeBuoy size={14} />
@@ -112,7 +112,7 @@ export function AppSidebar({
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="text-slate-400 hover:text-indigo-400"
+          className="grid h-11 w-11 place-items-center rounded-lg text-slate-400 hover:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -138,7 +138,7 @@ export function AppSidebar({
                 className={
                   isActive(item.href)
                     ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-50 bg-slate-800/50 border-r-2 border-indigo-500 font-mono text-xs uppercase tracking-widest'
-                    : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-500 font-mono text-xs uppercase tracking-widest hover:bg-slate-800/30 hover:text-slate-300'
+                    : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-slate-400 font-mono text-xs uppercase tracking-widest hover:bg-slate-800/30 hover:text-slate-300'
                 }
               >
                 <span className={isActive(item.href) ? 'text-indigo-400 flex items-center' : 'flex items-center'}>

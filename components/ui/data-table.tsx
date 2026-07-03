@@ -36,10 +36,18 @@ export const Table = React.forwardRef<
   HTMLTableElement,
   React.TableHTMLAttributes<HTMLTableElement> & { caption?: React.ReactNode }
 >(({ className, caption, children, ...props }, ref) => (
-  <table ref={ref} className={cn('w-full border-collapse text-sm', className)} {...props}>
-    {caption != null && <caption className="sr-only">{caption}</caption>}
-    {children}
-  </table>
+  // Wide ledgers scroll inside their card on mobile rather than clipping, since
+  // ancestors are overflow-hidden. The min-width keeps columns legible.
+  <div className="w-full overflow-x-auto">
+    <table
+      ref={ref}
+      className={cn('w-full min-w-[640px] border-collapse text-sm', className)}
+      {...props}
+    >
+      {caption != null && <caption className="sr-only">{caption}</caption>}
+      {children}
+    </table>
+  </div>
 ));
 Table.displayName = 'Table';
 

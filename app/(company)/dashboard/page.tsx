@@ -113,17 +113,21 @@ export default async function CompanyDashboard() {
               Paid This Month
             </div>
             <h1
-              className="font-mono text-5xl md:text-6xl lg:text-7xl font-bold text-slate-50 tracking-tighter leading-none"
+              className="font-mono text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-50 tracking-tighter leading-none break-words"
               style={{ textShadow: '0 4px 24px rgba(99, 102, 241, 0.4)' }}
             >
               {paid.whole}.
-              <span className="text-slate-400 text-4xl md:text-5xl lg:text-6xl">{paid.frac}</span>{' '}
-              <span className="text-indigo-400 text-2xl md:text-3xl font-normal ml-2">USDC</span>
+              <span className="text-slate-400 text-3xl sm:text-4xl md:text-5xl lg:text-6xl">
+                {paid.frac}
+              </span>{' '}
+              <span className="text-indigo-400 text-2xl md:text-3xl font-normal ml-2 inline-block">
+                USDC
+              </span>
             </h1>
           </div>
           <div className="flex flex-col gap-4 min-w-[200px] border-l border-slate-800 pl-6">
             <div>
-              <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest mb-1">
+              <div className="font-mono text-[10px] text-slate-400 uppercase tracking-widest mb-1">
                 Last payroll
               </div>
               <div className="font-mono text-lg text-slate-200">
@@ -131,13 +135,13 @@ export default async function CompanyDashboard() {
               </div>
             </div>
             <div>
-              <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest mb-1">
+              <div className="font-mono text-[10px] text-slate-400 uppercase tracking-widest mb-1">
                 Treasury coverage
               </div>
               <div className="font-mono text-lg text-slate-200">&mdash;</div>
             </div>
             <div>
-              <div className="font-mono text-[10px] text-slate-500 uppercase tracking-widest mb-1">
+              <div className="font-mono text-[10px] text-slate-400 uppercase tracking-widest mb-1">
                 Active contributors
               </div>
               <div className="font-mono text-lg text-slate-200">{stats.workers}</div>
@@ -159,12 +163,12 @@ export default async function CompanyDashboard() {
               <span className="uppercase tracking-wider">Verified</span>
             </div>
             <div className="h-px bg-slate-800 flex-1"></div>
-            <div className="flex items-center gap-2 text-slate-600">
+            <div className="flex items-center gap-2 text-slate-400">
               <CheckCircle2 size={16} />
               <span className="uppercase tracking-wider">Settled</span>
             </div>
           </div>
-          <div className="flex gap-3 shrink-0">
+          <div className="flex flex-wrap gap-3 shrink-0 w-full sm:w-auto">
             <Link
               href="/contractors/new"
               className="px-5 py-2 rounded border border-slate-700 text-slate-300 font-headline text-sm hover:bg-slate-800 hover:text-slate-50 transition-colors"
@@ -186,23 +190,23 @@ export default async function CompanyDashboard() {
             <h2 className="font-mono text-sm uppercase tracking-widest text-slate-300">Ledger</h2>
             <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent"></div>
           </div>
-          <div className="surface-300 rounded-lg border border-slate-800 overflow-hidden">
-            <table className="w-full text-left border-collapse">
+          <div className="surface-300 rounded-lg border border-slate-800 overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-900/50 font-mono text-[10px] uppercase tracking-widest text-slate-500">
+                <tr className="border-b border-slate-800 bg-slate-900/50 font-mono text-[10px] uppercase tracking-widest text-slate-400">
                   <th className="py-3 px-4 w-12 text-center border-r border-slate-800/50">#</th>
                   <th className="py-3 px-6 font-medium">Contributor</th>
                   <th className="py-3 px-6 font-medium">Agreed Range</th>
-                  <th className="py-3 px-6 font-medium">Proof</th>
+                  <th className="py-3 px-6 font-medium hidden sm:table-cell">Proof</th>
                   <th className="py-3 px-6 font-medium text-center">On-Chain</th>
-                  <th className="py-3 px-6 font-medium text-right">Settled</th>
+                  <th className="py-3 px-6 font-medium text-right hidden sm:table-cell">Settled</th>
                 </tr>
               </thead>
               <tbody className="font-body text-sm divide-y divide-slate-800/50">
                 {ledger.length === 0 ? (
                   <tr>
                     <td
-                      className="py-6 px-6 font-mono text-xs text-slate-500 text-center"
+                      className="py-6 px-6 font-mono text-xs text-slate-400 text-center"
                       colSpan={6}
                     >
                       No payments yet
@@ -221,7 +225,7 @@ export default async function CompanyDashboard() {
                           </div>
                           <div>
                             <div className="text-slate-200 font-medium">{p.worker_name}</div>
-                            <div className="font-mono text-[10px] text-slate-500">
+                            <div className="font-mono text-[10px] text-slate-400">
                               {shortProof(p.worker_address)}
                             </div>
                           </div>
@@ -237,14 +241,14 @@ export default async function CompanyDashboard() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6 hidden sm:table-cell">
                         {p.verified ? (
                           <div className="font-mono text-xs text-slate-400 flex items-center gap-1 group-hover:text-indigo-400 transition-colors cursor-pointer">
                             #{p.proof_id} <span className="text-slate-600">|</span>{' '}
                             {shortProof(p.tx_hash)}
                           </div>
                         ) : (
-                          <div className="font-mono text-xs text-slate-500 flex items-center gap-1">
+                          <div className="font-mono text-xs text-slate-400 flex items-center gap-1">
                             <Hourglass size={14} />
                             Generating...
                           </div>
@@ -260,7 +264,7 @@ export default async function CompanyDashboard() {
                           <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mx-auto animate-pulse"></div>
                         )}
                       </td>
-                      <td className="py-4 px-6 text-right font-mono text-xs text-slate-500">
+                      <td className="py-4 px-6 text-right font-mono text-xs text-slate-400 hidden sm:table-cell">
                         {p.verified ? dateShort(p.created_at) : '--'}
                       </td>
                     </tr>
@@ -286,7 +290,7 @@ export default async function CompanyDashboard() {
         </div>
         <div className="flex flex-col gap-3">
           {verifiedProofs.length === 0 ? (
-            <div className="surface-200 rounded p-4 border border-slate-800/50 font-mono text-xs text-slate-500">
+            <div className="surface-200 rounded p-4 border border-slate-800/50 font-mono text-xs text-slate-400">
               No verified proofs yet
             </div>
           ) : (
@@ -300,7 +304,7 @@ export default async function CompanyDashboard() {
                     <BadgeCheck size={14} className="text-emerald-500" />
                     <span className="font-mono text-xs text-slate-300">ZKP#{p.proof_id}</span>
                   </div>
-                  <span className="font-mono text-[10px] text-slate-500">
+                  <span className="font-mono text-[10px] text-slate-400">
                     {relativeTime(p.created_at)}
                   </span>
                 </div>

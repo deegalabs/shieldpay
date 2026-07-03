@@ -34,7 +34,7 @@ export function AppShell({
     <div className="flex flex-col md:flex-row min-h-screen bg-slate-900 text-slate-300">
       <AppSidebar title={title} nav={nav} actions={actions} />
       {/* Main Canvas */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#0a0f18] relative">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950 relative">
         {/* Noise texture overlay */}
         <div
           className="absolute inset-0 opacity-[0.02] pointer-events-none"
