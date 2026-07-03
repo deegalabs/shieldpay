@@ -103,6 +103,8 @@ export default async function WorkerPayments() {
                       }
                       anchorContractId={process.env.ANCHOR_REGISTRY_CONTRACT_ID || ''}
                       cpfHash={o.cpf_hash || ''}
+                      rangeMinCents={o.range_min}
+                      rangeMaxCents={o.range_max}
                     />
                   </>
                 )}

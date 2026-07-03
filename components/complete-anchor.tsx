@@ -22,12 +22,17 @@ export function CompleteAnchor({
   companyAddress,
   anchorContractId,
   cpfHash,
+  rangeMinCents,
+  rangeMaxCents,
 }: {
   contractorId: string;
   workerAddress: string;
   companyAddress: string;
   anchorContractId: string;
   cpfHash: string;
+  // The agreed range (USDC cents) the worker co-signs on-chain at anchor time.
+  rangeMinCents: number;
+  rangeMaxCents: number;
 }) {
   const { ready, authenticated, user } = usePrivy();
   const { signRawHash } = useSignRawHash();
@@ -65,6 +70,8 @@ export function CompleteAnchor({
         anchorContractId,
         cpfHash,
         signRawHash,
+        rangeMinCents,
+        rangeMaxCents,
       });
       const res = await fetch('/api/worker/anchor', {
         method: 'POST',

@@ -83,6 +83,8 @@ export default async function InvitePage({ params }: { params: { token: string }
             defaultName={invite!.name}
             usdcCode={USDC.code}
             usdcIssuer={USDC.issuer}
+            rangeMinCents={invite!.range_min}
+            rangeMaxCents={invite!.range_max}
           />
         </Card>
       )}
