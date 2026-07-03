@@ -106,7 +106,7 @@ export default function PayrollPage() {
   // The same checks the run applies, surfaced up front so the review step only
   // ever restates a run that is ready to settle.
   function firstReviewError(built: ReviewLine[]): string | null {
-    if (built.length === 0) return 'Add at least one collaborator with an amount.';
+    if (built.length === 0) return 'Add at least one contributor with an amount.';
     for (const l of lines) {
       const c = byId(l.contractorId);
       if (c && !c.anchored) {
@@ -153,7 +153,7 @@ export default function PayrollPage() {
       })
       .filter(Boolean) as any[];
 
-    if (built.length === 0) return setError('Add at least one collaborator with an amount.');
+    if (built.length === 0) return setError('Add at least one contributor with an amount.');
     for (const l of lines) {
       const c = byId(l.contractorId);
       if (c && !c.anchored) {
@@ -326,7 +326,7 @@ export default function PayrollPage() {
             <Button className="w-full" size="lg" onClick={goToReview}>
               Review payroll <ArrowRight size={16} />
             </Button>
-            <p className="flex items-center justify-center gap-1.5 text-xs text-fg-faint">
+            <p className="flex items-center justify-center gap-1.5 text-xs text-fg-subtle">
               <Lock size={12} />{' '}
               {nonCustodialAvailable() && walletAddr
                 ? 'You sign each payment with your own wallet. Each amount stays private on-chain.'
@@ -391,7 +391,7 @@ export default function PayrollPage() {
               </div>
             )}
 
-            <p className="flex items-center justify-center gap-1.5 text-xs text-fg-faint">
+            <p className="flex items-center justify-center gap-1.5 text-xs text-fg-subtle">
               <Lock size={12} />{' '}
               {nonCustodialAvailable() && walletAddr
                 ? 'You sign each payment with your own wallet. Each amount stays private on-chain.'

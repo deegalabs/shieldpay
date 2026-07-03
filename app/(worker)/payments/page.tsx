@@ -224,7 +224,7 @@ export default async function WorkerPayments() {
               />
             </Card>
             {payments.length > 0 && (
-              <p className="text-xs text-fg-faint">
+              <p className="text-xs text-fg-subtle">
                 Tip: download each receipt PDF for your tax return. Every receipt can be
                 independently re-verified on the public blockchain explorer.
               </p>

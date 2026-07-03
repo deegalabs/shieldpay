@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
+import { ConnectionError } from '@/components/ui/connection-error';
 import {
   Table,
   TableHead,
@@ -58,12 +59,13 @@ export default async function AuditorView({ params }: { params: { token: string 
   }
 
   let payments: PaymentRow[] = [];
+  let dbError = false;
   try {
     payments = claims.companyId
       ? await listPaymentsForCompany(claims.companyId, 1000)
       : await listPayments(100);
   } catch {
-    /* DB unreachable */
+    dbError = true; // DB unreachable
   }
   const contractors = new Set(payments.map((p) => p.worker_address)).size;
 
@@ -180,6 +182,12 @@ export default async function AuditorView({ params }: { params: { token: string 
         />
       </div>
 
+      {dbError ? (
+        <ConnectionError
+          title="We cannot reach these records right now."
+          message="No data is missing. Please try again in a moment."
+        />
+      ) : (
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <Table caption="Payments in the audited period, with on-chain proofs.">
@@ -266,6 +274,7 @@ export default async function AuditorView({ params }: { params: { token: string 
           </Table>
         </div>
       </Card>
+      )}
 
       <p className="mt-6 flex items-center gap-2 text-sm text-warning">
         <Lock size={14} /> Read-only access. No financial operation can be performed here.

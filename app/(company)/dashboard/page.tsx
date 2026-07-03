@@ -100,7 +100,7 @@ export default async function CompanyDashboard() {
     },
     {
       key: 'actions',
-      header: '',
+      header: <span className="sr-only">Actions</span>,
       align: 'right',
       cell: (p) => (
         <div className="flex justify-end gap-3 text-sm">
@@ -248,7 +248,7 @@ export default async function CompanyDashboard() {
         )}
       </section>
 
-      <p className="text-xs text-fg-faint">
+      <p className="text-xs text-fg-subtle">
         Exact amounts stay private. Every payment is verified on-chain to be within the agreed range.
       </p>
     </div>

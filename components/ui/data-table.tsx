@@ -10,18 +10,17 @@ import { cn } from '@/lib/utils';
  *
  * Two ways to use it, pick per screen:
  *
- *   1. `<DataTable columns={...} rows={...} rowKey={...} />` — the config form.
+ *   1. `<DataTable columns={...} rows={...} rowKey={...} />`, the config form.
  *      Typed columns with an `align` option ('money' right-aligns and renders
  *      the cell in `.amount` mono tabular). Best when a screen maps an array of
  *      typed rows (PaymentRow, PayrollRunRow, contributors, ...).
  *
  *   2. The composable primitives `Table / TableHead / TableBody / TableRow /
- *      TableHeaderCell / TableCell` — when a screen needs full control over cell
+ *      TableHeaderCell / TableCell`, when a screen needs full control over cell
  *      markup (e.g. the auditor view's disclosed-amount border sweep).
  *
- * The overline column label (12px / 550 / +0.06em / uppercase, `fg-subtle`) is
- * expressed inline because the codebase has no `.overline` class; it matches
- * identity/typography.md exactly.
+ * The overline column label (12px / 550 / +0.06em / uppercase, `fg-subtle`)
+ * matches the `.overline` utility in globals.css and identity/typography.md.
  */
 
 const OVERLINE = 'text-xs font-[550] uppercase tracking-[0.06em] text-fg-subtle';
@@ -237,7 +236,11 @@ export function DataTable<T>({
                   <TableCell key={col.key ?? ci} align={col.align} className={col.className}>
                     {ci === 0 && href && (
                       // Stretched link: covers the whole (relatively positioned) row.
-                      <a href={href} className="absolute inset-0" aria-label={rowLabel?.(row)}>
+                      <a
+                        href={href}
+                        className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+                        aria-label={rowLabel?.(row)}
+                      >
                         <span className="sr-only">{rowLabel?.(row) ?? 'Open row'}</span>
                       </a>
                     )}

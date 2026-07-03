@@ -75,7 +75,7 @@ export default async function ContractorsPage() {
     },
     {
       key: 'action',
-      header: '',
+      header: <span className="sr-only">Actions</span>,
       align: 'right',
       cell: (c) =>
         c.status === 'invited' ? (

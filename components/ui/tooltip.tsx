@@ -34,7 +34,7 @@ export function InfoHint({ children }: { children: React.ReactNode }) {
       <Tooltip>
         <TooltipTrigger
           aria-label="More information"
-          className="inline-grid h-4 w-4 cursor-help place-items-center rounded-full border border-border text-[10px] text-muted hover:text-foreground"
+          className="inline-grid h-4 w-4 cursor-help place-items-center rounded-full border border-border text-[10px] text-fg-subtle hover:text-foreground"
         >
           ?
         </TooltipTrigger>

@@ -59,7 +59,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
     {
       key: 'amount',
       header: 'Amount',
-      align: 'right',
+      align: 'money',
       cell: (p) => (
         <MaskedAmount
           state="verified"
