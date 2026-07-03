@@ -5,8 +5,8 @@
  * (anchors, verified proofs); convenience metadata for the portals lives here.
  *
  * Demo-lean: a single denormalized `payments` table is enough to drive the
- * three portals. NOTE: the exact amount is NEVER stored — only the public
- * range and commitment — preserving the same privacy guarantee as the chain.
+ * three portals. NOTE: the exact amount is NEVER stored, only the public
+ * range and commitment, preserving the same privacy guarantee as the chain.
  *
  * Idempotent (CREATE ... IF NOT EXISTS), applied on first DB use.
  */
@@ -131,6 +131,31 @@ ALTER TABLE contractors ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'a
 ALTER TABLE contractors ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE contractors ADD COLUMN IF NOT EXISTS role TEXT;
 ALTER TABLE contractors ALTER COLUMN stellar_address DROP NOT NULL;
+
+-- F3: fiscal-document linkage (Brazilian nota fiscal / NFS-e). Ties a recorded
+-- payment to an external fiscal document. MOCK-BACKED for now: the invoice data is
+-- produced by lib/fiscal/adapter.ts (MockNfseAdapter), NOT by a real municipal
+-- NFS-e web service. A production adapter (per municipality, or via a provider such
+-- as Focus NFe or eNotas) replaces the mock later. Tracked as base-only in
+-- docs/ROADMAP.md. No amount is required; amount_cents is optional and public.
+CREATE TABLE IF NOT EXISTS fiscal_link (
+  id             BIGSERIAL PRIMARY KEY,
+  payment_id     BIGINT NOT NULL,        -- references payments(id)
+  company_id     BIGINT NOT NULL,        -- paying company (owner check)
+  provider       TEXT NOT NULL,          -- e.g. 'mock-nfse'
+  invoice_number TEXT NOT NULL,
+  invoice_series TEXT,
+  invoice_url    TEXT,
+  status         TEXT NOT NULL,          -- e.g. 'issued'
+  amount_cents   INTEGER,                -- optional, public
+  external_id    TEXT,                   -- provider-side document id
+  issued_at      TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_fiscal_link_payment ON fiscal_link(payment_id);
+-- A payment links to at most one fiscal document. UNIQUE on payment_id enforces
+-- this (a re-issue is an upsert on the same payment, not a second active row).
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_fiscal_link_payment ON fiscal_link(payment_id);
 
 -- WebAuthn (passkey) credentials for the passkey login method.
 CREATE TABLE IF NOT EXISTS webauthn_credentials (

@@ -363,7 +363,7 @@ export interface ContractorRow {
   created_at: string;
 }
 
-/** Create an invited contractor (no wallet yet) — N1 invite flow. */
+/** Create an invited contractor (no wallet yet), N1 invite flow. */
 export async function createInvite(c: {
   company_id: string;
   name: string;
@@ -560,6 +560,100 @@ export async function listPaymentsForWorker(address: string): Promise<PaymentRow
   const { rows } = await getPool().query<PaymentRow>(
     `SELECT * FROM payments WHERE worker_address = $1 ORDER BY created_at DESC`,
     [address],
+  );
+  return rows;
+}
+
+// ── Fiscal document linkage (F3) ────────────────────────────────────────
+// Mock-backed for now: the invoice fields come from lib/fiscal/adapter.ts, NOT
+// from a real NFS-e web service. See docs/ROADMAP.md (F3).
+export interface FiscalLinkRow {
+  id: string;
+  payment_id: string;
+  company_id: string;
+  provider: string;
+  invoice_number: string;
+  invoice_series: string | null;
+  invoice_url: string | null;
+  status: string;
+  amount_cents: number | null;
+  external_id: string | null;
+  issued_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Create (or re-issue) the fiscal-document link for a payment. A payment links to
+ * at most one document (UNIQUE on payment_id); a re-issue upserts the same row.
+ */
+export async function createFiscalLink(row: {
+  payment_id: string;
+  company_id: string;
+  provider: string;
+  invoice_number: string;
+  invoice_series?: string | null;
+  invoice_url?: string | null;
+  status: string;
+  amount_cents?: number | null;
+  external_id?: string | null;
+  issued_at?: string | null;
+}): Promise<FiscalLinkRow> {
+  await ensureSchema();
+  const { rows } = await getPool().query<FiscalLinkRow>(
+    `INSERT INTO fiscal_link
+       (payment_id, company_id, provider, invoice_number, invoice_series,
+        invoice_url, status, amount_cents, external_id, issued_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+     ON CONFLICT (payment_id) DO UPDATE
+       SET provider = EXCLUDED.provider,
+           invoice_number = EXCLUDED.invoice_number,
+           invoice_series = EXCLUDED.invoice_series,
+           invoice_url = EXCLUDED.invoice_url,
+           status = EXCLUDED.status,
+           amount_cents = EXCLUDED.amount_cents,
+           external_id = EXCLUDED.external_id,
+           issued_at = EXCLUDED.issued_at
+     RETURNING *`,
+    [
+      row.payment_id,
+      row.company_id,
+      row.provider,
+      row.invoice_number,
+      row.invoice_series ?? null,
+      row.invoice_url ?? null,
+      row.status,
+      row.amount_cents ?? null,
+      row.external_id ?? null,
+      row.issued_at ?? null,
+    ],
+  );
+  const link = rows[0];
+  if (!link) throw new Error('insert returned no row');
+  return link;
+}
+
+/** Read the fiscal-document link for a payment, scoped to the owning company. */
+export async function getFiscalLinkByPayment(
+  paymentId: string,
+  companyId: string,
+): Promise<FiscalLinkRow | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<FiscalLinkRow>(
+    `SELECT * FROM fiscal_link WHERE payment_id = $1 AND company_id = $2`,
+    [paymentId, companyId],
+  );
+  return rows[0] ?? null;
+}
+
+/** List fiscal-document links for a company, most recent first. */
+export async function listFiscalLinksByCompany(
+  companyId: string,
+  limit = 50,
+): Promise<FiscalLinkRow[]> {
+  await ensureSchema();
+  const { rows } = await getPool().query<FiscalLinkRow>(
+    `SELECT * FROM fiscal_link WHERE company_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [companyId, limit],
   );
   return rows;
 }

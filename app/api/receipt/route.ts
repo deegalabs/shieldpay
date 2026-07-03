@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPayment, getCompanyByOwner, type PaymentRow } from '@/lib/db/client';
+import {
+  getPayment,
+  getCompanyByOwner,
+  getFiscalLinkByPayment,
+  type PaymentRow,
+} from '@/lib/db/client';
 import { getSession } from '@/lib/auth/server';
 import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
 import { generateReceiptPdf, receiptJson } from '@/lib/pdf/receipt';
@@ -56,6 +61,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
+  // Optional linked fiscal document (F3). Best-effort: a lookup failure or an
+  // unlinked payment simply omits the field. The link is mock-backed for now
+  // (see lib/fiscal/adapter.ts), so it is shown as informational only.
+  let fiscalDocument: { provider: string; invoiceNumber: string; invoiceUrl?: string } | undefined;
+  if (payment.company_id) {
+    const link = await getFiscalLinkByPayment(payment.id, payment.company_id).catch(() => null);
+    if (link) {
+      fiscalDocument = {
+        provider: link.provider,
+        invoiceNumber: link.invoice_number,
+        ...(link.invoice_url ? { invoiceUrl: link.invoice_url } : {}),
+      };
+    }
+  }
+
   const receipt = {
     companyName: payment.payer_name || COMPANY.name,
     companyCnpj: payment.payer_cnpj || COMPANY.cnpj,
@@ -67,6 +87,7 @@ export async function GET(req: NextRequest) {
     txHash: payment.tx_hash,
     explorerUrl: `${EXPLORER_BASE}/tx/${payment.tx_hash}`,
     issuedAt: payment.created_at,
+    ...(fiscalDocument ? { fiscalDocument } : {}),
   };
 
   // Machine-readable variant. The exact amount is never disclosed on this path

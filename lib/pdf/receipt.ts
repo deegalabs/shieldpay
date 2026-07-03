@@ -10,7 +10,7 @@ import { formatUsdc } from '@/lib/utils';
  * range, the on-chain zero-knowledge proof id, the Stellar transaction that
  * verified it, and a QR code to independently re-verify on the public explorer.
  *
- * The exact amount is intentionally absent — the proof attests range membership
+ * The exact amount is intentionally absent, the proof attests range membership
  * without disclosing the figure (revealed only under a viewing key).
  */
 export interface ReceiptData {
@@ -24,6 +24,12 @@ export interface ReceiptData {
   txHash: string;
   explorerUrl: string;
   issuedAt: string; // ISO string
+  /**
+   * Optional linked fiscal document (Brazilian nota fiscal / NFS-e). Absent by
+   * default. NOTE: in the current build this is produced by a mock adapter, not a
+   * real NFS-e web service (see lib/fiscal/adapter.ts and docs/ROADMAP.md, F3).
+   */
+  fiscalDocument?: { provider: string; invoiceNumber: string; invoiceUrl?: string };
 }
 
 /**
@@ -50,6 +56,13 @@ export function receiptJson(
   };
   if (data.viewKeyDisclosed && data.amountCents != null) {
     json.amountCents = data.amountCents;
+  }
+  if (data.fiscalDocument) {
+    json.fiscalDocument = {
+      provider: data.fiscalDocument.provider,
+      invoiceNumber: data.fiscalDocument.invoiceNumber,
+      ...(data.fiscalDocument.invoiceUrl ? { invoiceUrl: data.fiscalDocument.invoiceUrl } : {}),
+    };
   }
   return json;
 }
@@ -100,6 +113,12 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Uint8Array>
   row('On-chain proof id', `#${data.proofId}`);
   monoRow('Verification tx', data.txHash);
   row('Issued at', new Date(data.issuedAt).toUTCString());
+  if (data.fiscalDocument) {
+    row(
+      'Fiscal document',
+      `${data.fiscalDocument.invoiceNumber} (${data.fiscalDocument.provider})`,
+    );
+  }
 
   // Plain-language statement (full width).
   y += 34;
