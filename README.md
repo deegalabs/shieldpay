@@ -2,7 +2,9 @@
 
 # 🛡️ ShieldPay
 
-### Confidential payroll for DAOs and Web3 teams on Stellar
+### On-chain payroll publishes every salary. A rival reads the ledger and poaches your best engineer with the number in hand.
+
+#### ShieldPay: confidential payroll on Stellar. Proof-of-reserves, for payroll.
 
 **Settle contributor payments on Stellar and prove on-chain that each one was correct, while keeping the amount private and disclosing the exact figure only to an authorized auditor.**
 
@@ -11,6 +13,7 @@
 [![ZK](https://img.shields.io/badge/ZK-Groth16%20zk--SNARK-6366F1)](https://docs.circom.io/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=next.js)](https://nextjs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10B981.svg)](LICENSE)
+[![CI](https://github.com/deegalabs/shieldpay/actions/workflows/ci.yml/badge.svg)](https://github.com/deegalabs/shieldpay/actions/workflows/ci.yml)
 
 Submission for **Stellar Hacks: ZK** · Real-world ZK on Stellar
 
@@ -33,6 +36,13 @@ independently verifiable receipt.
 
 > The one-click demo login (Company / Contractor on the sign-in screen) runs on an
 > isolated demo identity, so it never touches the treasury-owning account.
+
+## Why we built this
+
+On-chain payroll leaks every salary on a transparent ledger: anyone can read what
+each contributor earns. A company should be able to prove it paid its team
+correctly, in range and on total, without publishing the numbers. That is exactly
+a zero-knowledge statement, so we built it.
 
 ## The problem
 
@@ -104,6 +114,14 @@ Where we are still upfront about the limits, rather than overclaim:
   amount); it binds a settlement tx hash. Validating the settlement on-chain
   (atomic verify-and-release) is the roadmap step that would close this.
 
+## How the ZK is load-bearing
+
+Remove the proof and there is nothing left to stand on: the amount either goes
+on-chain in clear and every salary is exposed, or it goes off-chain and there is
+no evidence the payment was correct. The zero-knowledge proof is the one thing
+that lets the amount stay a commitment while its correctness stays checkable by
+anyone. It is not a feature bolted onto a payments app. The proof is the product.
+
 ## Why ZK is essential here
 
 ZK is load-bearing, not decoration. The core promise is "prove the payment was
@@ -130,6 +148,22 @@ exceeds the testnet compute budget. A readable Noir reference of the same circui
 lives in [`circuits/noir_reference`](circuits/noir_reference). The full rationale
 is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+### Measured performance
+
+Numbers measured from this repo. Both circuits are Groth16 over BN254 (Circom and
+snarkjs), verified inside Soroban with the native BN254 host functions.
+
+| | Per-payment | Aggregate (Proof-of-Payroll, N=8) |
+| --- | --- | --- |
+| Proof size | 256 bytes | 256 bytes |
+| Public signals | 5 | 25 |
+| Constraints | 593 | 4736 |
+| Verification key | 836 bytes | 2116 bytes |
+| On-chain cost | one 4-pairing check + 5 BN254 scalar-muls | one 4-pairing check + 25 BN254 scalar-muls |
+
+All signals verify within the Soroban compute budget. Proving runs with snarkjs in
+Node (proving time not benchmarked).
+
 ## The proof and settlement chain
 
 | Layer | What | Where |
@@ -143,6 +177,21 @@ is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 The exact amount stays a commitment at every public layer. Full diagram and flow
 in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Rejection paths (what the chain refuses)
+
+Each guarantee maps to a real on-chain error in the `PaymentVerifier` contract.
+The chain does not take our word for it, it rejects anything that does not hold.
+
+| Guarantee | Mechanism | On-chain rejection |
+| --- | --- | --- |
+| A forged proof cannot be recorded | BN254 pairing check | `InvalidProof` (#3) |
+| A payment cannot be replayed | tx-hash / run-ref dedup | `DuplicatePayment` (#4) |
+| A proof cannot be rebound to another recipient, commitment, or tx | signals 0/3/4 bound to the record | `ProofNotBound` (#8) |
+| An aggregate line must be a real recorded payment with a matching range | commitment to record index plus stored range | `ProofNotBound` (#8) |
+
+Reproduce these live with `pnpm demo`: it records a real proof, then a forged one
+and a replayed one are rejected on-chain.
 
 ## Privacy model
 
@@ -158,6 +207,16 @@ We do not move the real USDC salary amount in the settlement, because a real
 transfer of that amount would publish it in the operation. The settlement is a
 real record with a symbolic amount, and real-USDC fund rails are a documented
 decision for mainnet.
+
+## How it compares
+
+| | Raw USDC payroll | Shielded wallet | ShieldPay |
+| --- | --- | --- | --- |
+| Amount private | no | yes | yes |
+| Recipient visible / auditable | yes | no | yes |
+| Provably correct on-chain | no | partial | yes |
+| Selective disclosure to an auditor | no | rare | yes |
+| One aggregate proof for a whole run | no | no | yes |
 
 ## Tech stack
 
@@ -221,6 +280,19 @@ account for the user, so payroll and accounting users never touch a seed phrase.
 A one-click demo login is available for evaluation. Auditors get a signed,
 expiring read-only link, with no wallet needed. Sessions are signed JWTs, and
 routes are role-gated by middleware.
+
+## Multi-tenant SaaS spine
+
+Under the ZK, ShieldPay is a real multi-tenant application. The security
+primitives are already in the code:
+
+- JWT sessions (jose), signed and role-scoped.
+- Default-deny middleware: a route stays closed unless a role opens it.
+- zod-validated inputs on every API route.
+- Parameterized SQL only, never string-concatenated queries.
+- Rate limiting on sensitive endpoints.
+- Per-company data scoping, so one tenant never reads another tenant's data.
+- The exact amount is never stored in clear, only the commitment and the range.
 
 ## The three portals
 
@@ -328,6 +400,16 @@ stellar contract invoke \
   --network testnet \
   -- get_payroll_record --proof_id 3
 ```
+
+Prefer a browser? The landing page has a public, wallet-free verify panel
+([`/#verify`](https://web-production-f389ce.up.railway.app/#verify)) that reads a
+recorded proof straight from the on-chain verifier.
+
+Prefer one command? `pnpm demo` records a real proof on testnet, then watches a
+forged proof and a replayed proof get rejected on-chain.
+
+CI proves and verifies both circuits (per-payment and aggregate) on every push
+via `pnpm zk:ci`, next to the contract `cargo test` and the web build.
 
 ## Legal note
 
