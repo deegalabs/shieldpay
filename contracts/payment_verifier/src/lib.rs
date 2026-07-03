@@ -32,6 +32,12 @@ pub struct ProofRecord {
     pub worker_address_hash: BytesN<32>,
     pub payment_tx_hash: BytesN<32>,
     pub value_commitment: BytesN<32>,
+    // The contractual range this payment was proven within, taken from the
+    // proof's own public signals (min = signal 1, max = signal 2). Stored so the
+    // aggregate Proof-of-Payroll can bind each of its lines back to a real,
+    // individually verified payment with a matching range (closes P1).
+    pub range_min: u64,
+    pub range_max: u64,
     pub verified: bool,
     pub verified_at_ledger: u32,
     pub verified_at_timestamp: u64,
@@ -59,6 +65,14 @@ enum DataKey {
     TxIndex(BytesN<32>),
     PayrollRecord(u64),
     PayrollIndex(BytesN<32>),
+    // Verification key for the aggregate Proof-of-Payroll circuit (25 signals).
+    // Held alongside `Vk` (the 5-signal per-payment key) so one contract instance
+    // verifies both proof kinds and the aggregate can read per-payment records
+    // locally.
+    VkPayroll,
+    // commitment -> per-payment proof id, so the aggregate can look up the
+    // recorded payment behind each of its lines.
+    CommitmentIndex(BytesN<32>),
 }
 
 #[contracterror]
@@ -84,6 +98,22 @@ fn public_signal(env: &Env, public_signals: &Bytes, index: u32) -> Result<BytesN
     let mut arr = [0u8; 32];
     public_signals.slice(start..end).copy_into_slice(&mut arr);
     Ok(BytesN::from_array(env, &arr))
+}
+
+/// Read the public signal at `index` as a u64. Payroll ranges are small amounts
+/// in USDC cents, so the high 24 bytes of the field element must be zero.
+fn public_signal_u64(env: &Env, public_signals: &Bytes, index: u32) -> Result<u64, Error> {
+    let arr = public_signal(env, public_signals, index)?.to_array();
+    let mut hi = 0u8;
+    for b in arr.iter().take(24) {
+        hi |= *b;
+    }
+    if hi != 0 {
+        return Err(Error::MalformedPublicSignals);
+    }
+    let mut low = [0u8; 8];
+    low.copy_from_slice(&arr[24..32]);
+    Ok(u64::from_be_bytes(low))
 }
 
 // ─────────────────────────── Groth16 / BN254 ───────────────────────────
@@ -216,6 +246,18 @@ impl PaymentVerifier {
         Ok(())
     }
 
+    /// Store the aggregate Proof-of-Payroll circuit's verification key (25
+    /// signals). Held alongside the per-payment key so a single instance verifies
+    /// both proof kinds and the aggregate can read per-payment records locally.
+    pub fn initialize_payroll(env: Env, vk_bytes: Bytes) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::VkPayroll) {
+            return Err(Error::AlreadyInitialized);
+        }
+        let _ = VerificationKey::from_bytes(&env, &vk_bytes)?;
+        env.storage().instance().set(&DataKey::VkPayroll, &vk_bytes);
+        Ok(())
+    }
+
     /// Verify a Groth16 proof on-chain and, if valid, record it. Returns proof id.
     /// `company` must authorize the call.
     pub fn verify_and_record(
@@ -262,13 +304,20 @@ impl PaymentVerifier {
             return Err(Error::ProofNotBound);
         }
 
+        // Store the proven range (signals 1 and 2) so the aggregate can bind each
+        // line back to this record.
+        let range_min = public_signal_u64(&env, &public_signals, 1)?;
+        let range_max = public_signal_u64(&env, &public_signals, 2)?;
+
         let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);
         let record = ProofRecord {
             proof_id: id,
             company,
             worker_address_hash,
             payment_tx_hash: payment_tx_hash.clone(),
-            value_commitment,
+            value_commitment: value_commitment.clone(),
+            range_min,
+            range_max,
             verified: true,
             verified_at_ledger: env.ledger().sequence(),
             verified_at_timestamp: env.ledger().timestamp(),
@@ -277,6 +326,9 @@ impl PaymentVerifier {
         env.storage()
             .persistent()
             .set(&DataKey::TxIndex(payment_tx_hash), &id);
+        env.storage()
+            .persistent()
+            .set(&DataKey::CommitmentIndex(value_commitment), &id);
         env.storage().instance().set(&DataKey::NextId, &(id + 1));
         Ok(id)
     }
@@ -312,7 +364,7 @@ impl PaymentVerifier {
         let vk_bytes: Bytes = env
             .storage()
             .instance()
-            .get(&DataKey::Vk)
+            .get(&DataKey::VkPayroll)
             .ok_or(Error::NotInitialized)?;
 
         if env
@@ -339,6 +391,37 @@ impl PaymentVerifier {
         tb[24..32].copy_from_slice(&total.to_be_bytes());
         if public_signal(&env, &public_signals, last)? != BytesN::from_array(&env, &tb) {
             return Err(Error::ProofNotBound);
+        }
+
+        // Bind each per-line commitment and range to a real, individually verified
+        // payment recorded by this company. The proof already shows in-circuit that
+        // each hidden amount is within its [min, max] and that they sum to `total`;
+        // this loop additionally forces those per-line commitments and ranges to
+        // match the recorded per-payment proofs, so a company cannot invent lines
+        // or widen ranges at aggregate time (closes P1). Padding lines
+        // (min == max == 0, contributing 0 to the total) carry no payment and are
+        // skipped.
+        let n = last / 3; // signals are [commit x N, min x N, max x N, total]
+        for i in 0..n {
+            let min_i = public_signal_u64(&env, &public_signals, n + i)?;
+            let max_i = public_signal_u64(&env, &public_signals, 2 * n + i)?;
+            if min_i == 0 && max_i == 0 {
+                continue;
+            }
+            let commit_i = public_signal(&env, &public_signals, i)?;
+            let rec_id: u64 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::CommitmentIndex(commit_i))
+                .ok_or(Error::ProofNotBound)?;
+            let rec: ProofRecord = env
+                .storage()
+                .persistent()
+                .get(&DataKey::Record(rec_id))
+                .ok_or(Error::ProofNotBound)?;
+            if rec.company != company || rec.range_min != min_i || rec.range_max != max_i {
+                return Err(Error::ProofNotBound);
+            }
         }
 
         let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);
