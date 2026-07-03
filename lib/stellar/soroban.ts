@@ -136,6 +136,37 @@ export async function isVerifiedOnChain(paymentTxHash: Buffer): Promise<boolean>
 }
 
 /**
+ * Read-only fetch of a per-payment proof record's value commitment straight from
+ * the PaymentVerifier contract. This is the on-chain source of truth the contract
+ * bound to the proof at record time (signal 0 == value_commitment). Returned as a
+ * decimal field-element string so it can be compared directly to a Poseidon
+ * commitment recomputed off-chain. Returns null if the record is absent or the RPC
+ * is unavailable (callers fall back to the stored column and flag it).
+ */
+export async function readOnChainCommitment(proofId: string): Promise<string | null> {
+  if (!CONTRACTS.paymentVerifier || !proofId) return null;
+  const contract = new Contract(CONTRACTS.paymentVerifier);
+  const op = contract.call('get_proof_record', nativeToScVal(BigInt(proofId), { type: 'u64' }));
+  try {
+    const source = new Account(Keypair.random().publicKey(), '0');
+    const tx = new TransactionBuilder(source, { fee: '100', networkPassphrase })
+      .addOperation(op)
+      .setTimeout(30)
+      .build();
+    const sim = await sorobanServer.simulateTransaction(tx);
+    if ('result' in sim && sim.result?.retval) {
+      const rec = scValToNative(sim.result.retval) as { value_commitment?: Uint8Array } | null;
+      if (!rec || !rec.value_commitment) return null;
+      const buf = Buffer.from(rec.value_commitment);
+      return BigInt('0x' + buf.toString('hex')).toString();
+    }
+  } catch {
+    /* read-only best effort */
+  }
+  return null;
+}
+
+/**
  * Read-only check, against the AnchorRegistry, whether a worker address is
  * anchored for a company. This is the on-chain source of truth for the identity
  * anchor, so the server can confirm an anchor instead of trusting a client hash.

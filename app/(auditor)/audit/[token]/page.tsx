@@ -69,7 +69,7 @@ export default async function AuditorView({ params }: { params: { token: string 
     }
   }
   let disclosed: Map<string, Disclosed> = new Map();
-  let summary = { disclosedTotalCents: 0, disclosedCount: 0, allMatch: true };
+  let summary = { disclosedTotalCents: 0, disclosedCount: 0, allMatch: true, verifiedLive: false };
   if (disclose && claims.companyId) {
     try {
       const vk = await ensureCompanyViewingKey(claims.companyId);
@@ -106,8 +106,9 @@ export default async function AuditorView({ params }: { params: { token: string 
               <div>
                 <p className="font-semibold">Selective disclosure unlocked</p>
                 <p className="text-sm text-muted">
-                  Exact amounts are revealed and each was re-checked against the commitment the
-                  Stellar contract verified on-chain.
+                  {summary.verifiedLive
+                    ? 'Exact amounts are revealed and each was re-checked live against the commitment read straight from the Stellar contract.'
+                    : 'Exact amounts are revealed and each was re-checked against the recorded commitment (a live contract read was unavailable).'}
                 </p>
               </div>
             </div>
