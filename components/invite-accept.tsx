@@ -23,6 +23,8 @@ export function InviteAccept({
   defaultName,
   usdcCode,
   usdcIssuer,
+  rangeMinCents,
+  rangeMaxCents,
 }: {
   token: string;
   companyAddress: string;
@@ -30,6 +32,9 @@ export function InviteAccept({
   defaultName: string;
   usdcCode: string;
   usdcIssuer: string;
+  // The agreed range (USDC cents) the worker co-signs on-chain at anchor time.
+  rangeMinCents: number;
+  rangeMaxCents: number;
 }) {
   const { ready, authenticated, login, user, getAccessToken } = usePrivy();
   const { createWallet } = useCreateWallet();
@@ -104,7 +109,15 @@ export function InviteAccept({
   }
 
   async function anchorOnChain(addr: string, cpfHash: string): Promise<string> {
-    return anchorIdentity({ addr, companyAddress, anchorContractId, cpfHash, signRawHash });
+    return anchorIdentity({
+      addr,
+      companyAddress,
+      anchorContractId,
+      cpfHash,
+      signRawHash,
+      rangeMinCents,
+      rangeMaxCents,
+    });
   }
 
   // Best-effort: open a USDC trustline so the worker can receive the USDC
