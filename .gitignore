@@ -77,3 +77,7 @@ temp/
 
 # Remotion pitch/demo video project lives in temp/, never committed
 /video/
+
+# Claude Code and design-pipeline tooling, never committed
+.claude/
+.design/projects/
