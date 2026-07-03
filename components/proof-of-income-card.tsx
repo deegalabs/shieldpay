@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { FileCheck, ShieldCheck, ExternalLink, Copy, ArrowUpRight } from 'lucide-react';
+import { FileCheck, ShieldCheck, ExternalLink, Copy, ArrowUpRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,8 @@ export function ProofOfIncomeCard({
   const [maxUsdc, setMaxUsdc] = React.useState(String(defaultMaxCents / 100));
   const [busy, setBusy] = React.useState(false);
   const [result, setResult] = React.useState<IssueResult | null>(null);
+  const [periodLabel, setPeriodLabel] = React.useState(`Tax year ${new Date().getFullYear()}`);
+  const [downloading, setDownloading] = React.useState(false);
 
   const shareUrl = result
     ? `${window.location.origin}/verify-income?n=${result.nullifier}&id=${result.credentialId}`
@@ -84,6 +86,51 @@ export function ProofOfIncomeCard({
       toast.error('Could not reach the network. Please try again.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function downloadStatement() {
+    const period = periodLabel.trim();
+    if (!period) {
+      toast.error('Add a period for the statement.');
+      return;
+    }
+    const rangeMinCents = Math.round(Number(minUsdc) * 100);
+    const rangeMaxCents = Math.round(Number(maxUsdc) * 100);
+    if (!Number.isFinite(rangeMinCents) || !Number.isFinite(rangeMaxCents) || rangeMaxCents <= 0) {
+      toast.error('Enter a valid income range.');
+      return;
+    }
+    if (rangeMinCents > rangeMaxCents) {
+      toast.error('The minimum cannot be greater than the maximum.');
+      return;
+    }
+    setDownloading(true);
+    try {
+      const res = await fetch('/api/income/statement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerAddress, rangeMinCents, rangeMaxCents, periodLabel: period }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        toast.error(data?.error ?? 'Could not generate the income statement.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'shieldpay-income-statement.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Income statement downloaded.');
+    } catch {
+      toast.error('Could not reach the network. Please try again.');
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -222,6 +269,34 @@ export function ProofOfIncomeCard({
           </Button>
         </div>
       )}
+
+      <div className="mt-6 border-t border-border pt-5">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Download size={16} className="text-brand" /> Download income statement
+        </div>
+        <p className="mt-1.5 text-sm text-muted">
+          A formal, printable statement for a bank, consulate, or tax office. It proves {workerName}
+          &apos;s income falls within the range above over the period you set, verified on-chain,
+          without showing exact amounts.
+        </p>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label htmlFor="poi-period" className="mb-1.5 block text-sm font-medium">
+              Period
+            </label>
+            <Input
+              id="poi-period"
+              value={periodLabel}
+              onChange={(e) => setPeriodLabel(e.target.value)}
+              placeholder="e.g. Tax year 2026 or Jan 2026 to Jun 2026"
+              maxLength={80}
+            />
+          </div>
+          <Button variant="outline" onClick={downloadStatement} disabled={downloading} className="sm:w-auto">
+            <Download size={16} /> {downloading ? 'Preparing…' : 'Download statement'}
+          </Button>
+        </div>
+      </div>
     </Card>
   );
 }
