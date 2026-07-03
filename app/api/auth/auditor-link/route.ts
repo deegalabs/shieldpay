@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/server';
@@ -6,7 +7,11 @@ import { getCompanyByOwner, ensureCompanyViewingKey } from '@/lib/db/client';
 
 export const runtime = 'nodejs';
 
-const Body = z.object({ days: z.number().optional(), disclose: z.boolean().optional() });
+const Body = z.object({
+  days: z.number().optional(),
+  disclose: z.boolean().optional(),
+  oneTime: z.boolean().optional(),
+});
 
 /**
  * POST /api/auth/auditor-link  { days?: number, disclose?: boolean }
@@ -23,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'company session required' }, { status: 403 });
   }
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  const { days = 30, disclose = false } = parsed.success ? parsed.data : {};
+  const { days = 30, disclose = false, oneTime = false } = parsed.success ? parsed.data : {};
   const clamped = Math.min(Math.max(Number(days) || 30, 1), 365);
 
   let company = null;
@@ -52,10 +57,19 @@ export async function POST(req: NextRequest) {
     claims.epoch = company.disclose_epoch;
   }
 
+  // One-time link: mint a unique jti so the first disclosure spends the link.
+  // Only meaningful with disclose=true; if oneTime && !disclose it is effectively
+  // read-only (nothing to spend), but we still stamp it to keep the intent.
+  if (oneTime) {
+    claims.jti = randomUUID();
+    claims.oneTime = true;
+  }
+
   const token = await signScopedToken(claims, `${clamped}d`);
   return NextResponse.json({
     url: `/audit/${token}`,
     expiresInDays: clamped,
     disclose: Boolean(claims.disclose),
+    oneTime: Boolean(claims.oneTime),
   });
 }

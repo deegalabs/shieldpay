@@ -226,6 +226,27 @@ export async function logDisclosure(row: {
   );
 }
 
+/**
+ * Claim a one-time disclosure link by its jti. Atomic and race-safe: the first
+ * caller inserts the row and gets `true`; every later caller hits the ON CONFLICT
+ * and gets `false` (already spent). Fail-closed: on any DB error this returns
+ * `false` so a one-time link can never be replayed for disclosure when the claim
+ * cannot be recorded.
+ */
+export async function claimOneTimeToken(jti: string): Promise<boolean> {
+  try {
+    await ensureSchema();
+    const { rows } = await getPool().query<{ jti: string }>(
+      `INSERT INTO disclosure_token_use (jti) VALUES ($1)
+       ON CONFLICT (jti) DO NOTHING RETURNING jti`,
+      [jti],
+    );
+    return rows.length > 0;
+  } catch {
+    return false; // fail closed: treat as already spent -> read-only
+  }
+}
+
 export async function getCompanyByOwner(ownerSub: string): Promise<CompanyRow | null> {
   await ensureSchema();
   const { rows } = await getPool().query<CompanyRow>(

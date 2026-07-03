@@ -6,6 +6,7 @@ import {
   ensureCompanyViewingKey,
   getCompanyById,
   logDisclosure,
+  claimOneTimeToken,
   type PaymentRow,
 } from '@/lib/db/client';
 import { disclosePayments, summarizeDisclosure, type Disclosed } from '@/lib/payments/disclose';
@@ -69,6 +70,12 @@ export default async function AuditorView({ params }: { params: { token: string 
     } catch {
       disclose = false; // cannot confirm the epoch — fail closed to read-only
     }
+  }
+  // One-time link: spend it on the first disclosure. A second view (or a DB we
+  // cannot reach) claims false and drops to read-only, never re-disclosing.
+  if (disclose && claims.oneTime && claims.jti) {
+    const firstUse = await claimOneTimeToken(claims.jti);
+    if (!firstUse) disclose = false;
   }
   let disclosed: Map<string, Disclosed> = new Map();
   let summary = { disclosedTotalCents: 0, disclosedCount: 0, allMatch: true, verifiedLive: false };
