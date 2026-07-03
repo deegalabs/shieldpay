@@ -37,9 +37,26 @@ fn from_hex(env: &Env, s: &str) -> Bytes {
     out
 }
 
+/// Register a constructor-deployed instance: a fresh admin plus BOTH verification
+/// keys (per-payment and aggregate payroll), ready to verify immediately.
 fn setup(env: &Env) -> PaymentVerifierClient<'_> {
-    let id = env.register(PaymentVerifier, ());
+    let admin = Address::generate(env);
+    let id = env.register(
+        PaymentVerifier,
+        (admin, from_hex(env, VK_HEX), from_hex(env, PAYROLL_VK_HEX)),
+    );
     PaymentVerifierClient::new(env, &id)
+}
+
+/// Like `setup`, but returns the admin Address and the contract id too, for auth
+/// and storage-seeding tests.
+fn setup_with_admin(env: &Env) -> (Address, Address, PaymentVerifierClient<'_>) {
+    let admin = Address::generate(env);
+    let id = env.register(
+        PaymentVerifier,
+        (admin.clone(), from_hex(env, VK_HEX), from_hex(env, PAYROLL_VK_HEX)),
+    );
+    (admin, id.clone(), PaymentVerifierClient::new(env, &id))
 }
 
 #[test]
@@ -47,8 +64,6 @@ fn real_proof_verifies_and_records_on_chain() {
     let env = Env::default();
     env.mock_all_auths();
     let client = setup(&env);
-
-    client.initialize(&from_hex(&env, VK_HEX));
 
     let company = Address::generate(&env);
     let worker_hash = BytesN::from_array(&env, &[2u8; 32]);
@@ -74,7 +89,6 @@ fn tampered_proof_is_rejected() {
     let env = Env::default();
     env.mock_all_auths();
     let client = setup(&env);
-    client.initialize(&from_hex(&env, VK_HEX));
 
     // Flip one byte of the proof -> pairing check must fail.
     let mut proof = from_hex(&env, PROOF_HEX);
@@ -97,7 +111,6 @@ fn duplicate_payment_rejected() {
     let env = Env::default();
     env.mock_all_auths();
     let client = setup(&env);
-    client.initialize(&from_hex(&env, VK_HEX));
 
     let company = Address::generate(&env);
     let wh = BytesN::from_array(&env, &[2u8; 32]);
@@ -116,7 +129,6 @@ fn proof_not_bound_to_recipient_is_rejected() {
     let env = Env::default();
     env.mock_all_auths();
     let client = setup(&env);
-    client.initialize(&from_hex(&env, VK_HEX));
 
     // A valid proof, but recorded against a different recipient than the one the
     // proof is bound to (public signal 3). The pairing passes; the binding fails.
@@ -186,9 +198,12 @@ fn seed_record(
 }
 
 fn payroll_setup(env: &Env) -> (Address, PaymentVerifierClient<'_>) {
-    let id = env.register(PaymentVerifier, ());
+    let admin = Address::generate(env);
+    let id = env.register(
+        PaymentVerifier,
+        (admin, from_hex(env, VK_HEX), from_hex(env, PAYROLL_VK_HEX)),
+    );
     let client = PaymentVerifierClient::new(env, &id);
-    client.initialize_payroll(&from_hex(env, PAYROLL_VK_HEX));
     (id, client)
 }
 
@@ -364,7 +379,6 @@ impl MockAnchorNone {
 /// as the AnchorRegistry; returns whether verify_and_record succeeded.
 fn record_ok_with_anchor(env: &Env, anchor: &Address) -> bool {
     let client = setup(env);
-    client.initialize(&from_hex(env, VK_HEX));
     client.set_anchor_registry(anchor);
     client
         .try_verify_and_record(
@@ -401,4 +415,83 @@ fn per_payment_proceeds_when_no_range_is_anchored() {
     let anchor = env.register(MockAnchorNone, ());
     // No cosigned range -> graceful fallback -> the payment still records.
     assert!(record_ok_with_anchor(&env, &anchor));
+}
+
+// ─────────────── M1 hardening: admin auth, dedup, canonical inputs ───────────────
+
+#[test]
+fn non_admin_set_treasury_asset_rejected() {
+    let env = Env::default();
+    let (_admin, _id, client) = setup_with_admin(&env);
+    let sac = Address::generate(&env);
+
+    // No admin authorization present -> the require_auth gate rejects the call.
+    env.mock_auths(&[]);
+    assert!(client.try_set_treasury_asset(&sac).is_err());
+
+    // With the admin's authorization -> the call is allowed.
+    env.mock_all_auths();
+    assert!(client.try_set_treasury_asset(&sac).is_ok());
+}
+
+#[test]
+fn non_admin_set_anchor_registry_rejected() {
+    let env = Env::default();
+    let (_admin, _id, client) = setup_with_admin(&env);
+    let registry = Address::generate(&env);
+
+    // No admin authorization present -> rejected.
+    env.mock_auths(&[]);
+    assert!(client.try_set_anchor_registry(&registry).is_err());
+
+    // With the admin's authorization -> allowed.
+    env.mock_all_auths();
+    assert!(client.try_set_anchor_registry(&registry).is_ok());
+}
+
+#[test]
+fn duplicate_commitment_rejected() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+
+    let company = Address::generate(&env);
+    let wh = BytesN::from_array(&env, &[2u8; 32]);
+    let tx = BytesN::from_array(&env, &[3u8; 32]);
+    let vc = BytesN::from_array(&env, &COMMITMENT);
+
+    client.verify_and_record(&company, &wh, &tx, &vc, &from_hex(&env, PROOF_HEX), &from_hex(&env, PUBLIC_HEX));
+
+    // Same commitment, a different tx hash: the CommitmentIndex must not be
+    // overwritten, so the second record is rejected with DuplicateCommitment.
+    let tx2 = BytesN::from_array(&env, &[8u8; 32]);
+    let res = client.try_verify_and_record(
+        &company, &wh, &tx2, &vc, &from_hex(&env, PROOF_HEX), &from_hex(&env, PUBLIC_HEX),
+    );
+    assert_eq!(res, Err(Ok(Error::DuplicateCommitment)));
+}
+
+#[test]
+fn non_canonical_public_input_rejected() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+
+    // Force the first public signal to 0xFF..FF (>= the BN254 scalar modulus),
+    // making it a non-canonical field element. It must be rejected before the
+    // pairing runs.
+    let mut public = from_hex(&env, PUBLIC_HEX);
+    for i in 4u32..36 {
+        public.set(i, 0xFF);
+    }
+
+    let res = client.try_verify_and_record(
+        &Address::generate(&env),
+        &BytesN::from_array(&env, &[2u8; 32]),
+        &BytesN::from_array(&env, &[3u8; 32]),
+        &BytesN::from_array(&env, &COMMITMENT),
+        &from_hex(&env, PROOF_HEX),
+        &public,
+    );
+    assert_eq!(res, Err(Ok(Error::NonCanonicalInput)));
 }

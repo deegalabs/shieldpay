@@ -73,6 +73,9 @@ pub struct PayrollRecord {
 
 #[contracttype]
 enum DataKey {
+    // The contract admin, stored at deploy time by the constructor. Only the
+    // admin may configure the treasury asset and the anchor registry.
+    Admin,
     Vk,
     NextId,
     Record(u64),
@@ -107,6 +110,35 @@ pub enum Error {
     MalformedProof = 6,
     MalformedPublicSignals = 7,
     ProofNotBound = 8,
+    // The value commitment for this payment was already recorded. Rejected so a
+    // commitment cannot be silently overwritten in the CommitmentIndex.
+    DuplicateCommitment = 9,
+    // A public signal was not a canonical BN254 scalar field element (it was >=
+    // the field modulus). Rejected before it is used in the pairing.
+    NonCanonicalInput = 10,
+}
+
+/// The BN254 scalar field modulus r, big-endian. Every public signal must be a
+/// canonical field element, strictly less than this, before it is used in the
+/// pairing. (r = 21888242871839275222246405745257275088548364400416034343698204186575808495617.)
+const BN254_FR_MODULUS: [u8; 32] = [
+    0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29, 0xb8, 0x50, 0x45, 0xb6, 0x81, 0x81, 0x58, 0x5d,
+    0x28, 0x33, 0xe8, 0x48, 0x79, 0xb9, 0x70, 0x91, 0x43, 0xe1, 0xf5, 0x93, 0xf0, 0x00, 0x00, 0x01,
+];
+
+/// Whether a 32-byte big-endian value is a canonical BN254 scalar field element
+/// (strictly less than the field modulus).
+fn is_canonical_fr(arr: &[u8; 32]) -> bool {
+    for i in 0..32 {
+        if arr[i] < BN254_FR_MODULUS[i] {
+            return true;
+        }
+        if arr[i] > BN254_FR_MODULUS[i] {
+            return false;
+        }
+    }
+    // Exactly equal to the modulus is non-canonical.
+    false
 }
 
 /// Read the 32-byte public signal at `index` (after the u32 length prefix).
@@ -214,6 +246,10 @@ fn parse_public_signals(env: &Env, bytes: &Bytes) -> Result<Vec<Bn254Fr>, Error>
     let mut signals = Vec::new(env);
     for _ in 0..len {
         let arr = take::<32>(bytes, &mut pos, e)?;
+        // Reject non-canonical field elements before they enter the pairing.
+        if !is_canonical_fr(&arr) {
+            return Err(Error::NonCanonicalInput);
+        }
         let u = U256::from_be_bytes(env, &Bytes::from_array(env, &arr));
         signals.push_back(Bn254Fr::from_u256(u));
     }
@@ -255,34 +291,35 @@ pub struct PaymentVerifier;
 
 #[contractimpl]
 impl PaymentVerifier {
-    /// Store the circuit's verification key (encoded by the off-chain encoder).
-    /// Parsed once here so a malformed key fails fast and cannot be stored.
-    pub fn initialize(env: Env, vk_bytes: Bytes) -> Result<(), Error> {
-        if env.storage().instance().has(&DataKey::Vk) {
-            return Err(Error::AlreadyInitialized);
-        }
-        let _ = VerificationKey::from_bytes(&env, &vk_bytes)?;
-        env.storage().instance().set(&DataKey::Vk, &vk_bytes);
+    /// Deploy-time constructor: store the admin and BOTH verification keys (the
+    /// 5-signal per-payment key and the 25-signal aggregate payroll key), and
+    /// initialize the proof-id counter. One instance verifies both proof kinds.
+    /// The keys are parsed here so a malformed key fails the deploy and cannot be
+    /// stored. This replaces the old post-deploy initialize/initialize_payroll
+    /// calls: a constructor-deployed instance is ready to verify immediately.
+    /// `admin` is the only account allowed to configure the treasury asset and
+    /// the anchor registry later.
+    pub fn __constructor(env: Env, admin: Address, vk: Bytes, vk_payroll: Bytes) -> Result<(), Error> {
+        let _ = VerificationKey::from_bytes(&env, &vk)?;
+        let _ = VerificationKey::from_bytes(&env, &vk_payroll)?;
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::Vk, &vk);
+        env.storage().instance().set(&DataKey::VkPayroll, &vk_payroll);
         env.storage().instance().set(&DataKey::NextId, &0u64);
         Ok(())
     }
 
-    /// Store the aggregate Proof-of-Payroll circuit's verification key (25
-    /// signals). Held alongside the per-payment key so a single instance verifies
-    /// both proof kinds and the aggregate can read per-payment records locally.
-    pub fn initialize_payroll(env: Env, vk_bytes: Bytes) -> Result<(), Error> {
-        if env.storage().instance().has(&DataKey::VkPayroll) {
-            return Err(Error::AlreadyInitialized);
-        }
-        let _ = VerificationKey::from_bytes(&env, &vk_bytes)?;
-        env.storage().instance().set(&DataKey::VkPayroll, &vk_bytes);
-        Ok(())
-    }
-
     /// Configure the treasury asset (USDC SAC) whose balance backs the
-    /// proof-of-reserves coverage check. Set once, immutably (first write wins),
-    /// so it cannot later be pointed at a different asset to fake coverage.
+    /// proof-of-reserves coverage check. Admin-only, and set once, immutably
+    /// (first write wins), so it cannot later be pointed at a different asset to
+    /// fake coverage.
     pub fn set_treasury_asset(env: Env, usdc_sac: Address) -> Result<(), Error> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
+        admin.require_auth();
         if env.storage().instance().has(&DataKey::UsdcSac) {
             return Err(Error::AlreadyInitialized);
         }
@@ -291,9 +328,16 @@ impl PaymentVerifier {
     }
 
     /// Configure the AnchorRegistry whose worker-cosigned ranges are enforced on
-    /// each per-payment proof. Set once, immutably. When set, a payment to a
-    /// worker who anchored a range must prove within exactly that range.
+    /// each per-payment proof. Admin-only, and set once, immutably. When set, a
+    /// payment to a worker who anchored a range must prove within exactly that
+    /// range.
     pub fn set_anchor_registry(env: Env, anchor_registry: Address) -> Result<(), Error> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
+        admin.require_auth();
         if env.storage().instance().has(&DataKey::AnchorRegistry) {
             return Err(Error::AlreadyInitialized);
         }
@@ -326,6 +370,16 @@ impl PaymentVerifier {
             .has(&DataKey::TxIndex(payment_tx_hash.clone()))
         {
             return Err(Error::DuplicatePayment);
+        }
+
+        // Reject a commitment already recorded, so the CommitmentIndex the
+        // aggregate proof relies on cannot be overwritten (no last-write-wins).
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::CommitmentIndex(value_commitment.clone()))
+        {
+            return Err(Error::DuplicateCommitment);
         }
 
         let vk = VerificationKey::from_bytes(&env, &vk_bytes)?;

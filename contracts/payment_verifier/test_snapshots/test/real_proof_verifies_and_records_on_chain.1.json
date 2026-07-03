@@ -1,23 +1,22 @@
 {
   "generators": {
-    "address": 2,
+    "address": 3,
     "nonce": 0,
     "mux_id": 0
   },
   "auth": [
     [],
-    [],
     [
       [
-        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
         {
           "function": {
             "contract_fn": {
-              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "function_name": "verify_and_record",
               "args": [
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
                   "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
@@ -60,7 +59,7 @@
           "data": {
             "contract_data": {
               "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "vec": [
                   {
@@ -87,7 +86,7 @@
           "data": {
             "contract_data": {
               "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "vec": [
                   {
@@ -106,7 +105,7 @@
                       "symbol": "company"
                     },
                     "val": {
-                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                      "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                     }
                   },
                   {
@@ -195,7 +194,7 @@
           "data": {
             "contract_data": {
               "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "vec": [
                   {
@@ -222,7 +221,7 @@
           "data": {
             "contract_data": {
               "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": "ledger_key_contract_instance",
               "durability": "persistent",
               "val": {
@@ -231,6 +230,18 @@
                     "wasm": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
                   },
                   "storage": [
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "Admin"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                      }
+                    },
                     {
                       "key": {
                         "vec": [
@@ -254,6 +265,18 @@
                       "val": {
                         "bytes": "0889b0abaff928aceda5a0ee00c3ab48b2acb0c776b1046750f740466d8d8fdb127bde909cb2d98565922a105152e5ea1a57f7738c052ecf3749ef6e4a30b7e0016f8dddf7a605aa12e282d889f2ff3a8b8779cd6ead4de376227b53ae0f64d425127c655e317a6e7cc93c88d6b9c058f9c7e16f60a9845f6e346ac06b27464b00bb9552139ca9d0ed840e1ae410fa2f3e4c0e3cec778302fd8ba4cb37784e940ed6b35fc1db04665584276acafdca7c1d33551db471650453d873c3cd0c4f3a198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c21800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa3039c3a3b1c4b900ce8b732d17da2ce302b2754418804bd7b4559f29300555f906da2fbfd3cb1aa59dfde7d2fe7cfff9c33195d278f858f74da41ca80052ed08269582a1ceaae51d4cd77c3a756f6c4bf311696a03f609a9d58e2ff9b9d8057019ebdfeedb20c2f42592370792a254e69752ed0745ea56d48c138983b47247db00000006147f229df856b65fe19113055701026976bf863180ae385e5c76d75d14503fca16c562fedb359dd60043a5b7c9238e753eb5ef0dece1745cf6459c4c5038510828a19576fd21a3235f95a5726338163261051935e4f57b6b042f8c85b41040da158f3838375920c111f14e700107e4d4662e91db0239150fa31f6396d5f1aba519180ea49ea1e9e9f4e9258e5360e42a213c80025137e85d67ede0982bb00e2118d3263865e0dfeed0839f97620a721ddd69ddb8fd7967ddddb09f9c0d07f215178bd73d7cef5fc859a8d60045f4e0f17788ecbcfe4b75061109ccc826b8c16e01deeec17c42d0cb337254fc15fcc3bf0349554fd486a8a9ef79acf2e20d643c04234361f7a86c2c496d672499cfd2ef748cb591fbead5949340ab94f127ef5602649e56dd9a2f06a1cad87d4d094d1179fcbaf72eedb2b5f1dee259a90c494827a89232c227b69eb46a72e718b8a192e95e08bb123616baa56fe166c7ad18971fc7cfb2003701dcf08cb0b2c7b0f36bc47fe8ff3b8f0beccd99610c389df617"
                       }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "VkPayroll"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "bytes": "19f30d35f1cd04cf482b5ae11811c07ee52314cad9792f4338aea1083296a63d00d3ad3c2304d1ee1bf36792d9aa4e926eef79d784e534e6f4616235906309a32614119415bb3672d9924c2cc34a8a9380c2c94b84c03b02411f6f547754b6d31c71a8d0278203f4598310a5a0aa2cc5570c874e01634ca8668203e7137ff672230131b0541d662ec54c35dff91943892d97cfcdb4a401d9a6c8750a6910c8900ac04d23d98811fce6cbbdd2d891fc47b311e324de6483969cddc1f5eec13a90198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c21800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa0c24873d3ffb36fb128c39bac78d5e9e21224b878b54d70c29cd4d6dc2c7a3692e50d7e20390bb8f15fbf4a719b1c109b886c25a2faf7a269e742d2448c24aa8025d845307d0372004e0509ab147b28b8d64f8c3d77480bd0ee391ed60287ee028ea6dd9cb6d75977a222598cdfc11ebfb6e2064fa6aa0c84badad9bf47a259a0000001a18d839ec2d20e0f8a81e7a1d1646fa0eafc895c49684b3e9350ce80eda226aa11451bbc150ce9b4c8bc628cb5b7ae1caba0988dcd10f89a6145eb70474d74d682d6778547368e85d41c28854728f8c8ceb031314e743d17f6366b187db8e5512054c4e83629298388fdf8e86025bd7899fbf4e4c5e49a4afd2d8c9b892a1631b24ed74ba39795745bb34d730c08e195d6acd3b7acc527d7ef5d64500daa4d104056a388f655d49fd3c60b3485097dba8c04d5a70be875146ec99272aa42d5d6f05207bcd84650d4e7701887b051c7b1edddc826bc79469023e7ebeb94b262edd15d489f8e965f7bf659a234dc020595134944f0d98bdd022c72fdf504fb38fad0ca3fb444bbee398787af90f1781bbb6521f9a543ebaf7ee44d9661d4bd7411017db1d40c7950de4f711a78f670ddc4aa283e45cc6307168414a8a7ee700d8552c42c9dc9ef7febc6f3d7dcd448ba61c18b1568425f810feb7f815848e42954505b59562b417df4be4b8bc75f3357a31bee99604f28d271529b4564d1c9a5ddd0fbfcc6f17aeb8a7ab758f076cccdd5714e23f0ad5bd1cc6584dde43acbe984d2c8e04f45789e052f7daca7d346329e4e2bdb8778a667d68a87964e80148317211560898a627cfc789b3f6a7bd1c583f1e9473ffc760388d3419454f2c4b9e1e2804df6d31fca94630713830291190ff8525c89cb02062fcbcb26d5ce4dc674e1f9776ff4c1125e7957a0943e12c46ff31def18613e74cd242ecc6ec8c292897145a820f49f16224ed14bd244ed2a64ae151447514bff86f14395d49cc42dd5e1685094de35dfd9fe6eb8e7ea5a4b39e0cb6c2ea0dce940b2d04d1f14df8dea0202d74076a3b6e8374c2604c55b8316ce7ad69122baaa00a923c78167cc3efcb2844e611bc63063eef25b5a91646756000fb07b8b2b9c16711356eb50328b78107ebaf3db68f1256d18af5b06e01404d74bb5b92fe1dd791b8499353bddc5f0c2548336d7725c5ee59cc5e369f0de70dd5de4f620e09a4a9179ab7e52e657c1710db4537a42eb2020b612fa53f024178abb42a45fc341a49920d6ec237a12f87158de8ac348ac0b98736d5c6764613a795c8a6c99721e7f6e8794a436a81c31f2d72ab1a563eccb5af65c2eaf83083baf3be486e5d8d45e45ea1fbee5fa709b70124be5b4d896a13a9310c1b1fbae61be63c3a4dc0791215e1605924f2afa9850bd65488a278b76c7345b40bb76f190262e14e04fba76f8d126fc9993706540e07b49f162ecbf555161e97a6625b9cf86c1f3ff51d1569bcdc74b5bb05d186ba0f10c6237d14144927f8f1daf4400c61679b0bd789310f577575d5e91eea54bb00ede0d4adf53fa71c910eca46d0d47e71fd2e35c0fa41c5007a2d7666300ec702efc4fb1987d68d800a2492da3d97ca67324a588d9f3e6823ccf465f78f8f740036670f7ebf99979806b36c7b2e65ee92d747f3b449d899e9365a3fe78993851772d9fec610f20102e32c66bd98dd7cfec81e1c03195f42771d2ba7d0d94d6c21eedb4fc2e28358565263c1eca3206164ddb1c5f82fb5a954570a6970e4c3e60c48dec428497762f4d0af036ddf5e33c05babc9f7ede7e6ce7d0f3abe9d68f908380b7d5482b21aeed2d8e79ea1b509d3441487f3381add82c320a8843b40e8012eb4252db53df24fcc34a13e20b4d6c76602e1649e1756d40b7b44c60f191326aeb4d7e96ece06e56b5a38b9a25cd842ed24fcbf3f490ba3c7c0e32ae806e80ac66cd0f0c68a3d67fc5c6b7e2357e25c498bc23565531d16a145329b2556242cdf1273fdcca02f06eb043eb1cb1ff5a50ef79b0edd48fb07d3c5553e6a87df11ddfe74c9b9a0751224fd1dc5dc1935e698367acd59fc3ef3e84805780f938723a6a5a238e2653466b45806b6608d7c5d0f6b369a331b8164800a4d8b810caf073eaeff9c8e43a8fa5c2bd2a3dc8859ba2583fcf3dcfc59a00813d9a83beedb046ff9c02e27cc904dea54cd62096e2c4c3ccf22fb7af8893c63e4a457d9cf370232b4cd49a22f2799c34fb86abc7e2b7cf20145dcbac32ef13fbfd467235a7a0294d7f371f7acb66c1616a5f07f283e0dc9b489d8e1b772b09413157e15f8dd1ddf9491900fab489b51f1e8f0ad93aaa4a02e2c0d4691e3c1757aea3191b3e100c5cacbe12bccaafd7b227465145062c194690bf8b2d9f48fa598adcd6ee10d037da4f3bfd1ac0e6f76a90db783396ccf61a452b87581b023f1cb3809fa99fa06a2c2a9124d7062cdf2951e70dc604f98aa1ea3eb9eb993baf2228352aeac35143cd68e8c0f210164cd5ea8f43cfa8b5252cbc8b8e2066b0e0c5a479d0f6e9b"
+                      }
                     }
                   ]
                 }
@@ -270,7 +293,7 @@
           "data": {
             "contract_data": {
               "ext": "v0",
-              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M",
               "key": {
                 "ledger_key_nonce": {
                   "nonce": "801925984706572462"

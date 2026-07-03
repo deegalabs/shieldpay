@@ -79,10 +79,12 @@ impl AnchorRegistry {
 
     /// Like `anchor`, but the worker also co-signs the agreed payment range,
     /// stored under the worker's address hash so the PaymentVerifier can later
-    /// enforce that every payment proof uses exactly this range. `worker` must
-    /// authorize the call, so the range carries the worker's own consent (not a
-    /// figure the company can widen unilaterally). `worker_address_hash` is the
-    /// same field element the payment circuit exposes as public signal 3.
+    /// enforce that every payment proof uses exactly this range. Both the worker
+    /// AND the company must authorize the call: the worker's consent binds the
+    /// range to their identity (not a figure the company can widen unilaterally),
+    /// and the company's co-signature binds it to the agreement it is paying
+    /// against. `worker_address_hash` is the same field element the payment
+    /// circuit exposes as public signal 3.
     pub fn anchor_with_range(
         env: Env,
         worker: Address,
@@ -94,6 +96,7 @@ impl AnchorRegistry {
         range_max: u64,
     ) -> Result<(), Error> {
         worker.require_auth();
+        company.require_auth();
 
         let key = DataKey::Anchor(worker.clone(), company.clone());
         if env.storage().persistent().has(&key) {

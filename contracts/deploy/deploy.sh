@@ -37,23 +37,38 @@ else
   echo "    AnchorRegistry: $ANCHOR_ID"
 fi
 
-echo "==> Deploying PaymentVerifier"
+echo "==> Encoding the BN254 verification keys for the constructor"
+# The PaymentVerifier is constructor-deployed: admin + BOTH keys are passed at
+# deploy time (no post-deploy initialize/initialize_payroll). The instance is
+# ready to verify immediately.
+#   - admin: the deployer identity ($SOURCE). It is the only account allowed to
+#     later call set_treasury_asset / set_anchor_registry.
+#   - vk: the 5-signal per-payment key.
+#   - vk_payroll: the 25-signal aggregate payroll key.
+ADMIN=$(stellar keys address "$SOURCE")
+VK_JSON="../circuits/payment_proof/target/verification_key.json"
+VK_PAYROLL_JSON="../circuits/payroll_proof/target/payroll_verification_key.json"
+if [ ! -f "$VK_JSON" ] || [ ! -f "$VK_PAYROLL_JSON" ]; then
+  echo "    ERROR: verification key JSON not found."
+  echo "      per-payment: $VK_JSON"
+  echo "      payroll:     $VK_PAYROLL_JSON"
+  echo "    Run the circuit setup (e.g. 'npm run zk:setup' and the payroll build)"
+  echo "    first, then re-run this deploy."
+  exit 1
+fi
+# Encode snarkjs VKs -> Soroban BN254 byte layout (NOT the raw JSON).
+VK_HEX=$(node ../circuits/scripts/encode_bn254_for_soroban.mjs vk "$VK_JSON")
+VK_PAYROLL_HEX=$(node ../circuits/scripts/encode_bn254_for_soroban.mjs vk "$VK_PAYROLL_JSON")
+
+echo "==> Deploying PaymentVerifier (constructor: admin=$ADMIN + both VKs)"
 VERIFIER_ID=$(stellar contract deploy \
   --wasm "$REL/payment_verifier.wasm" \
-  --source "$SOURCE" --network "$NETWORK")
+  --source "$SOURCE" --network "$NETWORK" \
+  -- \
+  --admin "$ADMIN" \
+  --vk "$VK_HEX" \
+  --vk_payroll "$VK_PAYROLL_HEX")
 echo "    PaymentVerifier: $VERIFIER_ID"
-
-echo "==> Initializing PaymentVerifier with the encoded BN254 verification key"
-VK_JSON="../circuits/payment_proof/target/verification_key.json"
-if [ -f "$VK_JSON" ]; then
-  # Encode snarkjs VK -> Soroban BN254 byte layout (NOT the raw JSON).
-  VK_HEX=$(node ../circuits/scripts/encode_bn254_for_soroban.mjs vk "$VK_JSON")
-  stellar contract invoke --id "$VERIFIER_ID" --source "$SOURCE" --network "$NETWORK" \
-    -- initialize --vk_bytes "$VK_HEX"
-else
-  echo "    WARNING: verification_key.json not found. Run 'npm run zk:setup' first,"
-  echo "    then initialize manually with the encoded VK."
-fi
 
 if [ "$DEPLOY_TARGET" = "verifier" ]; then
   echo "==> Staged deploy done. The new verifier is NOT wired yet."
