@@ -21,6 +21,7 @@ use soroban_sdk::{
         Bn254Fr, Bn254G1Affine, Bn254G2Affine, BN254_G1_SERIALIZED_SIZE,
         BN254_G2_SERIALIZED_SIZE,
     },
+    token::TokenClient,
     vec, Address, Bytes, BytesN, Env, Vec, U256,
 };
 
@@ -53,6 +54,10 @@ pub struct PayrollRecord {
     pub run_ref: BytesN<32>,
     pub total: u64,
     pub verified: bool,
+    // Proof of reserves for payroll: whether the company treasury's USDC balance,
+    // read on-chain at verification time, covered the run total. False if no
+    // treasury asset is configured. See `set_treasury_asset`.
+    pub covered: bool,
     pub verified_at_ledger: u32,
     pub verified_at_timestamp: u64,
 }
@@ -73,6 +78,9 @@ enum DataKey {
     // commitment -> per-payment proof id, so the aggregate can look up the
     // recorded payment behind each of its lines.
     CommitmentIndex(BytesN<32>),
+    // The USDC Stellar Asset Contract used to read the treasury balance for the
+    // proof-of-reserves coverage check. Set once, immutably.
+    UsdcSac,
 }
 
 #[contracterror]
@@ -258,6 +266,17 @@ impl PaymentVerifier {
         Ok(())
     }
 
+    /// Configure the treasury asset (USDC SAC) whose balance backs the
+    /// proof-of-reserves coverage check. Set once, immutably (first write wins),
+    /// so it cannot later be pointed at a different asset to fake coverage.
+    pub fn set_treasury_asset(env: Env, usdc_sac: Address) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::UsdcSac) {
+            return Err(Error::AlreadyInitialized);
+        }
+        env.storage().instance().set(&DataKey::UsdcSac, &usdc_sac);
+        Ok(())
+    }
+
     /// Verify a Groth16 proof on-chain and, if valid, record it. Returns proof id.
     /// `company` must authorize the call.
     pub fn verify_and_record(
@@ -424,6 +443,18 @@ impl PaymentVerifier {
             }
         }
 
+        // Proof of reserves for payroll: read the treasury USDC balance on-chain
+        // and record whether it covered the run total at verification time. The
+        // read is best-effort and MUST NOT trap the run: a missing trustline or
+        // any balance-call failure simply records `covered = false`, never an error.
+        let covered = match env.storage().instance().get::<DataKey, Address>(&DataKey::UsdcSac) {
+            Some(sac) => match TokenClient::new(&env, &sac).try_balance(&company) {
+                Ok(Ok(bal)) => bal >= (total as i128),
+                _ => false,
+            },
+            None => false,
+        };
+
         let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);
         let record = PayrollRecord {
             proof_id: id,
@@ -431,6 +462,7 @@ impl PaymentVerifier {
             run_ref: run_ref.clone(),
             total,
             verified: true,
+            covered,
             verified_at_ledger: env.ledger().sequence(),
             verified_at_timestamp: env.ledger().timestamp(),
         };

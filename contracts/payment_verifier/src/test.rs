@@ -282,3 +282,46 @@ fn payroll_rejects_lines_recorded_by_a_different_company() {
     );
     assert!(res.is_err());
 }
+
+// ─────────────── A+ proof of reserves (treasury coverage) ───────────────
+
+/// Seed the 3 real payment records and a USDC SAC with `balance` for `company`,
+/// then run the aggregate; returns the recorded `covered` flag.
+fn run_with_treasury(env: &Env, id: &Address, client: &PaymentVerifierClient, company: &Address, balance: i128) -> bool {
+    seed_record(env, id, company, &BytesN::from_array(env, &COMMIT_0), 45000, 55000, 0);
+    seed_record(env, id, company, &BytesN::from_array(env, &COMMIT_1), 70000, 80000, 1);
+    seed_record(env, id, company, &BytesN::from_array(env, &COMMIT_2), 30000, 40000, 2);
+
+    let sac = env.register_stellar_asset_contract_v2(Address::generate(env));
+    soroban_sdk::token::StellarAssetClient::new(env, &sac.address()).mint(company, &balance);
+    client.set_treasury_asset(&sac.address());
+
+    let pid = client.verify_and_record_payroll(
+        company,
+        &BytesN::from_array(env, &[7u8; 32]),
+        &160000u64,
+        &from_hex(env, PAYROLL_PROOF_HEX),
+        &from_hex(env, PAYROLL_PUBLIC_HEX),
+    );
+    client.get_payroll_record(&pid).unwrap().covered
+}
+
+#[test]
+fn payroll_records_treasury_coverage_true() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (id, client) = payroll_setup(&env);
+    let company = Address::generate(&env);
+    // Treasury holds 200000 cents >= run total 160000 -> covered.
+    assert!(run_with_treasury(&env, &id, &client, &company, 200_000));
+}
+
+#[test]
+fn payroll_records_treasury_shortfall() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (id, client) = payroll_setup(&env);
+    let company = Address::generate(&env);
+    // Treasury holds only 100000 cents < run total 160000 -> not covered.
+    assert!(!run_with_treasury(&env, &id, &client, &company, 100_000));
+}
