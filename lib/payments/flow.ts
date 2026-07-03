@@ -9,6 +9,7 @@ import { insertPayment, setPayrollProof, type CompanyRow, type PaymentRow } from
 import { sealWitness } from '@/lib/zk/disclosure';
 import { generatePayrollProof } from '@/lib/zk/payroll-prover';
 import { COMPANY } from '@/lib/constants';
+import { getComplianceCheck, assertCompliant, type ComplianceCheck } from '@/lib/compliance';
 
 export interface PaymentInput {
   workerName: string;
@@ -193,8 +194,24 @@ export async function proveAndRecordPayment(args: {
   input: PaymentInput;
   runId?: string | null;
   viewingKey?: string | null;
+  /** Compliance gate run before any settlement or proof. Defaults to the
+   * anchor-based base gate (see lib/compliance). A denial throws ComplianceError,
+   * which the API boundary maps to HTTP 422. */
+  compliance?: ComplianceCheck;
 }): Promise<PaymentResult> {
   const { input } = args;
+
+  // Compliance / KYC gate (E2, base): fail before any on-chain work or spend.
+  // Only runs when the payment is tied to a company (the anchor is per-company).
+  if (args.company) {
+    const compliance = args.compliance ?? getComplianceCheck();
+    await assertCompliant(compliance, {
+      companyId: args.company.id,
+      workerAddress: input.workerAddress,
+      amountCents: Math.round(input.amountUsdc * 100),
+      reference: input.reference,
+    });
+  }
 
   // The company signs its own on-chain actions through this signer.
   const signer = new ServerSigner(args.companySecret);

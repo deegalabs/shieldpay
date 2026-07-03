@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSession } from '@/lib/auth/server';
 import { getCompanyByOwner, ensureCompanyViewingKey } from '@/lib/db/client';
 import { proveAndRecordPayment } from '@/lib/payments/flow';
+import { ComplianceError } from '@/lib/compliance';
 import { EXPLORER_BASE } from '@/lib/constants';
 
 export const runtime = 'nodejs';
@@ -18,7 +19,7 @@ const Body = z.object({
   reference: z.string().min(1),
 });
 
-/** POST /api/payroll — a single "Pay & Prove" (amount stays private). */
+/** POST /api/payroll, a single "Pay & Prove" (amount stays private). */
 export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
       onChain: { txHash, explorerUrl: `${EXPLORER_BASE}/tx/${txHash}`, verified: true },
     });
   } catch (e) {
+    if (e instanceof ComplianceError) {
+      return NextResponse.json({ error: e.message }, { status: 422 });
+    }
     console.error('payment failed', e);
     return NextResponse.json({ error: 'payment failed' }, { status: 500 });
   }

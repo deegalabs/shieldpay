@@ -8,6 +8,7 @@ import {
   listContractors,
 } from '@/lib/db/client';
 import { proveAndRecordPayment, recordRunAggregateProof, type PaymentResult } from '@/lib/payments/flow';
+import { ComplianceError } from '@/lib/compliance';
 import { ServerSigner } from '@/lib/stellar/signer';
 
 export const runtime = 'nodejs';
@@ -28,7 +29,7 @@ const Body = z.object({
 });
 
 /**
- * POST /api/payroll/run — a confidential payroll run (batch).
+ * POST /api/payroll/run, a confidential payroll run (batch).
  * Each line is proven + recorded on-chain with its amount private; the run
  * stores the total (the company can prove it to an auditor later via N4).
  */
@@ -128,6 +129,9 @@ export async function POST(req: NextRequest) {
       })),
     });
   } catch (e) {
+    if (e instanceof ComplianceError) {
+      return NextResponse.json({ error: e.message }, { status: 422 });
+    }
     console.error('payroll run failed', e);
     return NextResponse.json({ error: 'payroll run failed' }, { status: 500 });
   }
