@@ -21,10 +21,23 @@ pub struct AnchorData {
     pub anchored_at_timestamp: u64,
 }
 
+/// The contractual payment range the worker co-signed at anchor time. Keyed by
+/// the worker's address hash (the same field element the payment proof binds as
+/// public signal 3), so the PaymentVerifier can read the authoritative range for
+/// a payment without knowing the worker's full address.
+#[derive(Clone)]
+#[contracttype]
+pub struct RangeAnchor {
+    pub range_min: u64,
+    pub range_max: u64,
+}
+
 #[contracttype]
 enum DataKey {
     /// Keyed by (worker, company).
     Anchor(Address, Address),
+    /// Keyed by (worker_address_hash, company). The worker-cosigned range.
+    Range(BytesN<32>, Address),
 }
 
 #[contracterror]
@@ -62,6 +75,49 @@ impl AnchorRegistry {
         };
         env.storage().persistent().set(&key, &data);
         Ok(())
+    }
+
+    /// Like `anchor`, but the worker also co-signs the agreed payment range,
+    /// stored under the worker's address hash so the PaymentVerifier can later
+    /// enforce that every payment proof uses exactly this range. `worker` must
+    /// authorize the call, so the range carries the worker's own consent (not a
+    /// figure the company can widen unilaterally). `worker_address_hash` is the
+    /// same field element the payment circuit exposes as public signal 3.
+    pub fn anchor_with_range(
+        env: Env,
+        worker: Address,
+        company: Address,
+        contract_hash: BytesN<32>,
+        metadata: String,
+        worker_address_hash: BytesN<32>,
+        range_min: u64,
+        range_max: u64,
+    ) -> Result<(), Error> {
+        worker.require_auth();
+
+        let key = DataKey::Anchor(worker.clone(), company.clone());
+        if env.storage().persistent().has(&key) {
+            return Err(Error::AlreadyAnchored);
+        }
+        let data = AnchorData {
+            contract_hash,
+            metadata,
+            anchored_at_ledger: env.ledger().sequence(),
+            anchored_at_timestamp: env.ledger().timestamp(),
+        };
+        env.storage().persistent().set(&key, &data);
+        env.storage().persistent().set(
+            &DataKey::Range(worker_address_hash, company),
+            &RangeAnchor { range_min, range_max },
+        );
+        Ok(())
+    }
+
+    /// The worker-cosigned range for a payment identity, if one was anchored.
+    pub fn get_range(env: Env, worker_address_hash: BytesN<32>, company: Address) -> Option<RangeAnchor> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Range(worker_address_hash, company))
     }
 
     /// Whether `worker` is anchored for `company`.

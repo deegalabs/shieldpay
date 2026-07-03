@@ -59,18 +59,20 @@ export const CONTRACTS = {
   anchorRegistry:
     process.env.ANCHOR_REGISTRY_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_ANCHOR_REGISTRY_CONTRACT_ID ??
-    '',
+    // Stores worker-cosigned ranges (get_range), the same instance the
+    // PaymentVerifier reads for Tier 2 range enforcement.
+    'CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5',
   // Unified verifier instance: holds BOTH circuit keys (per-payment + aggregate)
   // so the Proof-of-Payroll can bind each line to a recorded payment on-chain.
   paymentVerifier:
     process.env.PAYMENT_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYMENT_VERIFIER_CONTRACT_ID ??
-    'CADGUFVL2JDVB3Q74K3LXMLFLM7IYOWAHLLQ4HBFMGPDEGQNF4CG6S6K',
+    'CCQQ3Z4IBSJOTZF5NCR646ZHLB4UHRRFQCXPFTRG4YMC3EPTJXPZMOEF',
   // Same unified instance (aggregate verify + per-line binding live here too).
   payrollVerifier:
     process.env.PAYROLL_VERIFIER_CONTRACT_ID ??
     process.env.NEXT_PUBLIC_PAYROLL_VERIFIER_CONTRACT_ID ??
-    'CADGUFVL2JDVB3Q74K3LXMLFLM7IYOWAHLLQ4HBFMGPDEGQNF4CG6S6K',
+    'CCQQ3Z4IBSJOTZF5NCR646ZHLB4UHRRFQCXPFTRG4YMC3EPTJXPZMOEF',
 } as const;
 
 /**
