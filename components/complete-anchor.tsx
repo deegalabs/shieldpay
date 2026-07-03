@@ -72,6 +72,7 @@ export function CompleteAnchor({
         signRawHash,
         rangeMinCents,
         rangeMaxCents,
+        contractorId,
       });
       const res = await fetch('/api/worker/anchor', {
         method: 'POST',

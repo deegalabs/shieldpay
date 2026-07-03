@@ -17,11 +17,7 @@ import {
   Operation,
   TransactionBuilder,
   BASE_FEE,
-  Contract,
-  Address,
-  nativeToScVal,
 } from '@stellar/stellar-sdk';
-import { createHash } from 'node:crypto';
 import {
   upsertCompany,
   createContractor,
@@ -33,11 +29,11 @@ import {
 } from '@/lib/db/client';
 import { proveAndRecordPayment, recordRunAggregateProof } from '@/lib/payments/flow';
 import { ServerSigner } from '@/lib/stellar/signer';
+import { submitTwoPartyAnchor, companyKeypairSigner } from '@/lib/stellar/anchor-cosign';
 import {
   generateKeypair,
   fundTestnetAccount,
   horizonServer,
-  sorobanServer,
   networkPassphrase,
 } from '@/lib/stellar/client';
 import { hashCpf } from '@/lib/stellar/auth';
@@ -47,15 +43,6 @@ function need(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`missing ${name} (run with: railway run -- pnpm tsx scripts/seed_demo.ts)`);
   return v;
-}
-
-async function confirm(server: typeof sorobanServer, hash: string): Promise<void> {
-  let got = await server.getTransaction(hash);
-  for (let i = 0; got.status === 'NOT_FOUND' && i < 30; i++) {
-    await new Promise((r) => setTimeout(r, 1500));
-    got = await server.getTransaction(hash);
-  }
-  if (got.status !== 'SUCCESS') throw new Error(`tx ${hash} status ${got.status}`);
 }
 
 async function openUsdcTrustline(secret: string): Promise<void> {
@@ -69,43 +56,38 @@ async function openUsdcTrustline(secret: string): Promise<void> {
   await horizonServer.submitTransaction(tx);
 }
 
+/**
+ * Anchor the worker identity on-chain with the co-signed payment range (M2). The
+ * seed holds both keys, so it produces the worker's envelope signature (the
+ * worker is the tx source) AND the company's Soroban authorization entry
+ * (`anchor_with_range` now require_auth's both). If the deployed registry still
+ * predates M2, `submitTwoPartyAnchor` falls back to a single-party anchor, so the
+ * demo critical path keeps working across the redeploy boundary.
+ */
 async function anchorOnChain(
-  secret: string,
+  workerSecret: string,
+  companySecret: string,
   companyAddress: string,
   cpfHash: string,
   rangeMinCents: number,
   rangeMaxCents: number,
 ): Promise<string> {
-  const { bytesToField, fieldToBe32 } = await import('@/lib/zk/encode');
-  const kp = Keypair.fromSecret(secret);
-  const addr = kp.publicKey();
-  const account = await sorobanServer.getAccount(addr);
-  const metadata = `SHIELDPAY|ANCHOR|v1|org:${companyAddress}|cpf:${cpfHash}`;
-  const contractHash = createHash('sha256').update(metadata).digest();
-  // The same worker-address hash the payment circuit exposes as public signal 3,
-  // so the verifier can look up this worker-cosigned range for their payments.
-  const workerAddressHash = fieldToBe32(bytesToField(createHash('sha256').update(addr).digest()));
-  const contract = new Contract(CONTRACTS.anchorRegistry);
-  const op = contract.call(
-    'anchor_with_range',
-    new Address(addr).toScVal(),
-    new Address(companyAddress).toScVal(),
-    nativeToScVal(contractHash, { type: 'bytes' }),
-    nativeToScVal(metadata, { type: 'string' }),
-    nativeToScVal(workerAddressHash, { type: 'bytes' }),
-    nativeToScVal(rangeMinCents, { type: 'u64' }),
-    nativeToScVal(rangeMaxCents, { type: 'u64' }),
-  );
-  let tx = new TransactionBuilder(account, { fee: '1000000', networkPassphrase })
-    .addOperation(op)
-    .setTimeout(120)
-    .build();
-  tx = await sorobanServer.prepareTransaction(tx);
-  tx.sign(kp);
-  const sent = await sorobanServer.sendTransaction(tx);
-  if (sent.status === 'ERROR') throw new Error(`anchor send failed: ${JSON.stringify(sent.errorResult)}`);
-  await confirm(sorobanServer, sent.hash);
-  return sent.hash;
+  const workerKeypair = Keypair.fromSecret(workerSecret);
+  const companyKeypair = Keypair.fromSecret(companySecret);
+  const { hash, cosigned } = await submitTwoPartyAnchor({
+    params: {
+      anchorContractId: CONTRACTS.anchorRegistry,
+      workerAddress: workerKeypair.publicKey(),
+      companyAddress,
+      cpfHash,
+      rangeMinCents,
+      rangeMaxCents,
+    },
+    workerKeypair,
+    companySign: companyKeypairSigner(companyKeypair),
+  });
+  console.log(`  anchor ${cosigned ? 'co-signed by company (M2)' : 'single-party (pre-M2 registry)'}`);
+  return hash;
 }
 
 async function main() {
@@ -149,7 +131,7 @@ async function main() {
 
   const cpfHash = hashCpf('123.456.789-00');
   console.log('4/6 anchoring the worker identity on-chain...');
-  const anchorTx = await anchorOnChain(worker.secret, companyAddress, cpfHash, 45000, 55000);
+  const anchorTx = await anchorOnChain(worker.secret, companySecret, companyAddress, cpfHash, 45000, 55000);
 
   const contractor = await createContractor({
     company_id: company.id,
