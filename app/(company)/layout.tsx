@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { LayoutDashboard, Send, Users, FileText, Settings } from 'lucide-react';
+import { LayoutDashboard, Send, Users, FileText, Settings, ShieldCheck } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { TopbarActions } from '@/components/topbar-actions';
 import { getSession } from '@/lib/auth/server';
@@ -17,7 +17,7 @@ export default async function CompanyLayout({ children }: { children: React.Reac
     try {
       company = await getCompanyByOwner(session.sub);
     } catch {
-      dbOk = false; // DB unreachable — don't block the UI
+      dbOk = false; // DB unreachable, do not block the UI
     }
   }
   if (session && dbOk && !company) redirect('/onboarding');
@@ -33,6 +33,7 @@ export default async function CompanyLayout({ children }: { children: React.Reac
     { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
     { href: '/contractors', label: 'Contributors', icon: <Users size={16} /> },
     { href: '/payroll', label: 'Payroll', icon: <Send size={16} /> },
+    { href: '/proof-explorer', label: 'Proof Explorer', icon: <ShieldCheck size={16} /> },
     { href: '/receipts', label: 'Receipts', icon: <FileText size={16} /> },
     { href: '/settings', label: 'Settings', icon: <Settings size={16} /> },
   ];
