@@ -17,6 +17,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "zk:setup": "bash circuits/scripts/setup.sh",
     "zk:prove": "tsx circuits/scripts/generate_proof.ts",
+    "zk:ci": "node circuits/scripts/ci_prove_verify.mjs",
     "contracts:build": "bash contracts/deploy/build.sh",
     "contracts:deploy": "bash contracts/deploy/deploy.sh",
     "seed": "tsx scripts/seed.ts",
