@@ -166,6 +166,51 @@ export async function readOnChainCommitment(proofId: string): Promise<string | n
   return null;
 }
 
+/** Convert a decoded ScVal value into something JSON-serializable. */
+function jsonSafe(value: unknown): unknown {
+  if (value instanceof Uint8Array) return Buffer.from(value).toString('hex');
+  if (typeof value === 'bigint') return value.toString();
+  if (Array.isArray(value)) return value.map(jsonSafe);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, jsonSafe(v)]),
+    );
+  }
+  return value;
+}
+
+/**
+ * Read-only fetch of a full per-payment proof record straight from the
+ * PaymentVerifier contract. Anyone can read this without a wallet or a signature:
+ * it is a plain Soroban simulate against the deployed verifier. BytesN fields
+ * (address hash, payment tx hash, value commitment) come back as hex strings and
+ * u64 fields as decimal strings, so the result is safe to JSON-serialize. Returns
+ * null if the record is absent or the RPC is unavailable.
+ */
+export async function getProofRecordOnChain(
+  proofId: string,
+): Promise<Record<string, unknown> | null> {
+  if (!CONTRACTS.paymentVerifier || !proofId) return null;
+  const contract = new Contract(CONTRACTS.paymentVerifier);
+  const op = contract.call('get_proof_record', nativeToScVal(BigInt(proofId), { type: 'u64' }));
+  try {
+    const source = new Account(Keypair.random().publicKey(), '0');
+    const tx = new TransactionBuilder(source, { fee: '100', networkPassphrase })
+      .addOperation(op)
+      .setTimeout(30)
+      .build();
+    const sim = await sorobanServer.simulateTransaction(tx);
+    if ('result' in sim && sim.result?.retval) {
+      const rec = scValToNative(sim.result.retval);
+      if (!rec || typeof rec !== 'object') return null;
+      return jsonSafe(rec) as Record<string, unknown>;
+    }
+  } catch {
+    /* read-only best effort */
+  }
+  return null;
+}
+
 /**
  * Read-only check, against the AnchorRegistry, whether a worker address is
  * anchored for a company. This is the on-chain source of truth for the identity

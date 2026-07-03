@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BrandMark } from '@/components/ui/brand-mark';
+import { VerifyPanel } from '@/components/verify-panel';
 
 export default function HomePage() {
   return (
@@ -146,6 +147,20 @@ export default function HomePage() {
               revealed only to an auditor you authorize with a viewing key.
             </div>
           </Card>
+        </div>
+      </section>
+
+      {/* Verify on-chain, no wallet */}
+      <section id="verify" className="border-t border-border bg-surface/30 py-20">
+        <div className="mx-auto max-w-3xl px-6">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold tracking-tight">Do not trust us, check the chain</h2>
+            <p className="mx-auto mt-3 max-w-xl text-muted">
+              Every payment leaves a proof recorded inside a Stellar contract. Read one yourself,
+              right here, without an account.
+            </p>
+          </div>
+          <VerifyPanel />
         </div>
       </section>
 
