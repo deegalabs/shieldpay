@@ -50,10 +50,13 @@ The width is fixed at `N = 8`. Runs with fewer lines are padded with zeros so th
 circuit shape stays constant. The off-chain prover is `lib/zk/payroll-prover.ts`
 (snarkjs), reusing the field encoding in `lib/zk/encode.ts`.
 
-**Honest limitation.** On-chain, the payroll verifier binds only the total to the
-proof, not the per-line ranges or the per-payment commitments to the recorded
-records. So "everyone was paid within their agreed range" currently rests on the
-honest prover supplying the real ranges. Binding those on-chain is future work.
+**On-chain binding and honest limits.** The payroll verifier now binds each
+non-padding line to a recorded per-payment proof of the same company with a
+matching range (commitment index + stored range), so a company cannot aggregate
+with invented lines or ranges. The remaining limit we are upfront about: the
+worker-cosigned range enforcement protects the honest payment flow, not a company
+crafting raw contract calls; binding the real on-chain USDC recipient to the
+anchored identity is roadmap.
 
 ## Build the primary (Circom) artifacts
 
@@ -88,7 +91,7 @@ built by `scripts/setup.sh` / `scripts/ceremony.sh`.
 The two circuits verify against two separate on-chain instances of the same
 `PaymentVerifier` contract, each initialized with its own verification key: the
 per-payment instance and the Proof-of-Payroll instance (testnet id
-`CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`). See
+`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`). See
 `contracts/README.md` for the on-chain methods.
 
 ## Noir reference

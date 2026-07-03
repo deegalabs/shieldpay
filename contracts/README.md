@@ -88,21 +88,25 @@ signals: `commitment[8]`, `minValue[8]`, `maxValue[8]`, `total`) and records a
 This runs as a **separate instance** of the same `payment_verifier` contract,
 initialized with the payroll verification key (distinct from the per-payment
 instance). Live on Stellar testnet at
-`CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`, with a verified
+`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`, with a verified
 aggregate proof at tx
 `33c783629d345c864175d511873f195595c90e3f276a3aba81b0fe99d7aa336b`. All 25 public
 signals verify within the Soroban compute budget.
 
-**Honest limitation.** The payroll verifier binds only the total to the proof, not
-the per-line ranges or the per-payment commitments to the recorded records. So
-"everyone was paid within their agreed range" currently rests on the honest prover
-supplying the real ranges. Binding per-line ranges and commitments on-chain is
-documented future work.
+**On-chain binding and honest limits.** The payroll verifier now binds each
+non-padding line to a recorded per-payment proof of the same company with a
+matching range (a commitment -> record index plus the range stored in each record),
+so a company cannot aggregate with invented lines or ranges. It also records a
+point-in-time treasury-coverage flag. Where we do not overclaim: the worker-cosigned
+range enforcement protects the honest payment flow but is bypassable by a company
+crafting raw calls (a mismatched identity hash), coverage is a snapshot not an
+escrowed reserve, and the proof does not validate the USDC transfer itself. Binding
+the real recipient and settlement to the anchored identity on-chain is roadmap.
 
 ### Deployed instances (testnet)
 
 | Instance | Contract id |
 | --- | --- |
-| PaymentVerifier (per payment) | `CAUK3NRZTPYJZY6GJYIALALFC6WTT6RKHAU6SU5PHWBNPUMFKZZWNXV3` |
-| Payroll verifier (Proof-of-Payroll) | `CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN` |
-| AnchorRegistry | `CD5EFRVN5KUQ4FCNX6FNIICM7JNYG4ZIKRKIU5DPUVFYJOIMDGCCWYZI` |
+| PaymentVerifier (per payment) | `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q` |
+| Payroll verifier (Proof-of-Payroll) | `CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q` |
+| AnchorRegistry | `CA4QF73R2H2LNJ7CZUPMIXGIZS5MVTW4R3NY36CUYQJ3NJMQHQKODXI5` |

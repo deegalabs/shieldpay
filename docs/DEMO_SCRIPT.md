@@ -9,7 +9,7 @@ Tip: open the live app at https://web-production-f389ce.up.railway.app, use the
 one-click demo login (an isolated demo identity, seeded as Acme DAO paying Jane
 Doe), have a fresh browser profile ready for the auditor link, and keep the
 stellar.expert tab pre-opened on the payroll verifier contract
-(`CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`).
+(`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`).
 
 ---
 
@@ -121,7 +121,7 @@ On screen: back to the dashboard.
       treasury holds USDC and the settlement shows the USDC asset, not the XLM
       marker.
 - [ ] stellar.expert pre-opened on the payroll verifier contract
-      (`CCI4WXRQN5PHZFUHZQKIMXKFZA4EU7JS45UT2AEPKEACBGOGAORPFUTN`) to avoid dead
+      (`CDHKKXVEVZSGDVLSH2L3ZPCCO6KUVGBAQMV6J6DDNVEGD5F6N4QHEW2Q`) to avoid dead
       air.
 
 ### One-line value proposition (for the submission text)
