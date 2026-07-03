@@ -20,10 +20,14 @@ const PUBLIC_API = [
   '/api/audit', // validated by the audit token downstream
   '/api/receipt', // validated by session ownership or audit token downstream
   '/api/invite', // public onboarding, validated by the invite token downstream
+  '/api/verify-onchain', // public, wallet-free on-chain proof lookup (read-only)
+  '/api/income/verify', // public, wallet-free proof-of-income lookup (read-only)
 ];
 
-// API routes that require a company session.
-const COMPANY_API = ['/api/company', '/api/contractors', '/api/payroll'];
+// API routes that require a company session. Checked after PUBLIC_API, so the
+// public '/api/income/verify' above is handled first; the rest of '/api/income'
+// (issue, statement) needs a company session, and each route also self-checks.
+const COMPANY_API = ['/api/company', '/api/contractors', '/api/payroll', '/api/income', '/api/fiscal'];
 
 // API routes that require a worker session.
 const WORKER_API = ['/api/worker'];
