@@ -23,6 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:flow": "tsx scripts/test_flow.ts",
+    "demo": "tsx scripts/demo.ts",
     "setup:usdc": "tsx scripts/setup_usdc_testnet.ts",
     "seed:demo": "tsx scripts/seed_demo.ts",
     "cleanup:db": "tsx scripts/cleanup_db.ts",
