@@ -249,6 +249,68 @@
     );
   }
 
+  /* Stitch reference primitives (verbatim from temp/ref_dashboard.html): the
+     radial-gradient ambient glow behind the hero figure, and the 1px top-edge
+     highlight on elevated bento panels. */
+  .ambient-light {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(
+      circle,
+      rgba(99, 102, 241, 0.15) 0%,
+      rgba(16, 185, 129, 0.05) 40%,
+      rgba(2, 6, 23, 0) 70%
+    );
+    z-index: -1;
+    pointer-events: none;
+    filter: blur(40px);
+  }
+  .top-edge-highlight {
+    border-top: 1px solid rgba(248, 250, 252, 0.05);
+  }
+
+  /* Executive Ledger reference primitives (verbatim from the Stitch export
+     shieldpay_executive_ledger_dashboard/code.html): surface ramps with a 1px
+     top-edge highlight, the sealed-chip edge light, and the ambient glow behind
+     the hero figure. Kept as raw helpers so the dashboard markup mirrors the
+     reference without routing through the semantic tokens. */
+  .surface-200 {
+    background-color: #151e2e;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+  }
+  .surface-300 {
+    background-color: #1e293b;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+  .top-edge-light {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+  .ambient-glow {
+    position: relative;
+    z-index: 1;
+  }
+  .ambient-glow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120%;
+    height: 150%;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(99, 102, 241, 0.15) 0%,
+      rgba(16, 185, 129, 0.05) 50%,
+      transparent 70%
+    );
+    z-index: -1;
+    pointer-events: none;
+  }
+
   /* Overline / mono-label: 12px Space Mono, +0.1em, uppercase, quiet. */
   .overline {
     font-family: var(--font-mono), 'Space Mono', ui-monospace, monospace;

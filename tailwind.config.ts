@@ -58,6 +58,12 @@ const config: Config = {
       fontFamily: {
         // Inter for body + UI labels.
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        // Reference aliases (Stitch export): body -> Inter, headline/display ->
+        // Space Grotesk, label -> Public Sans, mono -> Space Mono. Kept so the raw
+        // reference classes (font-headline, font-body, font-label) resolve verbatim.
+        body: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        headline: ['var(--font-grotesk)', 'Space Grotesk', 'system-ui', 'sans-serif'],
+        label: ['var(--font-public-sans)', 'Public Sans', 'system-ui', 'sans-serif'],
         // Space Grotesk for editorial headlines and section titles.
         grotesk: ['var(--font-grotesk)', 'Space Grotesk', 'system-ui', 'sans-serif'],
         display: ['var(--font-grotesk)', 'Space Grotesk', 'system-ui', 'sans-serif'],

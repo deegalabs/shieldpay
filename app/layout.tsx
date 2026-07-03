@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk, Space_Mono } from 'next/font/google';
+import { Inter, Public_Sans, Space_Grotesk, Space_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { Providers } from './providers';
 import './globals.css';
@@ -9,6 +9,14 @@ import './globals.css';
 // ids, hashes, addresses, amounts, and overline labels. Each exposes a CSS var
 // wired into tailwind.config fontFamily.
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
+// Public Sans carries the reference "font-label" face (nav labels, uppercase
+// tracked micro-labels, button labels). Weights match the Stitch export.
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-public-sans',
+  display: 'swap',
+});
 const grotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['600'],
@@ -34,7 +42,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${grotesk.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      className={`dark ${inter.variable} ${publicSans.variable} ${grotesk.variable} ${mono.variable}`}
+    >
       <body className="min-h-screen font-sans">
         <Providers>{children}</Providers>
         <Toaster theme="dark" position="top-right" richColors />
