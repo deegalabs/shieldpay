@@ -148,8 +148,8 @@ export function ProofOfIncomeCard({
       <div className="flex items-center gap-2 text-sm text-muted">
         <FileCheck size={16} className="text-brand" /> Proof of income
         <InfoHint>
-          Attests, in zero knowledge, that you paid this recipient a total within the range below
-          over their last six payments, without revealing any single amount.
+          Attests on-chain, without revealing the exact monthly amounts, that you paid this recipient
+          a total within the range below over their last six payments, without revealing any single amount.
         </InfoHint>
       </div>
       <p className="mt-2 text-sm text-muted">

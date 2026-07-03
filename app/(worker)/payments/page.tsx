@@ -1,4 +1,4 @@
-import { ShieldCheck, ArrowUpRight, Download, FileText } from 'lucide-react';
+import { ShieldCheck, ArrowUpRight, FileText } from 'lucide-react';
 import {
   listPayments,
   listPaymentsForWorker,
@@ -13,6 +13,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoHint } from '@/components/ui/tooltip';
+import { DataTable, type Column } from '@/components/ui/data-table';
+import { MaskedAmount } from '@/components/ui/masked-amount';
+import { ConnectionError } from '@/components/ui/connection-error';
+import { StatFigure } from '@/components/ui/stat-figure';
 import { CompleteAnchor } from '@/components/complete-anchor';
 import { WorkerIncomeCard } from '@/components/worker-income-card';
 
@@ -31,6 +35,7 @@ export default async function WorkerPayments() {
   const session = await getSession();
   let payments: PaymentRow[] = [];
   let orgs: InviteView[] = [];
+  let dbError = false;
   try {
     if (session?.role === 'worker') {
       [payments, orgs] = await Promise.all([
@@ -41,7 +46,9 @@ export default async function WorkerPayments() {
       payments = await listPayments(50);
     }
   } catch {
-    /* DB not reachable */
+    // Distinguish a genuine "nothing yet" from a records outage below, so the
+    // worker is never shown a reassuring empty state when the read failed.
+    dbError = true;
   }
 
   const latest = payments[0];
@@ -49,33 +56,116 @@ export default async function WorkerPayments() {
   const companyName = orgs[0]?.company_name;
   const displayName = profile?.name || session?.name || 'My account';
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Hello, {displayName}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {latest
-            ? `Last received: ${latest.reference}`
-            : 'Your received payments will appear here.'}
-        </p>
-      </div>
+  const columns: Array<Column<PaymentRow>> = [
+    {
+      key: 'reference',
+      header: 'Payment',
+      cell: (p) => (
+        <div className="min-w-0">
+          <p className="font-medium text-fg-default">{p.reference}</p>
+          {p.payer_name && <p className="mt-0.5 text-xs text-fg-subtle">{p.payer_name}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'money',
+      cell: (p) => (
+        <MaskedAmount
+          state="verified"
+          range={{ minCents: p.range_min, maxCents: p.range_max }}
+          proofId={p.proof_id}
+        />
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      cell: (p) => (
+        <span className="inline-flex items-center gap-1">
+          <Badge variant="success">
+            <ShieldCheck size={12} /> Received
+          </Badge>
+          <InfoHint>
+            A mathematical proof, checked inside a Stellar smart contract, confirms this payment was
+            within your agreed range, without revealing the exact amount.
+          </InfoHint>
+          {/* Keep the amount referenced by screen readers even where it is masked. */}
+          <span className="sr-only">
+            Within {usdRange(p.range_min, p.range_max)} USDC, verified on-chain.
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: 'documents',
+      header: 'Documents',
+      align: 'right',
+      cell: (p) => (
+        <div className="flex justify-end gap-1">
+          <Button asChild variant="ghost" size="sm">
+            <a href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
+              <FileText size={13} /> Receipt
+            </a>
+          </Button>
+          {p.settlement_tx_hash && (
+            <Button asChild variant="ghost" size="sm">
+              <a href={`${EXPLORER_BASE}/tx/${p.settlement_tx_hash}`} target="_blank" rel="noreferrer">
+                Settlement <ArrowUpRight size={13} />
+              </a>
+            </Button>
+          )}
+          <Button asChild variant="ghost" size="sm">
+            <a href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+              Proof <ArrowUpRight size={13} />
+            </a>
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
-      {profile && (
-        <p className="-mt-3 text-sm text-muted">
-          Your wallet: <span className="font-mono text-foreground">{shortAddr(profile.stellar_address)}</span>
+  return (
+    <div className="space-y-8">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-fg-default">
+          Hello, {displayName}
+        </h1>
+        <p className="text-sm text-fg-subtle">
+          {dbError
+            ? 'We could not load your payments just now.'
+            : latest
+              ? `Last received: ${latest.reference}`
+              : 'Your received payments will appear here.'}
         </p>
+        {profile && (
+          <p className="text-sm text-fg-subtle">
+            Your wallet:{' '}
+            <span className="figure text-fg-strong">{shortAddr(profile.stellar_address)}</span>
+          </p>
+        )}
+      </header>
+
+      {!dbError && payments.length > 0 && (
+        <StatFigure
+          variant="secondary"
+          label="Payments received"
+          value={String(payments.length)}
+          sublabel="Each one carries an on-chain proof you can share."
+        />
       )}
 
       {orgs.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+        <section className="space-y-3">
+          <h2 className="overline">
             {orgs.length > 1 ? 'Your organizations' : 'Your organization'}
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {orgs.map((o) => (
-              <Card key={o.id} className="space-y-3 p-5">
+              <Card key={o.id} className="space-y-4 p-6">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold">{o.company_name}</p>
+                  <p className="font-medium text-fg-default">{o.company_name}</p>
                   {o.anchored ? (
                     <Badge variant="success">
                       <ShieldCheck size={12} /> Anchored
@@ -92,7 +182,7 @@ export default async function WorkerPayments() {
                 />
                 {!o.anchored && (
                   <>
-                    <p className="text-xs text-muted">
+                    <p className="text-xs text-fg-subtle">
                       Finish anchoring your identity on-chain so this organization can pay you.
                     </p>
                     <CompleteAnchor
@@ -118,58 +208,30 @@ export default async function WorkerPayments() {
 
       {session?.role === 'worker' && <WorkerIncomeCard companyName={companyName} />}
 
-      {payments.length === 0 ? (
-        <Card className="p-8 text-center text-muted">No payments received yet.</Card>
-      ) : (
-        <>
-          <Card className="divide-y divide-border overflow-hidden">
-            {payments.map((p) => (
-              <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                <div>
-                  <p className="font-medium">{p.reference}</p>
-                  <p className="text-sm text-muted">
-                    {p.payer_name ? `${p.payer_name} · ` : ''}
-                    <span className="figure">{usdRange(p.range_min, p.range_max)}</span> USDC
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1">
-                  <Badge variant="success">
-                    <ShieldCheck size={12} /> Received &amp; verified
-                  </Badge>
-                  <InfoHint>
-                    A mathematical proof, checked inside a Stellar smart contract, confirms this
-                    payment was within your agreed range, without revealing the exact amount.
-                  </InfoHint>
-                </span>
-                <div className="flex gap-2">
-                  <Button asChild variant="ghost" size="sm">
-                    <a href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
-                      <FileText size={13} /> Receipt
-                    </a>
-                  </Button>
-                  {p.settlement_tx_hash && (
-                    <Button asChild variant="ghost" size="sm">
-                      <a href={`${EXPLORER_BASE}/tx/${p.settlement_tx_hash}`} target="_blank" rel="noreferrer">
-                        Settlement <ArrowUpRight size={13} />
-                      </a>
-                    </Button>
-                  )}
-                  <Button asChild variant="ghost" size="sm">
-                    <a href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
-                      Proof <ArrowUpRight size={13} />
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </Card>
-
-          <p className="text-xs text-muted">
-            Tip: download each receipt PDF for your tax return. Every receipt can be independently
-            re-verified on the public blockchain explorer.
-          </p>
-        </>
-      )}
+      <section className="space-y-3">
+        <h2 className="overline">Payment history</h2>
+        {dbError ? (
+          <ConnectionError message="Your payments are safe on-chain. Please try again in a moment." />
+        ) : (
+          <>
+            <Card className="overflow-hidden">
+              <DataTable
+                columns={columns}
+                rows={payments}
+                rowKey={(p) => p.id}
+                caption="Your received payments and their on-chain proofs."
+                empty="No payments received yet."
+              />
+            </Card>
+            {payments.length > 0 && (
+              <p className="text-xs text-fg-subtle">
+                Tip: download each receipt PDF for your tax return. Every receipt can be
+                independently re-verified on the public blockchain explorer.
+              </p>
+            )}
+          </>
+        )}
+      </section>
     </div>
   );
 }
@@ -177,8 +239,10 @@ export default async function WorkerPayments() {
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
-      <p className={`mt-1 font-medium ${mono ? 'figure text-sm' : ''}`}>{value}</p>
+      <p className="overline">{label}</p>
+      <p className={`mt-1 text-sm ${mono ? 'figure text-fg-strong' : 'font-medium text-fg-strong'}`}>
+        {value}
+      </p>
     </div>
   );
 }

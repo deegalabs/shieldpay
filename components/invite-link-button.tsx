@@ -27,7 +27,7 @@ export function InviteLinkButton({ id }: { id: string }) {
   return (
     <button
       onClick={copy}
-      className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
+      className="inline-flex items-center gap-1 text-sm text-brand-text hover:underline"
     >
       {copied ? <Check size={13} /> : <Copy size={13} />} Copy invite
     </button>

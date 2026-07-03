@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Send, UserPlus, ArrowUpRight, ShieldCheck, FileText } from 'lucide-react';
+import { Send, UserPlus, ArrowUpRight, ShieldCheck, FileText, Wallet } from 'lucide-react';
 import {
   listPaymentsForCompany,
   companyStats,
@@ -11,18 +11,32 @@ import {
 } from '@/lib/db/client';
 import { getSession } from '@/lib/auth/server';
 import { EXPLORER_BASE } from '@/lib/constants';
-import { usd, usdRange } from '@/lib/utils';
+import { usd } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { StatFigure } from '@/components/ui/stat-figure';
+import { DataTable, type Column } from '@/components/ui/data-table';
+import { MaskedAmount } from '@/components/ui/masked-amount';
+import { ConnectionError } from '@/components/ui/connection-error';
 
 export const dynamic = 'force-dynamic';
+
+const OVERLINE = 'text-xs font-[550] uppercase tracking-[0.06em] text-fg-subtle';
+
+/** True when an ISO timestamp falls in the current calendar month. */
+function inCurrentMonth(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
 
 export default async function CompanyDashboard() {
   let payments: PaymentRow[] = [];
   let stats = { total: 0, verified: 0, workers: 0 };
   let pendingInvites = 0;
   let runs: PayrollRunRow[] = [];
+  let dbError = false;
+
   try {
     const session = await getSession();
     const company = session ? await getCompanyByOwner(session.sub) : null;
@@ -31,7 +45,9 @@ export default async function CompanyDashboard() {
         listPaymentsForCompany(company.id, 10),
         companyStats(company.id),
         listContractors(company.id),
-        listPayrollRuns(company.id, 5),
+        // A generous window so the "paid this month" aggregate is accurate;
+        // only the most recent handful are shown in the runs table.
+        listPayrollRuns(company.id, 50),
       ]);
       payments = pmts;
       stats = st;
@@ -39,15 +55,130 @@ export default async function CompanyDashboard() {
       runs = prs;
     }
   } catch {
-    /* DB not reachable — empty state */
+    dbError = true;
   }
+
+  // A thrown read is not the same as an honestly empty account. Say so plainly
+  // instead of showing a success-looking "no payments yet" state.
+  if (dbError) {
+    return (
+      <div className="space-y-8">
+        <ConnectionError />
+      </div>
+    );
+  }
+
+  // The only disclosed money figures are the aggregate payroll-run totals. Lead
+  // with "Paid this month"; exact per-payment amounts are never stored.
+  const monthRuns = runs.filter((r) => inCurrentMonth(r.created_at));
+  const paidThisMonthCents = monthRuns.reduce((sum, r) => sum + Number(r.total_cents), 0);
+  const lastRun = runs[0] ?? null;
+  const recentRuns = runs.slice(0, 6);
+
+  const paymentColumns: Column<PaymentRow>[] = [
+    {
+      key: 'contributor',
+      header: 'Contributor',
+      cell: (p) => (
+        <div className="min-w-[8rem]">
+          <p className="font-medium text-fg-strong">{p.worker_name}</p>
+          <p className="text-xs text-fg-subtle">{p.reference}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'money',
+      cell: (p) => (
+        <MaskedAmount
+          state={p.verified ? 'verified' : 'masked'}
+          range={{ minCents: p.range_min, maxCents: p.range_max }}
+          proofId={p.proof_id}
+        />
+      ),
+    },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      align: 'right',
+      cell: (p) => (
+        <div className="flex justify-end gap-3 text-sm">
+          <a
+            className="inline-flex items-center gap-1 text-brand-text hover:underline"
+            href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Proof <ArrowUpRight size={13} />
+          </a>
+          <a
+            className="inline-flex items-center gap-1 text-fg-strong hover:underline"
+            href={`/api/receipt?id=${p.id}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <FileText size={13} /> Receipt
+          </a>
+        </div>
+      ),
+    },
+  ];
+
+  const runColumns: Column<PayrollRunRow>[] = [
+    {
+      key: 'reference',
+      header: 'Reference',
+      cell: (r) => <span className="font-medium text-fg-strong">{r.reference}</span>,
+    },
+    {
+      key: 'count',
+      header: 'Payments',
+      align: 'right',
+      cell: (r) => <span className="figure text-fg-subtle">{r.payment_count}</span>,
+    },
+    {
+      key: 'total',
+      header: 'Total',
+      align: 'money',
+      cell: (r) => `${usd(Number(r.total_cents))} USDC`,
+    },
+  ];
 
   return (
     <div className="space-y-8">
+      {/* Lead with money: one glowing figure, the disclosed month-to-date total. */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Verified proofs" value={stats.verified} accent icon={<ShieldCheck size={16} />} />
-        <Stat label="Contractors paid" value={stats.workers} />
-        <Stat label="Total payments" value={stats.total} />
+        <StatFigure
+          variant="hero"
+          className="sm:col-span-2"
+          label="Paid this month"
+          value={`${usd(paidThisMonthCents)} USDC`}
+          icon={<Wallet size={13} strokeWidth={1.75} aria-hidden />}
+          sublabel={
+            monthRuns.length > 0
+              ? `Across ${monthRuns.length} payroll run${monthRuns.length > 1 ? 's' : ''}`
+              : 'No payroll runs yet this month'
+          }
+        />
+        <StatFigure
+          variant="secondary"
+          label="Last payroll"
+          value={lastRun ? `${usd(Number(lastRun.total_cents))} USDC` : '$0.00 USDC'}
+          sublabel={lastRun ? lastRun.reference : 'No runs yet'}
+        />
+      </div>
+
+      {/* The counts are context, not the headline. */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatFigure
+          variant="secondary"
+          label="Verified proofs"
+          value={stats.verified}
+          icon={<ShieldCheck size={13} strokeWidth={1.75} aria-hidden />}
+        />
+        <StatFigure variant="secondary" label="Contributors paid" value={stats.workers} />
+        <StatFigure variant="secondary" label="Total payments" value={stats.total} />
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -66,47 +197,38 @@ export default async function CompanyDashboard() {
       {pendingInvites > 0 && (
         <Link
           href="/contractors"
-          className="flex items-center justify-between rounded-xl border border-warning/30 bg-warning/10 px-5 py-3 text-sm transition hover:bg-warning/15"
+          className="flex items-center justify-between rounded-xl border border-warning/30 bg-warning/10 px-5 py-3.5 text-sm transition hover:bg-warning/15"
         >
-          <span className="text-foreground">
+          <span className="text-fg-strong">
             {pendingInvites} invite{pendingInvites > 1 ? 's' : ''} pending acceptance
           </span>
           <span className="text-warning">Review →</span>
         </Link>
       )}
 
-      {runs.length > 0 && (
+      {recentRuns.length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-            Recent payroll runs
-          </h2>
-          <Card className="divide-y divide-border overflow-hidden">
-            {runs.map((r) => (
-              <Link
-                key={r.id}
-                href={`/payroll/${r.id}`}
-                className="flex items-center justify-between px-5 py-3.5 transition hover:bg-surface-2/40"
-              >
-                <div>
-                  <p className="font-medium">{r.reference}</p>
-                  <p className="text-xs text-muted">{r.payment_count} payments · total proven</p>
-                </div>
-                <span className="figure font-semibold">{usd(Number(r.total_cents))} USDC</span>
-              </Link>
-            ))}
+          <h2 className={`mb-3 ${OVERLINE}`}>Recent payroll runs</h2>
+          <Card className="overflow-hidden">
+            <DataTable
+              caption="Recent payroll runs"
+              columns={runColumns}
+              rows={recentRuns}
+              rowKey={(r) => r.id}
+              rowHref={(r) => `/payroll/${r.id}`}
+              rowLabel={(r) => `Open payroll run ${r.reference}`}
+            />
           </Card>
         </section>
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Recent payments
-        </h2>
+        <h2 className={`mb-3 ${OVERLINE}`}>Recent payments</h2>
         {payments.length === 0 ? (
           <Card className="p-8 text-center">
-            <p className="font-medium">No payments yet</p>
-            <p className="mt-1 text-sm text-muted">
-              Run your first payroll to pay a contractor and generate an on-chain proof.
+            <p className="font-medium text-fg-strong">No payments yet</p>
+            <p className="mt-1 text-sm text-fg-subtle">
+              Run your first payroll to pay a contributor and record a verifiable proof.
             </p>
             <Button asChild className="mt-4">
               <Link href="/payroll">
@@ -115,64 +237,20 @@ export default async function CompanyDashboard() {
             </Button>
           </Card>
         ) : (
-          <Card className="divide-y divide-border overflow-hidden">
-            {payments.map((p) => (
-              <div
-                key={p.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-surface-2/40"
-              >
-                <div className="min-w-[8rem]">
-                  <p className="font-medium">{p.worker_name}</p>
-                  <p className="text-xs text-muted">{p.reference}</p>
-                </div>
-                <span className="figure text-sm text-muted">
-                  {usdRange(p.range_min, p.range_max)} USDC
-                </span>
-                <Badge variant="success">
-                  <ShieldCheck size={12} /> Verified
-                </Badge>
-                <div className="flex gap-3 text-sm">
-                  <a className="inline-flex items-center gap-1 text-accent hover:underline" href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
-                    Proof <ArrowUpRight size={13} />
-                  </a>
-                  <a className="inline-flex items-center gap-1 text-foreground hover:underline" href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
-                    <FileText size={13} /> Receipt
-                  </a>
-                </div>
-              </div>
-            ))}
+          <Card className="overflow-hidden">
+            <DataTable
+              caption="Recent payments"
+              columns={paymentColumns}
+              rows={payments}
+              rowKey={(p) => p.id}
+            />
           </Card>
         )}
       </section>
 
-      <p className="text-xs text-muted">
-        Exact amounts are private. Each payment is backed by a zero-knowledge proof, verified
-        on-chain, that the amount is within the agreed contractual range.
+      <p className="text-xs text-fg-subtle">
+        Exact amounts stay private. Every payment is verified on-chain to be within the agreed range.
       </p>
     </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  accent,
-  icon,
-}: {
-  label: string;
-  value: number;
-  accent?: boolean;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <Card className="p-5">
-      <div className="flex items-center gap-2 text-sm text-muted">
-        {icon}
-        {label}
-      </div>
-      <p className={`figure mt-2 text-3xl font-bold ${accent ? 'text-primary' : 'text-foreground'}`}>
-        {value}
-      </p>
-    </Card>
   );
 }

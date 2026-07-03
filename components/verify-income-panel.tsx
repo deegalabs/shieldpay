@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { ShieldCheck, Search, Info, Fingerprint, UserCheck, Award } from 'lucide-react';
+import { ShieldCheck, Search, Fingerprint, UserCheck, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { MaskedAmount } from '@/components/ui/masked-amount';
 import { InfoHint } from '@/components/ui/tooltip';
 
 interface CredentialRecord {
@@ -26,16 +26,6 @@ interface VerifyResult {
 function truncate(value: string, head = 8, tail = 6): string {
   if (value.length <= head + tail + 1) return value;
   return `${value.slice(0, head)}…${value.slice(-tail)}`;
-}
-
-/** Format a cents value (string/number) as a USDC dollar figure. */
-function formatUsdc(cents: string | number | undefined): string {
-  const n = Number(cents ?? '0');
-  return (n / 100).toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  });
 }
 
 /**
@@ -94,21 +84,23 @@ export function VerifyIncomePanel() {
 
   const record = result?.record ?? null;
   const success = result?.presented === true;
+  const hasRange = record?.range_min != null && record?.range_max != null;
 
   return (
     <Card className="p-6 sm:p-8">
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <ShieldCheck size={16} className="text-primary" /> Independent verification
+      <div className="flex items-center gap-2">
+        <ShieldCheck size={15} className="text-fg-subtle" aria-hidden />
+        <span className="overline">Independent verification</span>
       </div>
-      <h3 className="mt-2 text-xl font-semibold tracking-tight">
+      <h3 className="mt-3 text-xl font-semibold tracking-tight text-fg-default">
         Verify a proof of income, no wallet needed
       </h3>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-fg-subtle">
         Paste a credential reference (or open a shared link) to confirm it straight from the Stellar
-        contract. No account, no signing, nothing to install.
+        network. No account, no signing, nothing to install.
       </p>
 
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
         <Input
           value={nullifier}
           onChange={(e) => setNullifier(e.target.value)}
@@ -122,7 +114,7 @@ export function VerifyIncomePanel() {
         <Button
           onClick={() => verify(nullifier, credentialId)}
           disabled={loading}
-          variant="success"
+          variant="primary"
           className="sm:w-auto"
         >
           <Search size={16} /> {loading ? 'Checking…' : 'Verify on-chain'}
@@ -136,19 +128,26 @@ export function VerifyIncomePanel() {
       )}
 
       {success && (
-        <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-5">
-          <div className="flex items-center justify-between">
-            <Badge variant="success">
-              <ShieldCheck size={12} /> Verified on-chain
-            </Badge>
+        <div
+          className="mt-6 rounded-xl border border-border bg-surface-2 p-5 sm:p-6"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="badge-verified">
+              <ShieldCheck size={14} strokeWidth={1.75} aria-hidden /> Verified on-chain
+            </span>
             {record?.verified_at_ledger != null && (
-              <span className="text-xs text-muted">
-                Recorded at ledger {String(record.verified_at_ledger)}
+              <span className="overline">
+                Ledger{' '}
+                <span className="figure normal-case tracking-normal text-fg-subtle">
+                  {String(record.verified_at_ledger)}
+                </span>
               </span>
             )}
           </div>
 
-          <p className="mt-4 text-sm text-fg-default">
+          <p className="mt-4 text-sm text-fg-strong">
             This income credential is genuine. It was verified and recorded on the Stellar network.
           </p>
 
@@ -159,40 +158,50 @@ export function VerifyIncomePanel() {
           </div>
 
           {record && (
-            <div className="mt-5 space-y-2.5 border-t border-border pt-4 text-sm">
-              <ResultRow
-                k="Proven income range"
-                v={`${formatUsdc(record.range_min)} to ${formatUsdc(record.range_max)} USDC`}
-                mono
-              />
-              <ResultRow k="Attesting employer" v={truncate(record.employer_ax ?? '')} mono />
-              <ResultRow k="Recipient reference" v={truncate(record.worker_id ?? '')} mono last />
-            </div>
+            <dl className="mt-5 space-y-3 border-t border-border pt-4">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="overline shrink-0">Proven income range</dt>
+                <dd>
+                  {hasRange ? (
+                    <MaskedAmount
+                      state="verified"
+                      range={{
+                        minCents: Number(record.range_min),
+                        maxCents: Number(record.range_max),
+                      }}
+                    />
+                  ) : (
+                    <span className="text-fg-faint">—</span>
+                  )}
+                </dd>
+              </div>
+              <ResultRow k="Attesting employer" v={truncate(record.employer_ax ?? '')} />
+              <ResultRow k="Recipient reference" v={truncate(record.worker_id ?? '')} />
+            </dl>
           )}
 
           {!record && (
-            <p className="mt-4 flex items-start gap-2 text-xs text-fg-faint">
-              <Info size={13} className="mt-0.5 shrink-0" /> Open the full shared link to also see the
-              proven range and the attesting employer.
+            <p className="mt-5 border-t border-border pt-4 text-xs text-fg-faint">
+              Open the full shared link to also see the proven range and the attesting employer.
             </p>
           )}
         </div>
       )}
 
       {result && !success && (
-        <div className="mt-6 rounded-lg border border-border bg-surface-2 p-5 text-sm text-muted">
+        <div className="mt-6 rounded-xl border border-border bg-surface-2 p-5 text-sm text-fg-subtle">
           No income credential found for that reference. Check the code, or ask the issuer for a fresh
           link.
         </div>
       )}
 
-      <p className="mt-4 flex items-start gap-2 text-xs text-fg-faint">
+      <p className="mt-5 flex items-start gap-2 text-xs text-fg-faint">
         <Fingerprint size={13} className="mt-0.5 shrink-0" /> The exact monthly amounts stay private.
         Only the agreed range and the employer that attested it are shown.{' '}
         <span className="inline-flex">
           <InfoHint>
-            The credential is a zero-knowledge proof: it confirms the income falls within the range
-            without revealing any single payment.
+            The credential is checked on-chain: it confirms the income falls within the range without
+            revealing any single payment.
           </InfoHint>
         </span>
       </p>
@@ -202,32 +211,18 @@ export function VerifyIncomePanel() {
 
 function Claim({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-fg-subtle ring-1 ring-inset ring-border">
+    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 px-2.5 py-0.5 text-xs font-medium text-fg-subtle ring-1 ring-inset ring-border">
       {icon}
       {children}
     </span>
   );
 }
 
-function ResultRow({
-  k,
-  v,
-  mono,
-  last,
-}: {
-  k: string;
-  v: string;
-  mono?: boolean;
-  last?: boolean;
-}) {
+function ResultRow({ k, v }: { k: string; v: string }) {
   return (
-    <div
-      className={['flex items-center justify-between', last ? '' : 'border-b border-border pb-2.5'].join(
-        ' ',
-      )}
-    >
-      <span className="text-fg-subtle">{k}</span>
-      <span className={['font-medium text-fg-default', mono ? 'figure' : ''].join(' ')}>{v}</span>
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="overline shrink-0">{k}</dt>
+      <dd className="hash min-w-0 truncate text-right font-medium text-fg-default">{v}</dd>
     </div>
   );
 }

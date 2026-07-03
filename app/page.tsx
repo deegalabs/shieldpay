@@ -7,12 +7,14 @@ import {
   FileCheck,
   Lock,
   Github,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { VerifyPanel } from '@/components/verify-panel';
+import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   return (
@@ -26,23 +28,23 @@ export default function HomePage() {
             </span>
             <span className="font-semibold tracking-tight">ShieldPay</span>
           </Link>
-          <nav className="flex items-center gap-2">
-            <a href="#how" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
+          <nav className="flex items-center gap-1">
+            <a href="#how" className="hidden px-3 py-2 text-sm text-fg-subtle transition-colors hover:text-foreground sm:block">
               How it works
             </a>
-            <a href="#audit" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
+            <a href="#audit" className="hidden px-3 py-2 text-sm text-fg-subtle transition-colors hover:text-foreground sm:block">
               Confidential
             </a>
             <Link
               href="/verify-income"
-              className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block"
+              className="hidden px-3 py-2 text-sm text-fg-subtle transition-colors hover:text-foreground sm:block"
             >
               Verify income
             </Link>
-            <Link href="/help" className="hidden px-3 py-2 text-sm text-muted hover:text-foreground sm:block">
+            <Link href="/help" className="hidden px-3 py-2 text-sm text-fg-subtle transition-colors hover:text-foreground sm:block">
               Help
             </Link>
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm" className="ml-1">
               <Link href="/login">Sign in</Link>
             </Button>
             <Button asChild size="sm">
@@ -53,62 +55,83 @@ export default function HomePage() {
       </header>
 
       {/* Hero */}
-      <section className="mx-auto max-w-4xl px-6 pb-16 pt-20 text-center">
-        <Badge variant="brand" className="mb-6">
-          <Lock size={12} /> Built on Stellar + Zero-Knowledge
-        </Badge>
-        <h1 className="text-balance text-5xl font-bold tracking-tight sm:text-6xl">
-          Pay your team.{' '}
-          <span className="bg-gradient-to-br from-brand-text to-primary bg-clip-text text-transparent">
-            Keep the amounts private.
-          </span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted">
-          Confidential payroll for DAOs and Web3 teams. ShieldPay pays contributors in native USDC
-          on Stellar with a real on-chain settlement, while a zero-knowledge proof keeps each
-          amount private, and lets you disclose it selectively to an auditor under a viewing key.
-        </p>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <Button asChild size="lg">
-            <Link href="/login">
-              Get started <ArrowRight size={16} />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="ghost">
-            <a href="#how">See how it works</a>
-          </Button>
+      <section className="relative overflow-hidden">
+        <AmbientLight />
+        <div className="mx-auto max-w-4xl px-6 pb-24 pt-24 text-center animate-fade-in sm:pt-32">
+          <Badge variant="brand" className="mb-7">
+            <Lock size={12} /> Built on Stellar + Zero-Knowledge
+          </Badge>
+          <h1 className="text-balance text-5xl font-semibold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-[4rem]">
+            Pay your team. Keep the amounts private.
+          </h1>
+          <p className="mx-auto mt-7 max-w-2xl text-balance text-lg leading-relaxed text-fg-subtle">
+            Confidential payroll for DAOs and Web3 teams. ShieldPay pays contributors in native USDC
+            on Stellar with a real on-chain settlement, while a zero-knowledge proof keeps each
+            amount private, and lets you disclose it selectively to an auditor under a viewing key.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild size="lg">
+              <Link href="/login">
+                Get started <ArrowRight size={16} />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="ghost">
+              <a href="#how">See how it works</a>
+            </Button>
+          </div>
+          <p className="mt-5 text-xs text-fg-faint">No seed phrases. Sign in with email, Google, or a passkey.</p>
         </div>
-        <p className="mt-4 text-xs text-muted">No seed phrases. Sign in with email, Google, or a passkey.</p>
+        <GradientRule className="mx-auto max-w-2xl" />
       </section>
 
       {/* Features */}
-      <section className="mx-auto grid max-w-6xl gap-5 px-6 pb-20 sm:grid-cols-3">
-        {FEATURES.map((f) => (
-          <Card key={f.title} className="p-6">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-brand/12 text-brand">
-              {f.icon}
-            </span>
-            <h3 className="mt-4 font-semibold">{f.title}</h3>
-            <p className="mt-2 text-sm text-muted">{f.body}</p>
-          </Card>
-        ))}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="overline">Why ShieldPay</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Confidential payroll, end to end
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-fg-subtle">
+            Real settlement on a public chain, exact amounts kept private, and disclosure only to the
+            people you choose.
+          </p>
+        </div>
+        <div className="mt-14 grid gap-6 sm:grid-cols-3">
+          {FEATURES.map((f) => (
+            <Card
+              key={f.title}
+              className="p-6 transition-[border-color,background-color] duration-200 ease-[cubic-bezier(0.175,0.885,0.32,1.1)] hover:border-border-strong hover:bg-surface-2"
+            >
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand/10 text-brand-text ring-1 ring-brand/20">
+                {f.icon}
+              </span>
+              <h3 className="mt-5 text-base font-semibold text-fg-default">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-fg-subtle">{f.body}</p>
+            </Card>
+          ))}
+        </div>
       </section>
 
       {/* How it works */}
-      <section id="how" className="border-y border-border bg-surface/30 py-20">
+      <section id="how" className="border-y border-border bg-surface/30 py-28">
         <div className="mx-auto max-w-5xl px-6">
-          <h2 className="text-center text-3xl font-bold tracking-tight">How it works</h2>
-          <p className="mx-auto mt-3 max-w-xl text-center text-muted">
-            Three steps from payroll to a private, independently verifiable receipt.
-          </p>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="overline">How it works</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Payroll to a private, verifiable receipt
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-fg-subtle">
+              Three steps, no exact amount ever made public.
+            </p>
+          </div>
+          <div className="mt-16 grid gap-10 md:grid-cols-3">
             {STEPS.map((s, i) => (
               <div key={s.title} className="relative">
-                <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-brand/15 font-semibold text-brand">
+                <div className="mb-5 grid h-10 w-10 place-items-center rounded-full bg-brand/10 font-mono text-sm font-semibold text-brand-text ring-1 ring-brand/25">
                   {i + 1}
                 </div>
-                <h3 className="font-semibold">{s.title}</h3>
-                <p className="mt-2 text-sm text-muted">{s.body}</p>
+                <h3 className="text-base font-semibold text-fg-default">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-fg-subtle">{s.body}</p>
               </div>
             ))}
           </div>
@@ -116,68 +139,67 @@ export default function HomePage() {
       </section>
 
       {/* Confidential / selective disclosure */}
-      <section id="audit" className="mx-auto max-w-5xl px-6 py-20">
-        <div className="grid items-center gap-10 md:grid-cols-2">
+      <section id="audit" className="mx-auto max-w-5xl px-6 py-28">
+        <div className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
           <div>
-            <Badge variant="success" className="mb-4">
+            <Badge variant="success" className="mb-5">
               <KeyRound size={12} /> Selective disclosure
             </Badge>
-            <h2 className="text-3xl font-bold tracking-tight">Auditable without going public</h2>
-            <p className="mt-4 text-muted">
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              Auditable without going public
+            </h2>
+            <p className="mt-5 leading-relaxed text-fg-subtle">
               On a transparent chain, a normal transfer reveals the amount. ShieldPay keeps each
               amount as a commitment plus a range proof, and lets you reveal it only to an
               authorized auditor under a viewing key, who re-derives the same commitment the
               Stellar contract verified, so the disclosed figure is provably the one on-chain.
             </p>
-            <ul className="mt-6 space-y-2 text-sm">
+            <ul className="mt-7 space-y-3 text-sm">
               {DISCLOSURE.map((l) => (
-                <li key={l} className="flex items-start gap-2">
-                  <Check size={16} className="mt-0.5 text-primary" /> {l}
+                <li key={l} className="flex items-start gap-2.5 text-fg-strong">
+                  <Check size={16} className="mt-0.5 shrink-0 text-brand-text" /> {l}
                 </li>
               ))}
             </ul>
           </div>
-          <Card className="p-6">
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <FileCheck size={16} /> Payment Proof, May/2026
-            </div>
-            <div className="mt-4 space-y-2 text-sm">
-              <Row k="Payer" v="Acme DAO" />
-              <Row k="Recipient" v="Jane · GARR…PUKK" />
-              <Row k="Proven range" v="$450 to $550 USDC" mono />
-              <Row k="Exact amount" v="Private" />
-              <Row k="Status" v="Verified on-chain" verified />
-            </div>
-            <div className="mt-5 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted">
-              Mathematically verified by the Stellar network. The exact amount stays private,
-              revealed only to an auditor you authorize with a viewing key.
-            </div>
-          </Card>
+          <ProofCard
+            heading="Payment Proof, May/2026"
+            rows={[
+              { k: 'Payer', v: 'Acme DAO' },
+              { k: 'Recipient', v: 'Jane · GARR…PUKK', mono: true },
+              { k: 'Proven range', v: '$450 to $550 USDC', mono: true },
+              { k: 'Exact amount', v: <MaskedAmount /> },
+              { k: 'Status', v: <VerifiedBadge /> },
+            ]}
+            note="Mathematically verified by the Stellar network. The exact amount stays private, revealed only to an auditor you authorize with a viewing key."
+          />
         </div>
       </section>
 
       {/* Proof of income */}
-      <section id="income" className="mx-auto max-w-5xl px-6 py-20">
-        <div className="grid items-center gap-10 md:grid-cols-2">
+      <section id="income" className="mx-auto max-w-5xl px-6 pb-28">
+        <div className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
           <div>
-            <Badge variant="brand" className="mb-4">
+            <Badge variant="brand" className="mb-5">
               <FileCheck size={12} /> Proof of income
             </Badge>
-            <h2 className="text-3xl font-bold tracking-tight">Prove your income without revealing it</h2>
-            <p className="mt-4 text-muted">
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              Prove your income without revealing it
+            </h2>
+            <p className="mt-5 leading-relaxed text-fg-subtle">
               When a worker needs to show income to a bank, a landlord, or a consulate, ShieldPay
               lets their employer attest it on-chain. The proof confirms the income falls within an
               agreed range over recent payments, and anyone can check it against the Stellar network,
               without seeing a single exact amount.
             </p>
-            <ul className="mt-6 space-y-2 text-sm">
+            <ul className="mt-7 space-y-3 text-sm">
               {INCOME_POINTS.map((l) => (
-                <li key={l} className="flex items-start gap-2">
-                  <Check size={16} className="mt-0.5 text-primary" /> {l}
+                <li key={l} className="flex items-start gap-2.5 text-fg-strong">
+                  <Check size={16} className="mt-0.5 shrink-0 text-brand-text" /> {l}
                 </li>
               ))}
             </ul>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-9 flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link href="/verify-income">
                   Verify a proof of income <ArrowRight size={16} />
@@ -185,32 +207,29 @@ export default function HomePage() {
               </Button>
             </div>
           </div>
-          <Card className="p-6">
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <FileCheck size={16} /> Proof of income, Jane · GARR…PUKK
-            </div>
-            <div className="mt-4 space-y-2 text-sm">
-              <Row k="Issued by" v="Acme DAO" />
-              <Row k="Covers" v="Last 6 payments" />
-              <Row k="Proven range" v="$2,700 to $3,300 USDC" mono />
-              <Row k="Exact amounts" v="Private" />
-              <Row k="Status" v="Verified on-chain" verified />
-            </div>
-            <div className="mt-5 rounded-lg border border-border bg-background/50 p-3 text-xs text-muted">
-              Attested by the employer and checked against the Stellar network. Share the
-              verification link with a bank, landlord, or consulate, who confirms it without
-              seeing any monthly amount.
-            </div>
-          </Card>
+          <ProofCard
+            heading="Proof of income, Jane · GARR…PUKK"
+            rows={[
+              { k: 'Issued by', v: 'Acme DAO' },
+              { k: 'Covers', v: 'Last 6 payments' },
+              { k: 'Proven range', v: '$2,700 to $3,300 USDC', mono: true },
+              { k: 'Exact amounts', v: <MaskedAmount /> },
+              { k: 'Status', v: <VerifiedBadge /> },
+            ]}
+            note="Attested by the employer and checked against the Stellar network. Share the verification link with a bank, landlord, or consulate, who confirms it without seeing any monthly amount."
+          />
         </div>
       </section>
 
       {/* Verify on-chain, no wallet */}
-      <section id="verify" className="border-t border-border bg-surface/30 py-20">
+      <section id="verify" className="border-t border-border bg-surface/30 py-28">
         <div className="mx-auto max-w-3xl px-6">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Do not trust us, check the chain</h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted">
+          <div className="mx-auto mb-10 max-w-xl text-center">
+            <p className="overline">Public verification</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Do not trust us, check the chain
+            </h2>
+            <p className="mx-auto mt-4 text-fg-subtle">
               Every payment leaves a proof recorded inside a Stellar contract. Read one yourself,
               right here, without an account.
             </p>
@@ -220,13 +239,17 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="mx-auto max-w-4xl px-6 pb-24 text-center">
-        <Card className="p-10">
-          <h2 className="text-3xl font-bold tracking-tight">Pay privately, prove publicly</h2>
-          <p className="mx-auto mt-3 max-w-lg text-muted">
+      <section className="mx-auto max-w-4xl px-6 py-28">
+        <Card className="relative overflow-hidden p-12 text-center">
+          <div className="absolute inset-x-0 top-0">
+            <GradientRule />
+          </div>
+          <AmbientLight className="opacity-70" />
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pay privately, prove publicly</h2>
+          <p className="mx-auto mt-4 max-w-lg text-fg-subtle">
             Set up your team in minutes. No crypto wallet or seed phrase required.
           </p>
-          <Button asChild size="lg" className="mt-6">
+          <Button asChild size="lg" className="mt-8">
             <Link href="/login">
               Create your account <ArrowRight size={16} />
             </Link>
@@ -304,6 +327,94 @@ export default function HomePage() {
   );
 }
 
+/**
+ * The one ornament: the indigo-to-emerald gradient behaving as faint light, not
+ * paint. A soft radial wash sits behind the hero and the CTA; it must read as
+ * atmosphere, never as a colored blob (keep the alpha low).
+ */
+function AmbientLight({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        'pointer-events-none absolute inset-x-0 top-0 -z-10 flex justify-center overflow-hidden',
+        className,
+      )}
+    >
+      <div
+        className="h-[34rem] w-[64rem] max-w-none -translate-y-40 rounded-full blur-3xl"
+        style={{
+          background:
+            'radial-gradient(closest-side, rgba(99, 102, 241, 0.12), rgba(16, 185, 129, 0.06) 55%, transparent 80%)',
+        }}
+      />
+    </div>
+  );
+}
+
+/** Gradient-as-light on a hairline: a calm accent rule, indigo fading to emerald. */
+function GradientRule({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cn('h-px w-full', className)}
+      style={{
+        background:
+          'linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.45), rgba(16, 185, 129, 0.35), transparent)',
+      }}
+    />
+  );
+}
+
+/**
+ * Marketing preview of the masked amount state: a slate chip on surface-3 with the
+ * indigo "protected" dot. Previews the app's signature amount-disclosure component.
+ */
+function MaskedAmount() {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-md bg-surface-3 px-2 py-0.5 font-mono text-xs tabular-nums text-fg-subtle"
+      title="Hidden by a zero-knowledge proof"
+    >
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand" />
+      Hidden
+    </span>
+  );
+}
+
+/** Marketing preview of the verified state: the emerald wash + line + earned glow. */
+function VerifiedBadge() {
+  return (
+    <span className="badge-verified !text-xs">
+      <ShieldCheck size={12} /> Verified on-chain
+    </span>
+  );
+}
+
+type ProofRow = { k: string; v: React.ReactNode; mono?: boolean };
+
+/** Landing proof card with a subtle emerald-to-indigo glow on its top edge. */
+function ProofCard({ heading, rows, note }: { heading: string; rows: ProofRow[]; note: string }) {
+  return (
+    <Card className="relative overflow-hidden p-6">
+      <div className="absolute inset-x-0 top-0">
+        <GradientRule />
+      </div>
+      <div className="flex items-center gap-2 text-sm text-fg-subtle">
+        <FileCheck size={16} /> {heading}
+      </div>
+      <div className="mt-5 space-y-1">
+        {rows.map((r) => (
+          <Row key={r.k} k={r.k} v={r.v} mono={r.mono} />
+        ))}
+      </div>
+      <div className="mt-6 rounded-lg border border-border bg-surface-base/50 p-3 text-xs leading-relaxed text-fg-faint">
+        {note}
+      </div>
+    </Card>
+  );
+}
+
 function SocialLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
   return (
     <a
@@ -321,8 +432,8 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
 function FooterCol({ title, links }: { title: string; links: { label: string; href: string; external?: boolean }[] }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-fg-faint">{title}</h3>
-      <ul className="mt-3 space-y-2.5">
+      <h3 className="overline">{title}</h3>
+      <ul className="mt-4 space-y-2.5">
         {links.map((l) => (
           <li key={l.label}>
             {l.external ? (
@@ -346,19 +457,11 @@ function FooterCol({ title, links }: { title: string; links: { label: string; hr
   );
 }
 
-function Row({ k, v, verified, mono }: { k: string; v: string; verified?: boolean; mono?: boolean }) {
+function Row({ k, v, mono }: ProofRow) {
   return (
-    <div className="flex items-center justify-between border-b border-border pb-2 last:border-0">
-      <span className="text-fg-subtle">{k}</span>
-      <span
-        className={[
-          'font-medium',
-          mono ? 'figure' : '',
-          verified ? 'text-primary' : 'text-fg-default',
-        ].join(' ')}
-      >
-        {v}
-      </span>
+    <div className="flex items-center justify-between gap-4 border-b border-border/60 py-2.5 last:border-0">
+      <span className="text-sm text-fg-subtle">{k}</span>
+      <span className={cn('text-sm font-medium text-fg-default', mono && 'figure')}>{v}</span>
     </div>
   );
 }
