@@ -26,6 +26,34 @@ export interface ReceiptData {
   issuedAt: string; // ISO string
 }
 
+/**
+ * Machine-readable form of the receipt: the same facts the PDF shows, in a clean
+ * JSON shape, for programmatic verification/ingestion. Carries a `viewKeyDisclosed`
+ * flag and, only when disclosed under a viewing key, the exact `amountCents`.
+ * When not disclosed the amount is intentionally absent (same privacy guarantee
+ * as the PDF: the proof attests range membership without the figure).
+ */
+export function receiptJson(
+  data: ReceiptData & { viewKeyDisclosed: boolean; amountCents?: number | null },
+): Record<string, unknown> {
+  const json: Record<string, unknown> = {
+    status: 'verified_on_chain',
+    payer: { name: data.companyName, taxId: data.companyCnpj },
+    recipient: { name: data.workerName, address: data.workerAddress },
+    reference: data.reference,
+    provenRange: { minUsdc: data.range.min, maxUsdc: data.range.max },
+    proofId: data.proofId,
+    txHash: data.txHash,
+    explorerUrl: data.explorerUrl,
+    issuedAt: data.issuedAt,
+    viewKeyDisclosed: data.viewKeyDisclosed,
+  };
+  if (data.viewKeyDisclosed && data.amountCents != null) {
+    json.amountCents = data.amountCents;
+  }
+  return json;
+}
+
 export async function generateReceiptPdf(data: ReceiptData): Promise<Uint8Array> {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const qr = await QRCode.toDataURL(data.explorerUrl, { margin: 1, width: 220 });

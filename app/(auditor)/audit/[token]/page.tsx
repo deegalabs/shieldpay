@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto';
 import { ShieldCheck, Download, ArrowUpRight, Lock, KeyRound, AlertTriangle } from 'lucide-react';
 import {
   listPayments,
   listPaymentsForCompany,
   ensureCompanyViewingKey,
   getCompanyById,
+  logDisclosure,
   type PaymentRow,
 } from '@/lib/db/client';
 import { disclosePayments, summarizeDisclosure, type Disclosed } from '@/lib/payments/disclose';
@@ -75,6 +77,19 @@ export default async function AuditorView({ params }: { params: { token: string 
       const vk = await ensureCompanyViewingKey(claims.companyId);
       disclosed = await disclosePayments(vk, payments);
       summary = summarizeDisclosure(disclosed);
+      // Record the disclosure (best-effort: never break the auditor view).
+      try {
+        await logDisclosure({
+          companyId: claims.companyId,
+          tokenHash: createHash('sha256').update(params.token).digest('hex'),
+          paymentCount: summary.disclosedCount,
+          disclosedTotalCents: summary.disclosedTotalCents,
+          allMatch: summary.allMatch,
+          verifiedLive: summary.verifiedLive,
+        });
+      } catch {
+        /* logging is best-effort */
+      }
     } catch {
       /* fall back to read-only rendering */
     }
