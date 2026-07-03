@@ -22,8 +22,17 @@ use soroban_sdk::{
         BN254_G2_SERIALIZED_SIZE,
     },
     token::TokenClient,
-    vec, Address, Bytes, BytesN, Env, Vec, U256,
+    vec, Address, Bytes, BytesN, Env, IntoVal, Symbol, Vec, U256,
 };
+
+/// Mirror of AnchorRegistry::RangeAnchor, so the cross-contract `get_range` call
+/// deserializes. Field names and types must match that contract exactly.
+#[derive(Clone)]
+#[contracttype]
+pub struct RangeAnchor {
+    pub range_min: u64,
+    pub range_max: u64,
+}
 
 #[derive(Clone)]
 #[contracttype]
@@ -81,6 +90,10 @@ enum DataKey {
     // The USDC Stellar Asset Contract used to read the treasury balance for the
     // proof-of-reserves coverage check. Set once, immutably.
     UsdcSac,
+    // The AnchorRegistry contract, used to read the worker-cosigned range and
+    // enforce that a payment proof cannot use a range the worker never agreed to.
+    // Set once, immutably.
+    AnchorRegistry,
 }
 
 #[contracterror]
@@ -277,6 +290,17 @@ impl PaymentVerifier {
         Ok(())
     }
 
+    /// Configure the AnchorRegistry whose worker-cosigned ranges are enforced on
+    /// each per-payment proof. Set once, immutably. When set, a payment to a
+    /// worker who anchored a range must prove within exactly that range.
+    pub fn set_anchor_registry(env: Env, anchor_registry: Address) -> Result<(), Error> {
+        if env.storage().instance().has(&DataKey::AnchorRegistry) {
+            return Err(Error::AlreadyInitialized);
+        }
+        env.storage().instance().set(&DataKey::AnchorRegistry, &anchor_registry);
+        Ok(())
+    }
+
     /// Verify a Groth16 proof on-chain and, if valid, record it. Returns proof id.
     /// `company` must authorize the call.
     pub fn verify_and_record(
@@ -327,6 +351,33 @@ impl PaymentVerifier {
         // line back to this record.
         let range_min = public_signal_u64(&env, &public_signals, 1)?;
         let range_max = public_signal_u64(&env, &public_signals, 2)?;
+
+        // Tier 2: if a worker-cosigned range is anchored for this (worker,
+        // company), the proof's declared range must match it exactly, so a company
+        // cannot pay within a range the worker never agreed to. If no range is
+        // anchored, or the registry is unset or unreachable, fall back to recording
+        // the proof's own range (best-effort, never traps the payment).
+        if let Some(anchor_id) = env.storage().instance().get::<DataKey, Address>(&DataKey::AnchorRegistry) {
+            let args = vec![
+                &env,
+                worker_address_hash.clone().into_val(&env),
+                company.clone().into_val(&env),
+            ];
+            let anchored: Option<RangeAnchor> = match env
+                .try_invoke_contract::<Option<RangeAnchor>, soroban_sdk::Error>(
+                    &anchor_id,
+                    &Symbol::new(&env, "get_range"),
+                    args,
+                ) {
+                Ok(Ok(opt)) => opt,
+                _ => None,
+            };
+            if let Some(r) = anchored {
+                if r.range_min != range_min || r.range_max != range_max {
+                    return Err(Error::ProofNotBound);
+                }
+            }
+        }
 
         let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);
         let record = ProofRecord {

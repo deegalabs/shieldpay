@@ -325,3 +325,80 @@ fn payroll_records_treasury_shortfall() {
     // Treasury holds only 100000 cents < run total 160000 -> not covered.
     assert!(!run_with_treasury(&env, &id, &client, &company, 100_000));
 }
+
+// ─────────────── A1 Tier 2: worker-cosigned range enforcement ───────────────
+//
+// Minimal AnchorRegistry stand-ins that answer get_range with a fixed value, so
+// the PaymentVerifier's cross-contract enforcement can be tested in isolation.
+// (The real AnchorRegistry's RangeAnchor is a structurally identical type in
+// another crate; the on-chain deploy validates that cross-crate path.)
+
+#[soroban_sdk::contract]
+pub struct MockAnchorMatch;
+#[soroban_sdk::contractimpl]
+impl MockAnchorMatch {
+    pub fn get_range(_e: Env, _h: BytesN<32>, _c: Address) -> Option<RangeAnchor> {
+        Some(RangeAnchor { range_min: 45000, range_max: 55000 }) // == the test proof's range
+    }
+}
+
+#[soroban_sdk::contract]
+pub struct MockAnchorMismatch;
+#[soroban_sdk::contractimpl]
+impl MockAnchorMismatch {
+    pub fn get_range(_e: Env, _h: BytesN<32>, _c: Address) -> Option<RangeAnchor> {
+        Some(RangeAnchor { range_min: 1, range_max: 999_999 }) // != the test proof's range
+    }
+}
+
+#[soroban_sdk::contract]
+pub struct MockAnchorNone;
+#[soroban_sdk::contractimpl]
+impl MockAnchorNone {
+    pub fn get_range(_e: Env, _h: BytesN<32>, _c: Address) -> Option<RangeAnchor> {
+        None
+    }
+}
+
+/// Records the standard test proof (range 45000..55000) with `anchor` configured
+/// as the AnchorRegistry; returns whether verify_and_record succeeded.
+fn record_ok_with_anchor(env: &Env, anchor: &Address) -> bool {
+    let client = setup(env);
+    client.initialize(&from_hex(env, VK_HEX));
+    client.set_anchor_registry(anchor);
+    client
+        .try_verify_and_record(
+            &Address::generate(env),
+            &BytesN::from_array(env, &[2u8; 32]),
+            &BytesN::from_array(env, &[3u8; 32]),
+            &BytesN::from_array(env, &COMMITMENT),
+            &from_hex(env, PROOF_HEX),
+            &from_hex(env, PUBLIC_HEX),
+        )
+        .is_ok()
+}
+
+#[test]
+fn per_payment_accepts_a_proof_matching_the_anchored_range() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let anchor = env.register(MockAnchorMatch, ());
+    assert!(record_ok_with_anchor(&env, &anchor));
+}
+
+#[test]
+fn per_payment_rejects_a_range_the_worker_did_not_cosign() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let anchor = env.register(MockAnchorMismatch, ());
+    assert!(!record_ok_with_anchor(&env, &anchor));
+}
+
+#[test]
+fn per_payment_proceeds_when_no_range_is_anchored() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let anchor = env.register(MockAnchorNone, ());
+    // No cosigned range -> graceful fallback -> the payment still records.
+    assert!(record_ok_with_anchor(&env, &anchor));
+}

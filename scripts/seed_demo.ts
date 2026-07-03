@@ -69,19 +69,32 @@ async function openUsdcTrustline(secret: string): Promise<void> {
   await horizonServer.submitTransaction(tx);
 }
 
-async function anchorOnChain(secret: string, companyAddress: string, cpfHash: string): Promise<string> {
+async function anchorOnChain(
+  secret: string,
+  companyAddress: string,
+  cpfHash: string,
+  rangeMinCents: number,
+  rangeMaxCents: number,
+): Promise<string> {
+  const { bytesToField, fieldToBe32 } = await import('@/lib/zk/encode');
   const kp = Keypair.fromSecret(secret);
   const addr = kp.publicKey();
   const account = await sorobanServer.getAccount(addr);
   const metadata = `SHIELDPAY|ANCHOR|v1|org:${companyAddress}|cpf:${cpfHash}`;
   const contractHash = createHash('sha256').update(metadata).digest();
+  // The same worker-address hash the payment circuit exposes as public signal 3,
+  // so the verifier can look up this worker-cosigned range for their payments.
+  const workerAddressHash = fieldToBe32(bytesToField(createHash('sha256').update(addr).digest()));
   const contract = new Contract(CONTRACTS.anchorRegistry);
   const op = contract.call(
-    'anchor',
+    'anchor_with_range',
     new Address(addr).toScVal(),
     new Address(companyAddress).toScVal(),
     nativeToScVal(contractHash, { type: 'bytes' }),
     nativeToScVal(metadata, { type: 'string' }),
+    nativeToScVal(workerAddressHash, { type: 'bytes' }),
+    nativeToScVal(rangeMinCents, { type: 'u64' }),
+    nativeToScVal(rangeMaxCents, { type: 'u64' }),
   );
   let tx = new TransactionBuilder(account, { fee: '1000000', networkPassphrase })
     .addOperation(op)
@@ -136,7 +149,7 @@ async function main() {
 
   const cpfHash = hashCpf('123.456.789-00');
   console.log('4/6 anchoring the worker identity on-chain...');
-  const anchorTx = await anchorOnChain(worker.secret, companyAddress, cpfHash);
+  const anchorTx = await anchorOnChain(worker.secret, companyAddress, cpfHash, 45000, 55000);
 
   const contractor = await createContractor({
     company_id: company.id,
