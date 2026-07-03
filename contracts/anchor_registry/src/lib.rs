@@ -80,11 +80,15 @@ impl AnchorRegistry {
     /// Like `anchor`, but the worker also co-signs the agreed payment range,
     /// stored under the worker's address hash so the PaymentVerifier can later
     /// enforce that every payment proof uses exactly this range. Both the worker
-    /// AND the company must authorize the call: the worker's consent binds the
-    /// range to their identity (not a figure the company can widen unilaterally),
-    /// and the company's co-signature binds it to the agreement it is paying
-    /// against. `worker_address_hash` is the same field element the payment
-    /// circuit exposes as public signal 3.
+    /// AND the company must authorize the call, and the range is write-once per
+    /// (worker address hash, company): once set it cannot be overwritten. That
+    /// stops a company from re-pointing an already anchored worker's hash at a
+    /// wider range with a throwaway co-signer. `worker_address_hash` is the same
+    /// field element the payment circuit exposes as public signal 3, and it is a
+    /// caller-supplied argument: the write-once guard blocks the overwrite, but
+    /// the residual case (a company front-running a worker's very first anchor
+    /// for a hash not yet registered) is closed only by binding the on-chain
+    /// recipient to the anchored identity, which is roadmap.
     pub fn anchor_with_range(
         env: Env,
         worker: Address,
@@ -102,6 +106,13 @@ impl AnchorRegistry {
         if env.storage().persistent().has(&key) {
             return Err(Error::AlreadyAnchored);
         }
+        // Write-once on the range too. The range key uses the caller-supplied
+        // worker address hash, so without this guard a company could overwrite
+        // an existing worker's range using a throwaway co-signing worker.
+        let range_key = DataKey::Range(worker_address_hash, company.clone());
+        if env.storage().persistent().has(&range_key) {
+            return Err(Error::AlreadyAnchored);
+        }
         let data = AnchorData {
             contract_hash,
             metadata,
@@ -109,10 +120,9 @@ impl AnchorRegistry {
             anchored_at_timestamp: env.ledger().timestamp(),
         };
         env.storage().persistent().set(&key, &data);
-        env.storage().persistent().set(
-            &DataKey::Range(worker_address_hash, company),
-            &RangeAnchor { range_min, range_max },
-        );
+        env.storage()
+            .persistent()
+            .set(&range_key, &RangeAnchor { range_min, range_max });
         Ok(())
     }
 

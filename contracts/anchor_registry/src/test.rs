@@ -140,3 +140,52 @@ fn anchor_with_range_requires_company_cosign() {
     );
     assert!(client.get_range(&worker_hash, &company).is_some());
 }
+
+#[test]
+fn company_cannot_overwrite_an_existing_range() {
+    // Regression for H1: a company must not be able to widen an already anchored
+    // worker's range by re-registering the same worker address hash with a
+    // throwaway co-signing worker it controls. The range is write-once.
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(AnchorRegistry, ());
+    let client = AnchorRegistryClient::new(&env, &contract_id);
+
+    let worker = Address::generate(&env);
+    let company = Address::generate(&env);
+    let worker_hash = BytesN::from_array(&env, &[5u8; 32]);
+    let contract_hash = BytesN::from_array(&env, &[7u8; 32]);
+    let metadata = String::from_str(&env, "CPF:abc|CONTRACT:42");
+
+    // The real worker anchors a tight range.
+    client.anchor_with_range(
+        &worker,
+        &company,
+        &contract_hash,
+        &metadata,
+        &worker_hash,
+        &45000,
+        &55000,
+    );
+
+    // The company spins up a throwaway worker it controls and tries to overwrite
+    // the SAME (worker_hash, company) range with a wide one. Both auths pass
+    // (mock_all_auths), but the write-once guard must reject it.
+    let dummy_worker = Address::generate(&env);
+    let res = client.try_anchor_with_range(
+        &dummy_worker,
+        &company,
+        &contract_hash,
+        &metadata,
+        &worker_hash,
+        &1,
+        &999_999,
+    );
+    assert!(res.is_err());
+
+    // The original tight range is intact.
+    let r = client.get_range(&worker_hash, &company).unwrap();
+    assert_eq!(r.range_min, 45000);
+    assert_eq!(r.range_max, 55000);
+}
