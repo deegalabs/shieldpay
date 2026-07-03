@@ -115,10 +115,33 @@ opening the book line by line:
 - **To a regulator or auditor**: attest total compensation and range compliance
   for a period while keeping individual salaries confidential.
 
-Honest limitation: today the on-chain check binds the public total. The per-line
-ranges and commitments are enforced inside the circuit but are not yet bound
-on-chain per line. The exact individual amounts remain disclosable only to a
-holder of the viewing key.
+Honest limitation: the on-chain check now binds each non-padding line to a
+recorded per-payment proof of the same company with a matching range, so a company
+cannot aggregate with invented lines or ranges. The remaining limit is that the
+worker-cosigned range protects the honest flow, not a company crafting raw contract
+calls; binding the real on-chain recipient to the anchored identity is roadmap. The
+exact individual amounts remain disclosable only to a holder of the viewing key.
+
+## Cross-persona use case: Proof of income
+
+Proof-of-Payroll faces the company outward. Proof of income faces the worker
+outward, reusing the same on-chain machinery. A worker proves to a third party
+that they received income within a claimed range, attested by their employer,
+verifiable on-chain by anyone, without revealing any single monthly amount.
+
+- **To a bank or a landlord**: show a provable income band for a loan or a lease,
+  without handing over pay stubs or the exact figure.
+- **To a consulate (visa) or an immigration officer**: attest employment income in
+  a range, verifiable independently on-chain, for a visa or residency application.
+- **Cross-border**: the same credential serves a lender or an authority in another
+  country, since anyone can verify it from the public verifier page.
+
+The company issues the credential over the worker's recent recorded payments (an
+employer key signs each month, the circuit proves the sum is in range and emits a
+per-verifier nullifier so it is replay-safe). A public, wallet-free page verifies
+it straight from the Soroban income verifier. Honest limitation: the credential
+proves that an employer key signed the records, but binding that key to a named
+company on-chain (an employer registry) is roadmap.
 
 ## Access control summary
 

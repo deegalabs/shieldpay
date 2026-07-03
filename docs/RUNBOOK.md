@@ -33,29 +33,44 @@ This compiles `circuits/payroll_proof/payroll_proof.circom` and produces the
 proving and verification artifacts. The off-chain prover that consumes them is
 `lib/zk/payroll-prover.ts`.
 
-### 2. Deploy and initialize the payroll verifier instance
+### 2. Deploy the contracts (constructor, one unified verifier)
 
-Deploy a second `PaymentVerifier` contract and initialize it with the payroll VK,
-then call its `verify_and_record_payroll` method at run time.
+Since the Wave 3 hardening the `PaymentVerifier` is **constructor-deployed**: the
+admin and BOTH verification keys (per-payment and payroll) are passed at deploy
+time, so one instance verifies both proof kinds. There is no post-deploy
+`initialize`. The deploy script encodes the two VKs and deploys the anchor
+registry plus the verifier:
 
 ```
-stellar contract deploy --network testnet ...      # payroll verifier instance
-stellar contract invoke ... -- initialize ...       # with the payroll VK
+cd contracts && STELLAR_SOURCE=<deployer> DEPLOY_TARGET=all bash deploy/deploy.sh
 ```
 
-The live testnet instance is
-`CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ`.
+Then wire the verifier (admin-only, the deployer signs): point it at the anchor
+registry and the USDC SAC. Both are write-once.
 
-For reference, the existing per-payment contracts are:
+```
+stellar contract invoke --id <verifier> --source-account <deployer> --network testnet \
+  -- set_anchor_registry --anchor_registry <anchor_id>
+stellar contract invoke --id <verifier> --source-account <deployer> --network testnet \
+  -- set_treasury_asset --usdc_sac <usdc_sac_id>
+```
 
-- `PaymentVerifier`: `CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ`
-- `AnchorRegistry`: `CAFFQPDFPN3ZXLQBCAL6372YLKDEOSNT4J37GSCB5H26VRVHYOFPY7QM`
+Validate on-chain before wiring the app: `pnpm demo` records a real proof and
+shows a forged and a replayed one rejected, and `scripts/validate_anchor_cosign.ts`
+confirms the two-party (worker + company) anchor. The live testnet instances are:
 
-### 3. Wire the contract id into the environment
+- Verifier (per-payment + payroll): `CC2LBLFIXG3BUPS436E4MYCDJ36DB2AX66IZIWBE2VVMU4M4C4TTIYCQ`
+- `AnchorRegistry` (M2 co-sign, write-once range): `CAFFQPDFPN3ZXLQBCAL6372YLKDEOSNT4J37GSCB5H26VRVHYOFPY7QM`
+- Income verifier (proof of income): `CBUUZGKKAODJQUFWVNJVSF7ZTVAE7P6ELURAVQTMZD2XWKUAI47LK7NT`
 
-Set `PAYROLL_VERIFIER_CONTRACT_ID` on the `web` service, plus the
-`NEXT_PUBLIC_PAYROLL_VERIFIER_CONTRACT_ID` mirror for the non-custodial client
-path (see the environment reference below).
+### 3. Wire the contract ids into the environment
+
+Set `ANCHOR_REGISTRY_CONTRACT_ID`, `PAYMENT_VERIFIER_CONTRACT_ID`,
+`PAYROLL_VERIFIER_CONTRACT_ID`, and `INCOME_VERIFIER_CONTRACT_ID` on the `web`
+service, plus a `NEXT_PUBLIC_*` mirror of each for the non-custodial client path.
+After a contract redeploy, re-seed the demo (`SEED_DEMO=1`, against the public DB
+url) so the demo record is anchored on the new registry and its proofs recorded on
+the new verifier. See the environment reference below.
 
 ## Pre-launch hygiene (do before making the repo public)
 
