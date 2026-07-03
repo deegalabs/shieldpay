@@ -77,6 +77,13 @@ ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS proof_verified BOOLEAN NOT NUL
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS viewing_key TEXT;
 ALTER TABLE payments  ADD COLUMN IF NOT EXISTS disclosure TEXT; -- sealed {amountCents, randomness}
 
+-- F1: employer attestation key seed. The employer BabyJubJub signing key (proof
+-- of income) derives from this dedicated per-company seed, INDEPENDENT of the
+-- viewing key. Kept separate so a viewing-key (disclosure) compromise cannot
+-- forge income attestations, and the two secrets rotate independently. Stored
+-- encrypted at rest, exactly like viewing_key.
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS employer_seed TEXT;
+
 -- Disclosure epoch: every disclose link carries the epoch it was minted under.
 -- Bumping it (rotate) instantly invalidates all outstanding disclose links, so a
 -- leaked viewing-key link can be revoked without rotating the key or re-sealing.

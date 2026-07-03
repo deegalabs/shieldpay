@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import {
   getCompanyById,
   ensureCompanyViewingKey,
+  ensureCompanyEmployerSeed,
   listPaymentsForWorker,
   type PaymentRow,
 } from '@/lib/db/client';
@@ -100,9 +101,17 @@ export async function issueIncomeCredential(input: IssueInput): Promise<IssueRes
   const workerName = recent[0]!.worker_name;
 
   // Unseal each amount with the company viewing key (the same server-held key
-  // the auditor export uses). Amounts stay on the server and are never returned.
+  // the auditor export uses). The viewing key's only job here is unsealing
+  // amounts; it is never used to derive the employer key.
   const viewingKey = await ensureCompanyViewingKey(company.id);
-  const employer = await employerKeyForCompany(viewingKey);
+  // Derive the employer attestation key from a DEDICATED per-company seed,
+  // independent of the viewing key (R6-M1): a viewing-key compromise must not be
+  // able to forge income attestations, and the two secrets rotate independently.
+  // Consequence: because this seed is new and independent, the employer public
+  // key (ax, ay) for a company changes from the previous viewing-key-derived one,
+  // so any income credential issued before this change no longer matches. That is
+  // acceptable pre-production (testnet; credentials are re-issued on demand).
+  const employer = await employerKeyForCompany(await ensureCompanyEmployerSeed(company.id));
   const workerId = workerIdFromAddress(workerAddress);
 
   const records: IncomeRecord[] = [];

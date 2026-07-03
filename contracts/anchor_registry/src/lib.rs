@@ -1,5 +1,5 @@
 #![no_std]
-//! AnchorRegistry — binds a worker's Stellar address to their contract metadata.
+//! AnchorRegistry, binds a worker's Stellar address to their contract metadata.
 //!
 //! The worker self-anchors (the call must be authorized by the worker's own
 //! address), producing an immutable, timestamped declaration of
@@ -15,7 +15,7 @@ use soroban_sdk::{
 pub struct AnchorData {
     /// sha256 of the signed contract PDF.
     pub contract_hash: BytesN<32>,
-    /// "CPF:<hash>|CONTRACT:42|DATE:2026-06-01" — structured metadata.
+    /// "CPF:<hash>|CONTRACT:42|DATE:2026-06-01", structured metadata.
     pub metadata: String,
     pub anchored_at_ledger: u32,
     pub anchored_at_timestamp: u64,

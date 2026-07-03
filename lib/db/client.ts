@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Pool } from 'pg';
 import { SCHEMA_SQL } from './schema';
 import { encryptAtRest, decryptAtRest } from '@/lib/crypto/at-rest';
@@ -181,6 +182,7 @@ export interface CompanyRow {
   auditor_contact: string | null;
   require_invoice: boolean;
   viewing_key: string | null;
+  employer_seed: string | null;
   disclose_epoch: number;
   created_at: string;
 }
@@ -291,6 +293,36 @@ export async function ensureCompanyViewingKey(companyId: string): Promise<string
   );
   const stored = after.rows[0]?.viewing_key;
   return stored ? decryptAtRest(stored) : key;
+}
+
+/**
+ * Return the company's employer attestation key seed, generating + persisting one
+ * on first use (F1). This is the seed the employer BabyJubJub signing key derives
+ * from, INDEPENDENT of the viewing key: a viewing-key compromise cannot forge
+ * income attestations, and the two secrets rotate independently. Stored encrypted
+ * at rest and decrypted on read; the raw seed never leaves the server and is never
+ * logged. Mirrors ensureCompanyViewingKey exactly.
+ */
+export async function ensureCompanyEmployerSeed(companyId: string): Promise<string> {
+  await ensureSchema();
+  const existing = await getPool().query<{ employer_seed: string | null }>(
+    `SELECT employer_seed FROM companies WHERE id = $1`,
+    [companyId],
+  );
+  const current = existing.rows[0]?.employer_seed;
+  if (current) return decryptAtRest(current);
+  const seed = randomBytes(32).toString('hex');
+  await getPool().query(
+    `UPDATE companies SET employer_seed = $2 WHERE id = $1 AND employer_seed IS NULL`,
+    [companyId, encryptAtRest(seed)],
+  );
+  // Re-read in case of a race (another request set it first).
+  const after = await getPool().query<{ employer_seed: string | null }>(
+    `SELECT employer_seed FROM companies WHERE id = $1`,
+    [companyId],
+  );
+  const stored = after.rows[0]?.employer_seed;
+  return stored ? decryptAtRest(stored) : seed;
 }
 
 /** Create or update the caller's company (upsert by owner). */

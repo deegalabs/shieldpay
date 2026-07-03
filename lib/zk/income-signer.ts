@@ -73,12 +73,16 @@ export async function newEmployerKey(): Promise<EmployerKey> {
 
 /**
  * Derive a STABLE employer BabyJubJub keypair for a company from a high-entropy
- * per-company seed (the company's server-held viewing key). This uses the exact
- * same primitive as newEmployerKey (eddsa.prv2pub); only the 32-byte private
- * scalar is derived deterministically (a domain-separated sha256 of the seed)
- * instead of random. That way every credential a company issues verifies against
- * one stable public key, with no new key material to store. The seed is a secret,
- * and so is the returned privHex: never log either.
+ * per-company seed. The seed MUST be the company's dedicated employer attestation
+ * seed (ensureCompanyEmployerSeed), NOT the viewing key: the employer signing key
+ * and the disclosure (viewing) key are kept independent so a viewing-key
+ * compromise cannot forge income attestations, and the two rotate separately
+ * (security finding R6-M1). This uses the exact same primitive as newEmployerKey
+ * (eddsa.prv2pub); only the 32-byte private scalar is derived deterministically (a
+ * domain-separated sha256 of the seed) instead of random. That way every
+ * credential a company issues verifies against one stable public key, with no new
+ * key material to store. The seed is a secret, and so is the returned privHex:
+ * never log either.
  */
 export async function employerKeyForCompany(companySeed: string): Promise<EmployerKey> {
   if (!companySeed) throw new Error('company seed required to derive the employer key');
