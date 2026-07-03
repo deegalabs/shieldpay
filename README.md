@@ -423,6 +423,10 @@ Honest limitations:
 Security policy and how to report a vulnerability: [`SECURITY.md`](SECURITY.md).
 The internal audit log with open findings is kept private until remediated.
 
+Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md) covers setup, coding standards,
+and the commit rules. By participating you agree to the
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
 ### Live on testnet
 
 - App: https://web-production-f389ce.up.railway.app
