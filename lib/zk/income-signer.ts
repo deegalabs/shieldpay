@@ -72,6 +72,27 @@ export async function newEmployerKey(): Promise<EmployerKey> {
 }
 
 /**
+ * Derive a STABLE employer BabyJubJub keypair for a company from a high-entropy
+ * per-company seed (the company's server-held viewing key). This uses the exact
+ * same primitive as newEmployerKey (eddsa.prv2pub); only the 32-byte private
+ * scalar is derived deterministically (a domain-separated sha256 of the seed)
+ * instead of random. That way every credential a company issues verifies against
+ * one stable public key, with no new key material to store. The seed is a secret,
+ * and so is the returned privHex: never log either.
+ */
+export async function employerKeyForCompany(companySeed: string): Promise<EmployerKey> {
+  if (!companySeed) throw new Error('company seed required to derive the employer key');
+  const eddsa = await buildEddsa();
+  const prv = createHash('sha256').update(`shieldpay-employer-key-v1|${companySeed}`).digest();
+  const pub = eddsa.prv2pub(prv);
+  return {
+    privHex: prv.toString('hex'),
+    ax: eddsa.F.toString(pub[0]),
+    ay: eddsa.F.toString(pub[1]),
+  };
+}
+
+/**
  * Sign one monthly pay record: EdDSA-Poseidon over Poseidon(amountCents, month,
  * workerId), matching what the circuit reconstructs and verifies. The signature
  * is re-verified here before returning, so a field-handling mistake fails loudly
