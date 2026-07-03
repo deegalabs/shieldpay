@@ -3,13 +3,24 @@
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSignRawHash } from '@privy-io/react-auth/extended-chains';
-import { Send, Plus, Trash2, Loader2, Lock } from 'lucide-react';
+import { Send, Plus, Trash2, Lock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PayrollStepper, type PayrollPhase } from '@/components/ui/payroll-stepper';
 import { usdRange, formatUsdc } from '@/lib/utils';
 import { nonCustodialAvailable, runPayrollNonCustodial } from '@/lib/payments/client-run';
+
+// Map the run's onProgress strings (see lib/payments/client-run.ts) onto the
+// stepper's four discrete phases. "Preparing your wallet" opens the run, so a
+// null/unknown message rests on the first stage.
+function phaseFromProgress(msg: string | null): PayrollPhase {
+  if (msg?.startsWith('Proving')) return 'proving';
+  if (msg?.startsWith('Verifying')) return 'verifying';
+  if (msg?.startsWith('Recording')) return 'settled';
+  return 'sending';
+}
 
 interface Contractor {
   id: string;
@@ -205,10 +216,16 @@ export default function PayrollPage() {
               <span className="figure-hero text-lg font-bold">{formatUsdc(total)} USDC</span>
             </div>
 
-            <Button className="w-full" size="lg" onClick={run} disabled={busy}>
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              {busy ? `${progress ?? 'Proving & recording on-chain'}…` : 'Run payroll'}
-            </Button>
+            {busy ? (
+              <div className="rounded-lg border border-border bg-surface-2/50 px-4 py-5">
+                <PayrollStepper phase={phaseFromProgress(progress)} />
+              </div>
+            ) : (
+              <Button className="w-full" size="lg" onClick={run} disabled={busy}>
+                <Send size={16} />
+                Run payroll
+              </Button>
+            )}
             <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
               <Lock size={12} />{' '}
               {nonCustodialAvailable() && walletAddr
