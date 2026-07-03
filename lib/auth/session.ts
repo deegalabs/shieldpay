@@ -57,6 +57,8 @@ export interface AuditTokenClaims {
   companyId?: string;
   disclose?: boolean;
   epoch?: number; // disclosure epoch the link was minted under (rotation check)
+  jti?: string; // unique id for a one-time link (spent after first disclosure)
+  oneTime?: boolean; // true: disclose exactly once, then drop to read-only
 }
 
 /** Sign a short-lived, scoped token (auditor link / magic link). */

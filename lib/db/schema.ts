@@ -96,6 +96,14 @@ CREATE TABLE IF NOT EXISTS disclosure_log (
   created_at            TIMESTAMPTZ DEFAULT now()
 );
 
+-- One-time disclosure links: a row is claimed the first time a one-time link
+-- discloses. A second attempt finds the row already present and drops to
+-- read-only, so a one-time link can never re-disclose.
+CREATE TABLE IF NOT EXISTS disclosure_token_use (
+  jti     TEXT PRIMARY KEY,
+  used_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- N5: real, recipient-visible, memo-bound on-chain settlement record. Carries a
 -- symbolic amount only (the salary stays confidential as the commitment); the
 -- proof is bound to this tx hash. Null when settlement was skipped (best-effort).

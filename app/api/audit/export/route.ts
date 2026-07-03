@@ -6,6 +6,7 @@ import {
   ensureCompanyViewingKey,
   getCompanyById,
   logDisclosure,
+  claimOneTimeToken,
   type PaymentRow,
 } from '@/lib/db/client';
 import { verifyScopedToken, type AuditTokenClaims } from '@/lib/auth/session';
@@ -54,6 +55,12 @@ export async function GET(req: NextRequest) {
   if (disclose && claims.companyId) {
     const company = await getCompanyById(claims.companyId);
     if (!company || (claims.epoch ?? 0) !== company.disclose_epoch) disclose = false;
+  }
+  // One-time link: spend it on the first disclosure. A second export (or a DB we
+  // cannot reach) claims false and drops to read-only, never re-disclosing.
+  if (disclose && claims.oneTime && claims.jti) {
+    const firstUse = await claimOneTimeToken(claims.jti);
+    if (!firstUse) disclose = false;
   }
   let disclosed = new Map();
   if (disclose && claims.companyId) {
