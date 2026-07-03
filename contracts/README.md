@@ -4,7 +4,7 @@ Two Rust/Soroban contracts form the on-chain trust layer.
 
 | Contract | Layer | Responsibility |
 | --- | --- | --- |
-| `anchor_registry` | 2 — Identity anchor | Binds a worker's Stellar address to their contract metadata (self-anchored). |
+| `anchor_registry` | 2, Identity anchor | Binds a worker's Stellar address to their contract metadata (self-anchored). |
 | `payment_verifier` | 4, ZK proof | Verifies a Groth16 proof of in-range payment and records it immutably. Also verifies the aggregate Proof-of-Payroll (deployed as a second instance). |
 
 ## Contract methods
@@ -53,7 +53,7 @@ npm run contracts:deploy     # -> contracts/deploy/deploy.sh
 Deployed contract IDs are written to `deploy/addresses.json` and printed for
 your `.env` / Railway variables.
 
-## ZK verification status — REAL, on-chain
+## ZK verification status: REAL, on-chain
 
 `payment_verifier` runs the **full Groth16 pairing check on-chain** using
 Stellar's native **BN254** host functions (`soroban_sdk::crypto::bn254`):

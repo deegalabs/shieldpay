@@ -9,7 +9,7 @@ a whole run (`payroll_proof/`).
 
 | Path | Status | Why |
 | --- | --- | --- |
-| **Circom + Groth16** (`payment_proof/`) | **PRIMARY — shipped** | Small proof, single pairing-friendly verifier that fits the Soroban budget on testnet today. One of the three officially endorsed hackathon paths. |
+| **Circom + Groth16** (`payment_proof/`) | **PRIMARY, shipped** | Small proof, single pairing-friendly verifier that fits the Soroban budget on testnet today. One of the three officially endorsed hackathon paths. |
 | **Noir** (`noir_reference/`) | Reference / stretch | Reads closest to the business intent. Default UltraHonk backend is larger and currently localnet-only on Soroban; a Noir→Groth16 (BN254) swap is a future option. |
 
 This mirrors CLAUDE.md Decision 1: start readable (Noir), ship what verifies on
