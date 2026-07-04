@@ -214,15 +214,59 @@ export default async function ReceiptsPage() {
               </p>
               <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
             </div>
-            <Card className="overflow-hidden p-0">
+            <div className="md:overflow-x-auto md:pb-2">
               <DataTable
                 columns={columns}
                 rows={payments}
                 rowKey={(p) => p.id}
                 indexRail
                 caption="Payroll receipts with verified proofs and downloadable PDFs."
+                mobileCard={(p) => (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-fg-strong">{p.worker_name}</div>
+                        <div className="mono mt-0.5 truncate text-[11px] text-fg-faint">
+                          {truncateKey(p.worker_address, 6, 4)}
+                        </div>
+                      </div>
+                      <OnChainSeal
+                        state={p.verified ? 'verified' : 'computing'}
+                        label={p.verified ? 'Verified' : 'Computing'}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                      <span className="overline text-fg-faint">{p.reference}</span>
+                      <SealedChip range={{ minCents: p.range_min, maxCents: p.range_max }} />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="mono text-[11px] text-fg-faint">
+                        {dateShort(p.created_at)}
+                        {p.verified && p.tx_hash ? ` · #${p.proof_id} | ${shortHash(p.tx_hash)}` : ''}
+                      </span>
+                      <span className="inline-flex items-center gap-4">
+                        <a
+                          className="mono inline-flex items-center gap-1 text-xs text-fg-subtle hover:text-brand-text"
+                          href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Proof <ArrowUpRight size={13} />
+                        </a>
+                        <a
+                          className="mono inline-flex items-center gap-1.5 text-xs text-fg-strong hover:text-brand-text"
+                          href={`/api/receipt?id=${p.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Download size={13} /> PDF
+                        </a>
+                      </span>
+                    </div>
+                  </div>
+                )}
               />
-            </Card>
+            </div>
           </section>
         </div>
       )}

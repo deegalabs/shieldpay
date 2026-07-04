@@ -102,7 +102,7 @@ export default async function ContractorsPage() {
       cell: (c) =>
         c.status === 'invited' ? (
           <span className="relative z-10 inline-flex justify-end">
-            <InviteLinkButton id={c.id} />
+            <InviteLinkButton id={c.public_id} />
           </span>
         ) : null,
     },
@@ -116,7 +116,8 @@ export default async function ContractorsPage() {
           <h1 className="font-headline text-headline-lg-mobile tracking-tight text-fg-default md:text-headline-lg">
             Contributors
           </h1>
-          <div className="flex items-end gap-6">
+          {/* Inline figures on desktop; prominent stat cards on mobile (Stitch print). */}
+          <div className="hidden items-end gap-6 sm:flex">
             <div>
               <div className="overline mb-1.5">Total recipients</div>
               <div className="figure text-lg text-fg-default">{contractors.length}</div>
@@ -125,6 +126,16 @@ export default async function ContractorsPage() {
             <div>
               <div className="overline mb-1.5">Anchored</div>
               <div className="figure text-lg text-verified-text">{anchored}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:hidden">
+            <div className="rounded-lg border border-border bg-surface-2 p-4 top-edge">
+              <div className="overline mb-2">Total recipients</div>
+              <div className="figure text-3xl text-fg-default">{contractors.length}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-surface-2 p-4 top-edge">
+              <div className="overline mb-2">Anchored</div>
+              <div className="figure text-3xl text-verified-text">{anchored}</div>
             </div>
           </div>
         </div>
@@ -161,17 +172,52 @@ export default async function ContractorsPage() {
           </Button>
         </Card>
       ) : (
-        <Card className="overflow-hidden p-0">
+        // Bare ledger table, matching the Proof Explorer surface: no outer card
+        // box, just the mono header row and hairline rows (cards below md).
+        <div className="md:overflow-x-auto md:pb-2">
           <DataTable
             columns={columns}
             rows={contractors}
             rowKey={(c) => c.id}
             indexRail
-            rowHref={(c) => (c.status === 'invited' ? undefined : `/contractors/${c.id}`)}
+            rowHref={(c) => (c.status === 'invited' ? undefined : `/contractors/${c.public_id}`)}
             rowLabel={(c) => `Open ${c.name}`}
             caption="Contributors, their agreed range and status."
+            mobileCard={(c) => (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-fg-strong">{c.name}</div>
+                    <div className="mono mt-0.5 truncate text-[11px] text-fg-faint">
+                      {c.status === 'invited'
+                        ? c.email || 'Pending acceptance'
+                        : c.stellar_address
+                          ? truncateKey(c.stellar_address, 6, 4)
+                          : '-'}
+                    </div>
+                  </div>
+                  {c.status === 'invited' ? (
+                    <StatusTag>Pending</StatusTag>
+                  ) : (
+                    <OnChainSeal
+                      state={c.anchored ? 'verified' : 'computing'}
+                      label={c.anchored ? 'Anchored' : 'Not anchored'}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                  <span className="overline text-fg-faint">Allocation</span>
+                  <SealedChip range={{ minCents: c.range_min, maxCents: c.range_max }} />
+                </div>
+                {c.status === 'invited' && (
+                  <div className="relative z-10 flex justify-end">
+                    <InviteLinkButton id={c.public_id} />
+                  </div>
+                )}
+              </div>
+            )}
           />
-        </Card>
+        </div>
       )}
     </div>
   );

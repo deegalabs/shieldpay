@@ -110,6 +110,21 @@
       animation-iteration-count: 1 !important;
     }
   }
+
+  /* Chrome/Safari autofill paints inputs white/yellow, which shatters the dark
+     surface (a stray light field that also looks a different height). Repaint
+     the fill dark and keep the text light. The long transition defers the UA
+     background so it never flashes. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-text-fill-color: hsl(var(--foreground));
+    caret-color: hsl(var(--foreground));
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--surface-base)) inset;
+    box-shadow: 0 0 0 1000px hsl(var(--surface-base)) inset;
+    transition: background-color 9999s ease-out 0s;
+  }
 }
 
 @layer components {
@@ -320,5 +335,121 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--fg-subtle);
+    text-decoration-line: none;
+  }
+}
+
+/* The `.overline` eyebrow class collides by name with Tailwind's built-in
+   `overline` text-decoration utility, which draws a 1px line ABOVE the text on
+   every eyebrow label and table column header. Neutralize it here, in the same
+   utilities layer, written after the framework's utilities so it wins by source
+   order (equal specificity). Keeps the mono labels clean, no stray rule. */
+@layer utilities {
+  .overline {
+    text-decoration-line: none;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Scrollbars                                                                  */
+/* The OS default (a chunky light bar) breaks the dark finance-grade surface.  */
+/* Give the whole app a thin, self-effacing slate scrollbar that reads as part */
+/* of the elevation ramp: transparent track, hairline thumb, brighter on hover.*/
+/* Applies to both axes (the ledger tables scroll horizontally on mobile).     */
+/* -------------------------------------------------------------------------- */
+@layer base {
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(51 65 85 / 0.7) transparent; /* slate-700 thumb, no track */
+  }
+
+  /* WebKit / Blink (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(51 65 85 / 0.6); /* slate-700 */
+    border-radius: 9999px;
+    /* Inset the thumb so it reads as a thin pill inside the gutter. */
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 150ms ease;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(71 85 105 / 0.9); /* slate-600 */
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: rgb(99 102 241 / 0.8); /* indigo-500 */
+  }
+  /* Don't paint a button box in the corner where the two bars meet. */
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Overlay surfaces (Sheet drawer / Dialog modal)                             */
+/* One enter animation class that adapts by breakpoint: a bottom sheet on     */
+/* phones, a right-hand drawer on md+. Radix mounts content as data-state     */
+/* open, so the animation runs once on mount. Honors reduced-motion.          */
+/* -------------------------------------------------------------------------- */
+@keyframes sp-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sp-sheet-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sp-sheet-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sp-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.sp-overlay-in {
+  animation: sp-overlay-in 0.18s ease-out;
+}
+.sp-sheet-in {
+  animation: sp-sheet-bottom 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (min-width: 768px) {
+  .sp-sheet-in {
+    animation: sp-sheet-right 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+.sp-dialog-in {
+  animation: sp-dialog-in 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-overlay-in,
+  .sp-sheet-in,
+  .sp-dialog-in {
+    animation: none;
   }
 }

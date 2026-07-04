@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { SealedChip } from '@/components/ui/sealed-chip';
 import { OnChainSeal } from '@/components/ui/on-chain-seal';
 import { PayrollStepper, type PayrollPhase } from '@/components/ui/payroll-stepper';
@@ -71,6 +72,7 @@ export default function PayrollPage() {
   const { user } = usePrivy();
   const { signRawHash } = useSignRawHash();
   const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [loadingContractors, setLoadingContractors] = useState(true);
   const [reference, setReference] = useState('JUN2026');
   const [lines, setLines] = useState<Line[]>([{ contractorId: '', amount: '' }]);
   // 'enter' builds the run; 'review' restates it and gates the irreversible pay.
@@ -90,10 +92,26 @@ export default function PayrollPage() {
     fetch('/api/contractors')
       .then((r) => (r.ok ? r.json() : { contractors: [] }))
       .then((d) => setContractors((d.contractors ?? []).filter((c: Contractor) => c.stellar_address)))
-      .catch(() => setContractors([]));
+      .catch(() => setContractors([]))
+      .finally(() => setLoadingContractors(false));
   }, []);
 
   const byId = (id: string) => contractors.find((c) => c.id === id);
+
+  // Inline range check: a ZK range proof is only valid when the amount sits
+  // within the agreed [min, max]. Returns the cents range when the entered
+  // amount falls outside it, so the line can flag it before submit.
+  function outOfRange(
+    l: Line,
+    c?: Contractor,
+  ): { min: number; max: number } | null {
+    if (!c || l.amount.trim() === '') return null;
+    const amt = Number(l.amount);
+    if (!Number.isFinite(amt) || amt <= 0) return null;
+    return amt * 100 < c.range_min || amt * 100 > c.range_max
+      ? { min: c.range_min, max: c.range_max }
+      : null;
+  }
 
   // Only lines with a chosen contributor and an amount become review lines.
   function buildReviewLines(): ReviewLine[] {
@@ -188,7 +206,7 @@ export default function PayrollPage() {
       // wallet, the server never holds a company key. Falls back to the custodial
       // endpoint when no wallet is linked or the public contract id is unset.
       if (nonCustodialAvailable() && walletAddr) {
-        const { runId } = await runPayrollNonCustodial({
+        const { runPublicId } = await runPayrollNonCustodial({
           walletAddress: walletAddr,
           signRawHash,
           reference,
@@ -201,7 +219,7 @@ export default function PayrollPage() {
           })),
           onProgress: setProgress,
         });
-        window.location.href = `/payroll/${runId}`;
+        window.location.href = `/payroll/${runPublicId}`;
         return;
       }
 
@@ -227,6 +245,22 @@ export default function PayrollPage() {
   const reviewTotal = reviewLines.reduce((s, l) => s + l.amountUsdc, 0);
   const formTotal = lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
 
+  // How many contributors have already settled on-chain, for the mobile
+  // "X of Y paid" counter, the heading progress bar, and the per-row seals.
+  // The run verifies one line at a time ("Verifying {name} on-chain"), so the
+  // count of names before the active one is the number already paid. Before the
+  // run starts nothing is paid; once "Recording" begins every line is settled.
+  const paidCount = (() => {
+    if (!busy) return 0;
+    if (progress?.startsWith('Recording')) return reviewLines.length;
+    if (progress?.startsWith('Verifying ')) {
+      const i = reviewLines.findIndex((l) => progress.includes(l.workerName));
+      return i < 0 ? 0 : i;
+    }
+    return 0;
+  })();
+  const paidPct = reviewLines.length ? (paidCount / reviewLines.length) * 100 : 0;
+
   const privacyNote =
     nonCustodialAvailable() && walletAddr
       ? 'You sign each payment with your own wallet. Each amount stays private on-chain.'
@@ -244,8 +278,9 @@ export default function PayrollPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10 md:gap-14">
-      {/* Editorial header: overline + the run reference as the lead figure. */}
-      <header className="flex flex-col items-center gap-2 text-center">
+      {/* Editorial header: overline + the run reference as the lead figure.
+          Desktop only; the mobile layout carries its own top bar and heading. */}
+      <header className="hidden flex-col items-center gap-2 text-center md:flex">
         <span className={`${OVERLINE} tracking-[0.2em]`}>Run Payroll</span>
         <h1 className="relative inline-block font-headline text-4xl font-bold tracking-tight text-fg-default md:text-5xl">
           {reference || '—'}
@@ -261,7 +296,11 @@ export default function PayrollPage() {
         </p>
       </header>
 
-      {contractors.length === 0 ? (
+      {/* Desktop layout (md+): the full editorial builder and review sequence. */}
+      <div className="hidden md:block">
+      {loadingContractors ? (
+        <PayrollSkeleton />
+      ) : contractors.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="font-medium text-fg-strong">No active contributors yet</p>
           <p className="mt-1 text-sm text-fg-subtle">
@@ -283,44 +322,56 @@ export default function PayrollPage() {
               <p className={OVERLINE}>Payment lines</p>
               {lines.map((l, i) => {
                 const c = byId(l.contractorId);
+                const oor = outOfRange(l, c);
                 return (
-                  <div key={i} className="flex items-end gap-2">
-                    <div className="flex-1 space-y-1.5">
-                      <Label htmlFor={`c${i}`}>Contributor</Label>
-                      <select
-                        id={`c${i}`}
-                        className="input"
-                        value={l.contractorId}
-                        onChange={(e) => setLine(i, { contractorId: e.target.value })}
-                      >
-                        <option value="">Choose…</option>
-                        {contractors.map((ct) => (
-                          <option key={ct.id} value={ct.id} disabled={!ct.anchored}>
-                            {ct.name} ({usdRange(ct.range_min, ct.range_max)})
-                            {ct.anchored ? ' ✓' : ' (pending anchor)'}
-                          </option>
-                        ))}
-                      </select>
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1 space-y-1.5">
+                        <Label htmlFor={`c${i}`}>Contributor</Label>
+                        <Select
+                          value={l.contractorId || undefined}
+                          onValueChange={(v) => setLine(i, { contractorId: v })}
+                        >
+                          <SelectTrigger id={`c${i}`}>
+                            <SelectValue placeholder="Choose…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {contractors.map((ct) => (
+                              <SelectItem key={ct.id} value={ct.id} disabled={!ct.anchored}>
+                                {ct.name} ({usdRange(ct.range_min, ct.range_max)})
+                                {ct.anchored ? '' : ' (pending anchor)'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-28 space-y-1.5">
+                        <Label htmlFor={`a${i}`}>Amount</Label>
+                        <Input
+                          id={`a${i}`}
+                          inputMode="decimal"
+                          value={l.amount}
+                          onChange={(e) => setLine(i, { amount: e.target.value })}
+                          placeholder={c ? usdRange(c.range_min, c.range_max) : 'USDC'}
+                          aria-invalid={oor ? true : undefined}
+                          className={oor ? 'border-danger focus:border-danger focus:ring-danger/25' : undefined}
+                        />
+                      </div>
+                      {lines.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove contributor"
+                          onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      )}
                     </div>
-                    <div className="w-28 space-y-1.5">
-                      <Label htmlFor={`a${i}`}>Amount</Label>
-                      <Input
-                        id={`a${i}`}
-                        inputMode="decimal"
-                        value={l.amount}
-                        onChange={(e) => setLine(i, { amount: e.target.value })}
-                        placeholder={c ? usdRange(c.range_min, c.range_max) : 'USDC'}
-                      />
-                    </div>
-                    {lines.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remove contributor"
-                        onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                    {oor && (
+                      <p className="mono text-[11px] text-danger-text">
+                        Outside {c?.name}&apos;s agreed range ({usdRange(oor.min, oor.max)}).
+                      </p>
                     )}
                   </div>
                 );
@@ -474,6 +525,237 @@ export default function PayrollPage() {
           {errorPanel}
         </div>
       )}
+      </div>
+
+      {/* Mobile layout: faithful to the approved Run Payroll mobile export. It is
+          wired to the SAME data and state as desktop. The enter->review gate is
+          preserved (Review payroll validates and advances; Confirm and pay lives
+          only in the review step and calls the shared run handler). */}
+      <div className="md:hidden">
+        {/* One back affordance (the app shell already provides the header +
+            bottom nav, so no duplicate top bar or avatar here). In review it
+            returns to the enter step, keeping the enter->review gate. */}
+        <button
+          type="button"
+          onClick={() => (step === 'review' ? setStep('enter') : window.history.back())}
+          className="mb-5 inline-flex items-center gap-1.5 text-sm text-fg-subtle transition-colors hover:text-fg-default"
+        >
+          <ArrowLeft size={16} /> {step === 'review' ? 'Back to edit' : 'Back'}
+        </button>
+
+        {loadingContractors ? (
+          <PayrollSkeleton />
+        ) : contractors.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="font-medium text-fg-strong">No active contributors yet</p>
+            <p className="mt-1 text-sm text-fg-subtle">
+              Invite contributors and have them accept before running payroll.
+            </p>
+            <Button asChild className="mt-4">
+              <a href="/contractors/new">Invite contributor</a>
+            </Button>
+          </Card>
+        ) : step === 'enter' ? (
+          <div className="flex flex-col gap-5 pb-48">
+            <h1 className="font-headline text-2xl font-bold tracking-tight text-fg-default">
+              Run Payroll
+            </h1>
+            <div className="space-y-1.5">
+              <Label htmlFor="ref-m">Reference (e.g. month)</Label>
+              <Input id="ref-m" value={reference} onChange={(e) => setReference(e.target.value)} />
+            </div>
+            <div className="space-y-3">
+              <p className={OVERLINE}>Payment lines</p>
+              {lines.map((l, i) => {
+                const c = byId(l.contractorId);
+                const oor = outOfRange(l, c);
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-col gap-3 rounded-lg border border-border bg-surface-2 p-4 top-edge"
+                  >
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`cm${i}`}>Contributor</Label>
+                      <Select
+                        value={l.contractorId || undefined}
+                        onValueChange={(v) => setLine(i, { contractorId: v })}
+                      >
+                        <SelectTrigger id={`cm${i}`}>
+                          <SelectValue placeholder="Choose…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contractors.map((ct) => (
+                            <SelectItem key={ct.id} value={ct.id} disabled={!ct.anchored}>
+                              {ct.name} ({usdRange(ct.range_min, ct.range_max)})
+                              {ct.anchored ? '' : ' (pending anchor)'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`am${i}`}>Amount</Label>
+                      <div className="flex items-end gap-2">
+                        <Input
+                          id={`am${i}`}
+                          inputMode="decimal"
+                          value={l.amount}
+                          onChange={(e) => setLine(i, { amount: e.target.value })}
+                          placeholder={c ? usdRange(c.range_min, c.range_max) : 'USDC'}
+                          aria-invalid={oor ? true : undefined}
+                          className={oor ? 'border-danger focus:border-danger focus:ring-danger/25' : undefined}
+                        />
+                        {lines.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-11 shrink-0"
+                            aria-label="Remove contributor"
+                            onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
+                      </div>
+                      {oor && (
+                        <p className="mono text-[11px] text-danger-text">
+                          Outside {c?.name}&apos;s agreed range ({usdRange(oor.min, oor.max)}).
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLines((ls) => [...ls, { contractorId: '', amount: '' }])}
+              >
+                <Plus size={14} /> Add contributor
+              </Button>
+            </div>
+
+            {errorPanel}
+
+            {/* Sticky action: the enter->review gate. Money never moves here. */}
+            <div className="fixed inset-x-3 bottom-[calc(56px+env(safe-area-inset-bottom)+0.5rem)] z-40 rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.75)]">
+              <div className="mb-3 flex items-end justify-between">
+                <span className={OVERLINE}>Run total</span>
+                <span className="mono text-2xl font-semibold tabular-nums text-fg-default">
+                  {formatUsdc(formTotal)} <span className="text-sm text-fg-subtle">USDC</span>
+                </span>
+              </div>
+              <Button className="min-h-11 w-full" size="lg" onClick={goToReview}>
+                Review payroll <ArrowRight size={16} />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6 pb-48">
+            {/* Heading + active-tab underline feel + the "X of Y paid" counter. */}
+            <div>
+              <div className="flex items-end justify-between">
+                <h1 className="font-headline text-2xl font-bold tracking-tight text-fg-default">
+                  Run Payroll
+                </h1>
+                <span className="mono text-sm tabular-nums text-brand-text">
+                  {paidCount} of {reviewLines.length} paid
+                </span>
+              </div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-3">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-brand to-verified transition-[width] duration-500"
+                  style={{ width: `${paidPct}%` }}
+                />
+              </div>
+            </div>
+
+            {/* The stepper earns its place on mobile too while a run is settling. */}
+            {busy && (
+              <section className="rounded-xl border border-border bg-surface-2/40 p-4">
+                <PayrollStepper phase={phaseFromProgress(progress)} />
+              </section>
+            )}
+
+            {/* Stacked contributor ledger: index + name, sealed range, on-chain seal. */}
+            <div className="flex flex-col gap-3">
+              {reviewLines.map((l, i) => {
+                // Within range up front (matches desktop); once a run starts, rows
+                // flip to the emerald seal as each settles, else a computing seal.
+                const settled = !busy || i < paidCount;
+                return (
+                  <div
+                    key={l.contractorId}
+                    className="flex flex-col gap-3 rounded-lg border border-border bg-surface-2 p-4 top-edge"
+                  >
+                    <div className="flex items-center justify-between border-b border-border pb-2">
+                      <span className="mono text-xs text-fg-faint">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className="text-sm font-medium text-fg-strong">{l.workerName}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <SealedChip range={{ minCents: l.minCents, maxCents: l.maxCents }} size="md" />
+                      <OnChainSeal state={settled ? 'verified' : 'computing'} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {errorPanel}
+
+            {/* Sticky total + confirm. Money moves ONLY from here (review step),
+                calling the same run handler as desktop. */}
+            <div className="fixed inset-x-3 bottom-[calc(56px+env(safe-area-inset-bottom)+0.5rem)] z-40 rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.75)]">
+              <div className="mb-3 flex items-end justify-between">
+                <span className={OVERLINE}>Estimated total</span>
+                <span className="mono text-3xl font-light tracking-tight tabular-nums text-fg-default">
+                  {formatUsdc(reviewTotal)}
+                </span>
+              </div>
+              <Button className="min-h-11 w-full" size="lg" onClick={run} disabled={busy}>
+                {busy ? (
+                  'Signing…'
+                ) : (
+                  <>
+                    Confirm and pay <ArrowRight size={16} />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+/**
+ * Shown while contributors load, so the page never flashes the "No active
+ * contributors yet" empty state before the fetch resolves. Mirrors the form
+ * shape (reference + one payment line + total + action) to avoid layout jump.
+ */
+function PayrollSkeleton() {
+  const bar = 'animate-pulse rounded bg-surface-3';
+  return (
+    <Card className="space-y-6 p-6" aria-busy="true" aria-label="Loading contributors">
+      <div className="space-y-2">
+        <div className={`${bar} h-3 w-32`} />
+        <div className={`${bar} h-11 w-full rounded-lg`} />
+      </div>
+      <div className="space-y-2">
+        <div className={`${bar} h-3 w-28`} />
+        <div className="flex gap-2">
+          <div className={`${bar} h-11 flex-1 rounded-lg`} />
+          <div className={`${bar} h-11 w-28 rounded-lg`} />
+        </div>
+      </div>
+      <div className="flex items-center justify-between border-t border-border pt-4">
+        <div className={`${bar} h-3 w-24`} />
+        <div className={`${bar} h-6 w-28`} />
+      </div>
+      <div className={`${bar} h-11 w-full rounded-lg`} />
+    </Card>
   );
 }

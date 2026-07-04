@@ -22,12 +22,6 @@ export default async function CompanyLayout({ children }: { children: React.Reac
   }
   if (session && dbOk && !company) redirect('/onboarding');
   const companyName = company?.name ?? COMPANY.name;
-  const typeLabel: Record<string, string> = {
-    company: 'Web3 company',
-    dao: 'DAO',
-    treasury: 'Treasury',
-  };
-  const subtitle = company?.type ? typeLabel[company.type] ?? 'Workspace' : 'Company workspace';
 
   const nav = [
     { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
@@ -40,10 +34,11 @@ export default async function CompanyLayout({ children }: { children: React.Reac
   return (
     <AppShell
       title={companyName}
-      subtitle={subtitle}
+      subtitle="Verified Treasury"
       nav={nav}
       user={{ name: session?.name, role: session?.role }}
       actions={<TopbarActions canAudit />}
+      primaryAction={{ href: '/payroll', label: 'New Payment' }}
     >
       {children}
     </AppShell>

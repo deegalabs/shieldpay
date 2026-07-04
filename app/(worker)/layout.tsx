@@ -9,7 +9,7 @@ export default async function WorkerLayout({ children }: { children: React.React
   return (
     <AppShell
       title={session?.name || 'My account'}
-      subtitle="Worker portal"
+      subtitle="Contributor"
       nav={nav}
       user={{ name: session?.name, role: session?.role }}
       actions={<TopbarActions />}

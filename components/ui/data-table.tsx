@@ -200,6 +200,14 @@ export interface DataTableProps<T>
    * 20px glyph and one line of `fg-subtle` copy.
    */
   empty?: React.ReactNode;
+  /**
+   * Mobile presentation. A dense `<table>` is unreadable on a phone (cramped
+   * columns, a horizontal scroll people miss). When provided, the table renders
+   * only on md+ (`hidden md:block`) and each row becomes a stacked card below md
+   * (`md:hidden`). The renderer returns the card body; DataTable supplies the
+   * card chrome, the tap target (via `rowHref`/`onRowClick`) and the empty state.
+   */
+  mobileCard?: (row: T, index: number) => React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -215,11 +223,12 @@ export function DataTable<T>({
   indexRail,
   indexHeader = '#',
   empty,
+  mobileCard,
   className,
   ...props
 }: DataTableProps<T>) {
   const totalCols = columns.length + (indexRail ? 1 : 0);
-  return (
+  const table = (
     <Table caption={caption} className={className} {...props}>
       <TableHead>
         <tr>
@@ -287,5 +296,53 @@ export function DataTable<T>({
         )}
       </TableBody>
     </Table>
+  );
+
+  if (!mobileCard) return table;
+
+  // Cards below md, table on md+. The card carries the same tap target as the
+  // row (link or click) and the same selected rule; the empty state is shared.
+  return (
+    <>
+      <div className="hidden md:block">{table}</div>
+      {/* Below md: a stacked list of separated cards (gaps, not hairlines). The
+          DataTable owns the card chrome (surface, border, rounded, padding, the
+          top-edge highlight, and `relative` for pinned status); the mobileCard
+          renderer returns the card BODY only. */}
+      <ul className="flex flex-col gap-3 p-4 md:hidden">
+        {rows.length === 0 && empty != null ? (
+          <li className="rounded-lg border border-border bg-surface-2 px-4 py-10 text-center text-sm text-fg-subtle">
+            {empty}
+          </li>
+        ) : (
+          rows.map((row, ri) => {
+            const href = rowHref?.(row);
+            const isSelected = selected?.(row) ?? false;
+            const body = mobileCard(row, ri);
+            const base = cn(
+              'relative block rounded-lg border bg-surface-2 p-4 text-left top-edge transition-colors duration-150',
+              isSelected ? 'border-brand/40' : 'border-border',
+              (href || onRowClick) &&
+                'hover:border-border-strong hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50',
+            );
+            return (
+              <li key={rowKey(row, ri)}>
+                {href ? (
+                  <a href={href} className={base} aria-label={rowLabel?.(row)}>
+                    {body}
+                  </a>
+                ) : onRowClick ? (
+                  <button type="button" onClick={() => onRowClick(row)} className={cn(base, 'w-full')}>
+                    {body}
+                  </button>
+                ) : (
+                  <div className={base}>{body}</div>
+                )}
+              </li>
+            );
+          })
+        )}
+      </ul>
+    </>
   );
 }

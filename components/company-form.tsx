@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 export interface CompanyDefaults {
   name?: string;
@@ -73,16 +74,16 @@ export function CompanyForm({
 
       <div>
         <Label htmlFor="type">Type</Label>
-        <select
-          id="type"
-          className="input"
-          value={f.type}
-          onChange={(e) => setF({ ...f, type: e.target.value })}
-        >
-          <option value="company">Web3 company</option>
-          <option value="dao">DAO</option>
-          <option value="treasury">Treasury</option>
-        </select>
+        <Select value={f.type || undefined} onValueChange={(v) => setF({ ...f, type: v })}>
+          <SelectTrigger id="type">
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="company">Web3 company</SelectItem>
+            <SelectItem value="dao">DAO</SelectItem>
+            <SelectItem value="treasury">Treasury</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

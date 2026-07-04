@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { ArrowLeft, ArrowUpRight, ScrollText, ShieldCheck } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { ArrowUpRight } from 'lucide-react';
 import { getSession } from '@/lib/auth/server';
 import {
   getCompanyByOwner,
@@ -9,13 +9,14 @@ import {
 } from '@/lib/db/client';
 import { EXPLORER_BASE } from '@/lib/constants';
 import { truncateKey } from '@/lib/utils';
-import { Card } from '@/components/ui/card';
 import { ConnectionError } from '@/components/ui/connection-error';
+import { BackLink } from '@/components/ui/back-link';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { SealedChip } from '@/components/ui/sealed-chip';
 import { OnChainSeal } from '@/components/ui/on-chain-seal';
-import { ContractorForm } from '@/components/contractor-form';
+import { EditContractorSheet } from '@/components/edit-contractor-sheet';
 import { ContractorActions } from '@/components/contractor-actions';
+import { ContractorDetailTabs } from '@/components/contractor-detail-tabs';
 import { ProofOfIncomeCard } from '@/components/proof-of-income-card';
 
 export const dynamic = 'force-dynamic';
@@ -36,16 +37,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
   const company = session ? await getCompanyByOwner(session.sub) : null;
   const contractor = company ? await getContractor(params.id, company.id) : null;
 
-  if (!contractor) {
-    return (
-      <div className="mx-auto max-w-xl text-center">
-        <p className="font-medium text-fg-strong">Contributor not found</p>
-        <Link href="/contractors" className="mt-2 inline-block text-brand-text hover:underline">
-          Back to contributors
-        </Link>
-      </div>
-    );
-  }
+  if (!contractor) notFound();
 
   let payments: PaymentRow[] = [];
   let paymentsError = false;
@@ -128,12 +120,7 @@ export default async function ContractorDetail({ params }: { params: { id: strin
 
   return (
     <div className="mx-auto max-w-3xl space-y-10">
-      <Link
-        href="/contractors"
-        className="inline-flex items-center gap-1 text-sm text-fg-subtle hover:text-fg-default"
-      >
-        <ArrowLeft size={14} /> Back to contributors
-      </Link>
+      <BackLink href="/contractors" label="Contributors" />
 
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
         <div className="space-y-2">
@@ -145,81 +132,113 @@ export default async function ContractorDetail({ params }: { params: { id: strin
             <p className="mono break-all text-xs text-fg-faint">{contractor.stellar_address}</p>
           )}
         </div>
-        {contractor.anchored ? (
-          <OnChainSeal state="verified" size="md" label="Identity anchored" />
-        ) : (
-          <OnChainSeal state="computing" size="md" label="Not anchored" />
-        )}
-      </header>
-
-      {/* Agreed range: the sealed hero for the current allocation. */}
-      <div className="card-primary flex flex-wrap items-center justify-between gap-4">
-        <div aria-hidden className="ambient-wash pointer-events-none absolute inset-0" />
-        <div className="relative z-10 space-y-3">
-          <p className="overline">Agreed range</p>
-          <SealedChip range={range} size="md" />
-        </div>
-        <div className="relative z-10">
-          <ContractorActions id={contractor.id} anchored={contractor.anchored} />
-        </div>
-      </div>
-
-      {contractor.stellar_address && (
-        <section className="space-y-4">
-          <p className="overline flex items-center gap-2">
-            <ShieldCheck size={13} className="text-fg-faint" /> Proof of income
-          </p>
-          <ProofOfIncomeCard
-            workerAddress={contractor.stellar_address}
-            workerName={contractor.name}
-            defaultMinCents={contractor.range_min}
-            defaultMaxCents={contractor.range_max}
-          />
-        </section>
-      )}
-
-      <section className="space-y-4">
-        <div className="flex items-baseline gap-4">
-          <p className="overline flex items-center gap-2">
-            <ScrollText size={13} className="text-fg-faint" /> Payment history
-          </p>
-          <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
-        </div>
-        {paymentsError ? (
-          <ConnectionError
-            title="We cannot reach this contributor's payments right now."
-            message="Please try again in a moment."
-          />
-        ) : (
-          <Card className="overflow-hidden p-0">
-            <DataTable
-              columns={paymentColumns}
-              rows={payments}
-              rowKey={(p) => p.id}
-              indexRail
-              caption="Verified payments to this contributor."
-              empty="No payments to this contributor yet."
-            />
-          </Card>
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <p className="overline">Edit details</p>
-        <Card className="p-6">
-          <ContractorForm
-            contractorId={contractor.id}
+        <div className="flex flex-col items-end gap-3">
+          {contractor.anchored ? (
+            <OnChainSeal state="verified" size="md" label="Identity anchored" />
+          ) : (
+            <OnChainSeal state="computing" size="md" label="Not anchored" />
+          )}
+          <EditContractorSheet
+            contractorId={contractor.public_id}
             defaults={{
               name: contractor.name,
               stellar_address: contractor.stellar_address ?? '',
               minUsdc: contractor.range_min / 100,
               maxUsdc: contractor.range_max / 100,
             }}
-            submitLabel="Save changes"
-            redirectTo={`/contractors/${contractor.id}`}
+            redirectTo={`/contractors/${contractor.public_id}`}
           />
-        </Card>
-      </section>
+        </div>
+      </header>
+
+      <ContractorDetailTabs
+        details={
+          <div className="card-primary flex flex-wrap items-center justify-between gap-4">
+            <div aria-hidden className="ambient-wash pointer-events-none absolute inset-0" />
+            <div className="relative z-10 space-y-3">
+              <p className="overline">Agreed range</p>
+              <SealedChip range={range} size="md" />
+            </div>
+            <div className="relative z-10">
+              <ContractorActions id={contractor.public_id} anchored={contractor.anchored} />
+            </div>
+          </div>
+        }
+        proof={
+          contractor.stellar_address ? (
+            <ProofOfIncomeCard
+              workerAddress={contractor.stellar_address}
+              workerName={contractor.name}
+              defaultMinCents={contractor.range_min}
+              defaultMaxCents={contractor.range_max}
+            />
+          ) : null
+        }
+        payments={
+          paymentsError ? (
+            <ConnectionError
+              title="We cannot reach this contributor's payments right now."
+              message="Please try again in a moment."
+            />
+          ) : (
+            <div className="md:overflow-x-auto md:pb-2">
+              <DataTable
+                columns={paymentColumns}
+                rows={payments}
+                rowKey={(p) => p.id}
+                indexRail
+                caption="Verified payments to this contributor."
+                empty="No payments to this contributor yet."
+                mobileCard={(p) => (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-fg-strong">{p.reference}</div>
+                        <div className="mono mt-0.5 truncate text-[11px] text-fg-faint">
+                          {dateShort(p.created_at)}
+                        </div>
+                      </div>
+                      <OnChainSeal
+                        state={p.verified ? 'verified' : 'computing'}
+                        label={p.verified ? 'Verified' : 'Computing'}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                      <span className="overline text-fg-faint">Agreed range</span>
+                      <SealedChip range={{ minCents: p.range_min, maxCents: p.range_max }} />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="mono text-[11px] text-fg-faint">
+                        {p.verified && p.tx_hash
+                          ? `#${p.proof_id} | ${shortHash(p.tx_hash)}`
+                          : 'Generating…'}
+                      </span>
+                      <span className="flex gap-4">
+                        <a
+                          className="mono inline-flex items-center gap-1 text-xs text-fg-subtle hover:text-brand-text"
+                          href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Proof <ArrowUpRight size={13} />
+                        </a>
+                        <a
+                          className="mono text-xs text-fg-strong hover:text-brand-text"
+                          href={`/api/receipt?id=${p.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Receipt
+                        </a>
+                      </span>
+                    </div>
+                  </div>
+                )}
+              />
+            </div>
+          )
+        }
+      />
     </div>
   );
 }

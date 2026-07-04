@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import {
   Shield,
-  Menu,
   ArrowUpRight,
   ArrowDownLeft,
   Rocket,
@@ -131,13 +130,12 @@ export default function HomePage() {
             >
               Get Started
             </Link>
-            {/* Mobile hamburger */}
+            {/* Mobile: it only goes to login, so label it plainly. */}
             <Link
               href="/login"
-              aria-label="Open menu"
-              className="text-slate-400 transition-colors hover:text-indigo-300 md:hidden"
+              className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 font-mono text-mono-label uppercase tracking-wider text-slate-200 transition-colors hover:border-slate-600 hover:text-indigo-300 md:hidden"
             >
-              <Menu size={24} />
+              Sign In
             </Link>
           </div>
         </div>
@@ -291,17 +289,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-
-      {/* Sticky bottom CTA (mobile only) */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800/40 bg-slate-950/90 p-4 backdrop-blur-xl md:hidden">
-        <Link
-          href="/login"
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-indigo-300 font-body text-body-md font-medium text-indigo-950 transition-colors hover:bg-indigo-200"
-        >
-          <Rocket size={20} />
-          Get Started Securely
-        </Link>
-      </div>
     </div>
   );
 }

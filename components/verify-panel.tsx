@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ExternalLink, Search, KeyRound, Info } from 'lucide-react';
+import { ExternalLink, Search, KeyRound, Info, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -73,6 +73,8 @@ export function VerifyPanel() {
 
   return (
     <Card className="overflow-hidden p-0 shadow-edge">
+      {/* Desktop / tablet layout (md and up). Logic untouched. */}
+      <div className="hidden md:block">
       <div className="border-b border-border bg-surface-2 p-6 sm:p-8">
         <p className="overline text-brand-text">Independent verification</p>
         <h3 className="mt-3 font-headline text-2xl font-semibold tracking-tight text-fg-default">
@@ -175,7 +177,137 @@ export function VerifyPanel() {
         <Info size={13} className="mt-0.5 shrink-0" /> The exact amount stays private; only the proof
         that it falls within the agreed range is public.
       </p>
+      </div>
+
+      {/* Mobile layout (below md). Same state, same handler, same result object. */}
+      <div className="md:hidden">
+        <div className="border-b border-border bg-surface-2 p-5">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={16} className="shrink-0 text-brand-text" aria-hidden />
+            <p className="overline text-brand-text">Independent verification</p>
+          </div>
+          <h3 className="mt-2 font-headline text-xl font-semibold tracking-tight text-fg-default">
+            Verify Proof
+          </h3>
+          <p className="mt-2 text-sm text-fg-subtle">
+            Read a recorded payment proof straight from the Stellar network. No account, nothing to
+            install. Try proof <span className="figure text-fg-strong">0</span>.
+          </p>
+
+          <label htmlFor="proof-id-mobile" className="overline mt-5 block">
+            Proof reference
+          </label>
+          <div className="relative mt-2">
+            <KeyRound
+              size={16}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-faint"
+              aria-hidden
+            />
+            <Input
+              id="proof-id-mobile"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={proofId}
+              onChange={(e) => setProofId(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onVerify();
+              }}
+              aria-label="Proof id"
+              className="figure h-12 pl-11"
+            />
+          </div>
+          <Button
+            onClick={onVerify}
+            disabled={loading}
+            variant="primary"
+            className="mt-3 h-12 w-full"
+          >
+            <Search size={16} /> {loading ? 'Checking…' : 'Verify on Ledger'}
+          </Button>
+
+          {error && (
+            <p className="mt-4 text-sm text-danger-text" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+
+        {success && record && (
+          <div className="animate-reveal p-5" role="status" aria-live="polite">
+            <div className="flex items-center gap-3">
+              <OnChainSeal state="verified" size="md" />
+              <div>
+                <p className="overline text-verified-text">Verified on-chain</p>
+                <p className="text-sm text-fg-subtle">
+                  Settlement confirmed
+                  <span className="text-fg-faint">
+                    {' · ledger '}
+                    <span className="figure">{String(record.verified_at_ledger ?? '—')}</span>
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 overflow-hidden rounded-xl border border-border bg-surface top-edge">
+              <MobileRow label="Origin (recipient hash)">
+                <span className="hash font-medium text-fg-default">
+                  {truncate(record.worker_address_hash ?? '')}
+                </span>
+              </MobileRow>
+              <MobileRow label="Destination (settlement tx)">
+                {record.payment_tx_hash ? (
+                  <a
+                    href={`${EXPLORER_BASE}/tx/${record.payment_tx_hash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hash inline-flex items-center gap-1 font-medium text-brand-text hover:underline"
+                  >
+                    {truncate(record.payment_tx_hash)}{' '}
+                    <ExternalLink size={12} className="shrink-0" />
+                  </a>
+                ) : (
+                  <span className="hash text-fg-faint">—</span>
+                )}
+              </MobileRow>
+              <MobileRow label="Settled amount">
+                {range ? (
+                  <SealedChip range={range} size="md" className="self-start" />
+                ) : (
+                  <span className="hash text-fg-faint">—</span>
+                )}
+              </MobileRow>
+              <MobileRow label="Zero-knowledge proof">
+                <span className="hash break-all font-medium text-verified-text">
+                  VALID · #{proofId.trim()}
+                </span>
+              </MobileRow>
+            </div>
+          </div>
+        )}
+
+        {result && !success && (
+          <div className="p-5 text-sm text-fg-subtle">
+            No verified proof recorded at that id. Try{' '}
+            <span className="figure text-fg-strong">0</span> for a real on-chain record.
+          </div>
+        )}
+
+        <p className="flex items-start gap-2 border-t border-border bg-surface-2 px-5 py-4 text-xs text-fg-faint">
+          <Info size={13} className="mt-0.5 shrink-0" /> The exact amount stays private; only the
+          proof that it falls within the agreed range is public.
+        </p>
+      </div>
     </Card>
+  );
+}
+
+function MobileRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5 border-b border-border p-4 last:border-b-0">
+      <span className="overline">{label}</span>
+      {children}
+    </div>
   );
 }
 

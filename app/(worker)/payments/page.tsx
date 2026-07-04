@@ -124,7 +124,7 @@ export default async function WorkerPayments() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8">
       <header className="space-y-2">
         <p className="overline">Contributor portal</p>
         <h1 className="font-headline text-headline-lg-mobile tracking-tight text-fg-default md:text-headline-lg">
@@ -212,7 +212,7 @@ export default async function WorkerPayments() {
           <ConnectionError message="Your payments are safe on-chain. Please try again in a moment." />
         ) : (
           <>
-            <Card className="overflow-hidden">
+            <div className="md:overflow-x-auto md:pb-2">
               <DataTable
                 columns={columns}
                 rows={payments}
@@ -221,8 +221,53 @@ export default async function WorkerPayments() {
                 indexHeader="Idx"
                 caption="Your received payments and their on-chain proofs."
                 empty="No payments received yet."
+                mobileCard={(p) => (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-fg-default">{p.reference}</div>
+                        {p.payer_name && (
+                          <div className="mono mt-0.5 truncate text-[11px] text-fg-faint">
+                            {p.payer_name}
+                          </div>
+                        )}
+                      </div>
+                      <OnChainSeal state="verified" label="Received" />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                      <span className="overline text-fg-faint">Amount</span>
+                      <SealedChip range={{ minCents: p.range_min, maxCents: p.range_max }} />
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-1">
+                      <Button asChild variant="ghost" size="sm">
+                        <a href={`/api/receipt?id=${p.id}`} target="_blank" rel="noreferrer">
+                          <FileText size={13} /> Receipt
+                        </a>
+                      </Button>
+                      {p.settlement_tx_hash && (
+                        <Button asChild variant="ghost" size="sm">
+                          <a
+                            href={`${EXPLORER_BASE}/tx/${p.settlement_tx_hash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Settlement <ArrowUpRight size={13} />
+                          </a>
+                        </Button>
+                      )}
+                      <Button asChild variant="ghost" size="sm">
+                        <a href={`${EXPLORER_BASE}/tx/${p.tx_hash}`} target="_blank" rel="noreferrer">
+                          Proof <ArrowUpRight size={13} />
+                        </a>
+                      </Button>
+                    </div>
+                    <span className="sr-only">
+                      Within {usdRange(p.range_min, p.range_max)} USDC, verified on-chain.
+                    </span>
+                  </div>
+                )}
               />
-            </Card>
+            </div>
             {payments.length > 0 && (
               <p className="text-xs text-fg-subtle">
                 Tip: download each receipt PDF for your tax return. Every receipt can be

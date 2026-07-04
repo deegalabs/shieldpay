@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 export function ContractorActions({ id, anchored }: { id: string; anchored: boolean }) {
   const [busy, setBusy] = useState(false);
   const [isAnchored, setIsAnchored] = useState(anchored);
+  const confirm = useConfirm();
 
   async function anchor() {
     setBusy(true);
@@ -23,7 +25,14 @@ export function ContractorActions({ id, anchored }: { id: string; anchored: bool
   }
 
   async function remove() {
-    if (!confirm('Remove this contractor?')) return;
+    const ok = await confirm({
+      title: 'Remove contributor',
+      description:
+        'They will be removed from your workspace. Their past payments and on-chain proofs stay intact and verifiable.',
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/contractors/${id}`, { method: 'DELETE' });

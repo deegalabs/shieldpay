@@ -1,25 +1,65 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { Mail, KeyRound, Wallet, ShieldCheck, ArrowRight } from 'lucide-react';
+import {
+  usePrivy,
+  useLoginWithEmail,
+  useLoginWithOAuth,
+  useLoginWithPasskey,
+  useConnectWallet,
+} from '@privy-io/react-auth';
+import { Mail, KeyRound, Wallet, ShieldCheck, Lock, Fingerprint, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BrandMark } from '@/components/ui/brand-mark';
 
 type Role = 'company' | 'worker';
 
+// Intent survives an OAuth redirect (Google leaves and returns to this page), so
+// the Privy -> session bridge below still knows the return was intentful.
+const INTENT_KEY = 'shieldpay:login-intent';
+
 export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
-  const { ready, authenticated, getAccessToken, login } = usePrivy();
+  const { ready, authenticated, getAccessToken } = usePrivy();
+  // Each method now drives its own Privy flow directly in our card instead of
+  // opening the generic Privy modal: email is an inline one-time-code step,
+  // Google is a headless OAuth redirect, passkey and wallet are direct prompts.
+  const { sendCode, loginWithCode } = useLoginWithEmail();
+  const { initOAuth } = useLoginWithOAuth();
+  const { loginWithPasskey } = useLoginWithPasskey();
+  const { connectWallet } = useConnectWallet();
+
   // The Privy sign-in bridges into a company session by default. Contributors
   // arrive through an invite link and auditors through a time-boxed access link,
   // so this screen self-serves the company path (the demo row below covers the
   // other roles). The bridge mechanism itself is unchanged.
   const [role] = useState<Role>('company');
   const [email, setEmail] = useState('');
-  const [intent, setIntent] = useState(false);
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [intent, setIntentState] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+
+  // Consume any intent persisted before an OAuth redirect. Reading it once (and
+  // clearing it) keeps a cancelled flow from lingering across future visits.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem(INTENT_KEY) === '1') {
+      setIntentState(true);
+      sessionStorage.removeItem(INTENT_KEY);
+    }
+  }, []);
+
+  function markIntent() {
+    if (typeof window !== 'undefined') sessionStorage.setItem(INTENT_KEY, '1');
+    setIntentState(true);
+  }
+
+  function clearIntent() {
+    if (typeof window !== 'undefined') sessionStorage.removeItem(INTENT_KEY);
+    setIntentState(false);
+  }
 
   function nextDest(r: string) {
     const p = new URLSearchParams(window.location.search);
@@ -42,23 +82,115 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'login failed');
+        clearIntent();
         window.location.href = nextDest(data.role);
       } catch (e) {
         setError(String(e instanceof Error ? e.message : e));
         setBusy(null);
-        setIntent(false);
+        clearIntent();
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intent, authenticated]);
 
-  // Email, Google, passkey and wallet all open the same Privy flow (the modal
-  // offers each method); wallet connect runs through Privy too.
-  function startPrivy() {
+  const errMsg = (e: unknown) => String(e instanceof Error ? e.message : e);
+
+  // Email, step 1: send the one-time code to the address in the card.
+  async function handleEmailSend() {
     setError(null);
     setNote(null);
-    setIntent(true);
-    if (!authenticated) login();
+    if (authenticated) {
+      markIntent();
+      return;
+    }
+    if (!email.trim()) {
+      setError('Enter your email address.');
+      return;
+    }
+    setBusy('email-send');
+    try {
+      await sendCode({ email: email.trim() });
+      setCodeSent(true);
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Email, step 2: verify the code. On success Privy flips `authenticated` and
+  // the bridge effect above takes over.
+  async function handleEmailVerify() {
+    setError(null);
+    if (!code.trim()) {
+      setError('Enter the code we emailed you.');
+      return;
+    }
+    setBusy('email-verify');
+    markIntent();
+    try {
+      await loginWithCode({ code: code.trim() });
+    } catch (e) {
+      setError(errMsg(e));
+      clearIntent();
+      setBusy(null);
+    }
+  }
+
+  function resetEmail() {
+    setCodeSent(false);
+    setCode('');
+    setError(null);
+  }
+
+  async function handleGoogle() {
+    setError(null);
+    setNote(null);
+    if (authenticated) {
+      markIntent();
+      return;
+    }
+    setBusy('google');
+    markIntent();
+    try {
+      // Full-page redirect; on return the persisted intent replays the bridge.
+      await initOAuth({ provider: 'google' });
+    } catch (e) {
+      setError(errMsg(e));
+      clearIntent();
+      setBusy(null);
+    }
+  }
+
+  async function handlePasskey() {
+    setError(null);
+    setNote(null);
+    if (authenticated) {
+      markIntent();
+      return;
+    }
+    setBusy('passkey');
+    markIntent();
+    try {
+      await loginWithPasskey();
+    } catch (e) {
+      setError(errMsg(e));
+      clearIntent();
+      setBusy(null);
+    }
+  }
+
+  function handleWallet() {
+    setError(null);
+    setNote(null);
+    if (authenticated) {
+      markIntent();
+      return;
+    }
+    markIntent();
+    // Opens Privy's wallet connector; the signature authenticates and the
+    // bridge effect fires once `authenticated` is true.
+    connectWallet();
   }
 
   async function demo(r: Role) {
@@ -82,6 +214,7 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
   const headline = mode === 'signup' ? 'Create your account' : 'Sign in to ShieldPay';
   const emailCta = mode === 'signup' ? 'Get started with email' : 'Continue with email';
   const disabled = !ready || !!busy;
+  const signingIn = busy === 'bridge';
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
@@ -96,7 +229,9 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
       />
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Glass panel with a bright 1px top edge. */}
+        {/* ---------------------------------------------------------------- */}
+        {/* Login card (one responsive layout for mobile and desktop)         */}
+        {/* ---------------------------------------------------------------- */}
         <div className="flex flex-col gap-8 rounded-xl border border-white/5 border-t-white/15 bg-surface-3/40 p-6 backdrop-blur-[24px] sm:p-8 md:p-10">
           {/* Header */}
           <div className="flex flex-col items-center gap-6">
@@ -116,33 +251,78 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
             </div>
           </div>
 
-          {/* Email + primary action */}
+          {/* Email + primary action (inline one-time-code step) */}
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="email"
-                className="pl-1 font-mono text-mono-label uppercase tracking-widest text-fg-subtle"
-              >
-                Email Address
-              </label>
-              <div className="flex h-12 items-center rounded-lg border border-border bg-surface-3 px-4 transition-colors focus-within:border-brand">
-                <Mail size={18} className="mr-3 shrink-0 text-fg-subtle" />
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  className="w-full border-none bg-transparent font-mono text-mono-data text-fg-default outline-none placeholder:text-fg-faint focus:ring-0"
-                />
-              </div>
-            </div>
+            {!codeSent ? (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="email"
+                    className="pl-1 font-mono text-mono-label uppercase tracking-widest text-fg-subtle"
+                  >
+                    Email Address
+                  </label>
+                  <div className="flex h-12 items-center rounded-lg border border-border bg-surface-3 px-4 transition-colors focus-within:border-brand">
+                    <Mail size={18} className="mr-3 shrink-0 text-fg-subtle" />
+                    <input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      className="w-full border-none bg-transparent font-mono text-mono-data text-fg-default outline-none placeholder:text-fg-faint focus:ring-0"
+                    />
+                  </div>
+                </div>
 
-            <Button size="lg" className="w-full" disabled={disabled} onClick={startPrivy}>
-              {busy === 'bridge' ? 'Signing in…' : emailCta}
-              {busy !== 'bridge' && <ArrowRight size={16} />}
-            </Button>
+                <Button size="lg" className="w-full" disabled={disabled} onClick={handleEmailSend}>
+                  {busy === 'email-send' ? 'Sending code…' : signingIn ? 'Signing in…' : emailCta}
+                  {busy !== 'email-send' && !signingIn && <ArrowRight size={16} />}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="code"
+                    className="pl-1 font-mono text-mono-label uppercase tracking-widest text-fg-subtle"
+                  >
+                    Enter the code sent to {email}
+                  </label>
+                  <div className="flex h-12 items-center rounded-lg border border-border bg-surface-3 px-4 transition-colors focus-within:border-brand">
+                    <KeyRound size={18} className="mr-3 shrink-0 text-fg-subtle" />
+                    <input
+                      id="code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder="123456"
+                      className="w-full border-none bg-transparent font-mono text-mono-data tracking-[0.3em] text-fg-default outline-none placeholder:text-fg-faint focus:ring-0"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  size="lg"
+                  className="w-full"
+                  disabled={disabled}
+                  onClick={handleEmailVerify}
+                >
+                  {busy === 'email-verify' || signingIn ? 'Verifying…' : 'Verify and continue'}
+                  {busy !== 'email-verify' && !signingIn && <ArrowRight size={16} />}
+                </Button>
+                <button
+                  type="button"
+                  onClick={resetEmail}
+                  disabled={!!busy}
+                  className="font-mono text-mono-label uppercase tracking-widest text-fg-subtle transition-colors hover:text-brand-text disabled:opacity-50"
+                >
+                  Use a different email
+                </button>
+              </>
+            )}
           </div>
 
           {error && (
@@ -158,33 +338,33 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
             <span className="h-px flex-1 bg-border" />
           </div>
 
-          {/* Alternative auth methods (all via the existing Privy flow) */}
+          {/* Alternative auth methods, each wired to its own Privy flow */}
           <div className="flex flex-col gap-3">
             <Button
               variant="ghost"
               size="lg"
               disabled={disabled}
-              onClick={startPrivy}
+              onClick={handleGoogle}
               className="w-full gap-3 bg-surface-3 font-body text-fg-default hover:bg-surface-overlay"
             >
               <GoogleIcon />
-              Continue with Google
+              {busy === 'google' ? 'Opening Google…' : 'Continue with Google'}
             </Button>
             <Button
               variant="ghost"
               size="lg"
               disabled={disabled}
-              onClick={startPrivy}
+              onClick={handlePasskey}
               className="w-full gap-3 bg-surface-3 font-body text-fg-default hover:bg-surface-overlay"
             >
               <KeyRound size={18} className="text-brand-text" />
-              Sign in with a passkey
+              {busy === 'passkey' ? 'Waiting for passkey…' : 'Sign in with a passkey'}
             </Button>
             <Button
               variant="ghost"
               size="lg"
               disabled={disabled}
-              onClick={startPrivy}
+              onClick={handleWallet}
               className="w-full gap-3 bg-surface-3 font-body text-fg-default hover:bg-surface-overlay"
             >
               <Wallet size={18} className="text-verified-text" />
@@ -201,42 +381,14 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
               </span>
             </div>
 
-            <div className="flex items-center gap-4 font-mono text-mono-label uppercase tracking-widest text-fg-subtle">
-              <button
-                type="button"
-                disabled={!!busy}
-                onClick={() => demo('company')}
-                className="transition-colors hover:text-brand-text disabled:opacity-50"
-              >
-                Company
-              </button>
-              <span className="text-border">•</span>
-              <button
-                type="button"
-                disabled={!!busy}
-                onClick={() => demo('worker')}
-                className="transition-colors hover:text-brand-text disabled:opacity-50"
-              >
-                Contributor
-              </button>
-              <span className="text-border">•</span>
-              <button
-                type="button"
-                disabled={!!busy}
-                onClick={() =>
-                  setNote('Auditors receive a time-boxed access link from a company.')
-                }
-                className="transition-colors hover:text-brand-text disabled:opacity-50"
-              >
-                Auditor
-              </button>
-            </div>
+            <DemoRow busy={busy} onDemo={demo} onAuditor={setNote} />
 
             {note && (
               <p className="max-w-[280px] text-center font-body text-xs text-fg-subtle">{note}</p>
             )}
           </div>
         </div>
+
 
         {/* Quiet cross-navigation between the two entry routes. */}
         <p className="mt-6 text-center text-sm text-fg-subtle">
@@ -257,6 +409,48 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
           )}
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Company / Contributor demo entries plus the honest auditor note. */
+function DemoRow({
+  busy,
+  onDemo,
+  onAuditor,
+}: {
+  busy: string | null;
+  onDemo: (r: Role) => void;
+  onAuditor: (n: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-4 font-mono text-mono-label uppercase tracking-widest text-fg-subtle">
+      <button
+        type="button"
+        disabled={!!busy}
+        onClick={() => onDemo('company')}
+        className="transition-colors hover:text-brand-text disabled:opacity-50"
+      >
+        Company
+      </button>
+      <span className="text-border">•</span>
+      <button
+        type="button"
+        disabled={!!busy}
+        onClick={() => onDemo('worker')}
+        className="transition-colors hover:text-brand-text disabled:opacity-50"
+      >
+        Contributor
+      </button>
+      <span className="text-border">•</span>
+      <button
+        type="button"
+        disabled={!!busy}
+        onClick={() => onAuditor('Auditors receive a time-boxed access link from a company.')}
+        className="transition-colors hover:text-brand-text disabled:opacity-50"
+      >
+        Auditor
+      </button>
     </div>
   );
 }

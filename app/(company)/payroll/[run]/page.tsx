@@ -1,5 +1,6 @@
-import Link from 'next/link';
-import { ShieldCheck, ArrowUpRight, Lock, ArrowLeft } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { ShieldCheck, ArrowUpRight, Lock } from 'lucide-react';
+import { BackLink } from '@/components/ui/back-link';
 import { getSession } from '@/lib/auth/server';
 import {
   getCompanyByOwner,
@@ -33,16 +34,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
   const company = session ? await getCompanyByOwner(session.sub) : null;
   const run = company ? await getPayrollRun(params.run, company.id) : null;
 
-  if (!run) {
-    return (
-      <div className="mx-auto max-w-xl text-center">
-        <p className="font-medium text-fg-strong">Run not found</p>
-        <Link href="/payroll" className="mt-2 inline-block text-brand-text hover:underline">
-          Back to payroll
-        </Link>
-      </div>
-    );
-  }
+  if (!run) notFound();
 
   let payments: PaymentRow[] = [];
   let readFailed = false;
@@ -122,12 +114,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 text-sm text-fg-subtle hover:text-fg-default"
-      >
-        <ArrowLeft size={14} /> Dashboard
-      </Link>
+      <BackLink href="/dashboard" label="Dashboard" />
 
       {/* Run header: reference + settled seal + the total as the lead figure. */}
       <Card className="relative overflow-hidden p-6">
@@ -225,7 +212,7 @@ export default async function PayrollRunPage({ params }: { params: { run: string
         {readFailed ? (
           <ConnectionError message="The run is safe. We just could not load its payment lines right now. Please refresh in a moment." />
         ) : (
-          <Card className="overflow-hidden p-0">
+          <div className="md:overflow-x-auto md:pb-2">
             <DataTable
               columns={columns}
               rows={payments}
@@ -233,8 +220,58 @@ export default async function PayrollRunPage({ params }: { params: { run: string
               indexRail
               caption="Every payment in this run, each amount verified and kept private."
               empty="No payment lines recorded for this run yet."
+              mobileCard={(p) => (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-fg-strong">{p.worker_name}</div>
+                      <div className="mono mt-0.5 truncate text-[11px] text-fg-faint">
+                        {shortAddr(p.worker_address)}
+                      </div>
+                    </div>
+                    <OnChainSeal
+                      state={p.verified ? 'verified' : 'computing'}
+                      label={p.verified ? 'Verified' : 'Computing'}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                    <span className="overline text-fg-faint">Agreed range</span>
+                    <SealedChip range={{ minCents: p.range_min, maxCents: p.range_max }} />
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <a
+                      className="proof-id inline-flex items-center gap-1.5 text-xs text-fg-subtle transition-colors hover:text-brand-text"
+                      href={`${EXPLORER_BASE}/tx/${p.tx_hash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      #{p.proof_id} <span className="text-fg-faint">|</span> {shortHash(p.tx_hash)}
+                    </a>
+                    <span className="flex items-center gap-4 text-sm">
+                      {p.settlement_tx_hash && (
+                        <a
+                          className="inline-flex items-center gap-1 text-brand-text hover:underline"
+                          href={`${EXPLORER_BASE}/tx/${p.settlement_tx_hash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Settlement <ArrowUpRight size={13} />
+                        </a>
+                      )}
+                      <a
+                        className="text-fg-strong hover:underline"
+                        href={`/api/receipt?id=${p.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Receipt
+                      </a>
+                    </span>
+                  </div>
+                </div>
+              )}
             />
-          </Card>
+          </div>
         )}
       </section>
     </div>

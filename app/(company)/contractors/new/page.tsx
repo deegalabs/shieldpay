@@ -1,8 +1,13 @@
-import Link from 'next/link';
-import { ArrowLeft, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { BackLink } from '@/components/ui/back-link';
 import { SealedChip } from '@/components/ui/sealed-chip';
 import { InviteForm } from '@/components/invite-form';
+
+// The InviteForm renders both a desktop layout (md+, inside its own Card) and a
+// distinct mobile layout (below md, the approved Stitch print) from a single
+// shared form instance. This page provides the desktop-only page chrome
+// (back link, header, explainer aside) and hides it below md.
 
 export const dynamic = 'force-dynamic';
 
@@ -24,18 +29,13 @@ function Step({ label, active }: { label: string; active?: boolean }) {
 
 export default function NewContractorPage() {
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <Link
-        href="/contractors"
-        className="inline-flex items-center gap-1 text-sm text-fg-subtle hover:text-fg-default"
-      >
-        <ArrowLeft size={14} /> Back to contributors
-      </Link>
+    <div className="mx-auto flex max-w-6xl flex-col gap-8">
+      <BackLink href="/contractors" label="Contributors" />
 
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-        {/* Form column */}
-        <div className="space-y-8 lg:col-span-7">
-          <header className="space-y-3">
+        {/* Form column: header is desktop-only; the form carries its own mobile heading. */}
+        <div className="flex flex-col gap-8 lg:col-span-7">
+          <header className="hidden space-y-3 md:block">
             <p className="overline">New recipient</p>
             <h1 className="font-headline text-headline-lg-mobile tracking-tight text-fg-default md:text-headline-lg">
               Invite a contributor
@@ -45,13 +45,11 @@ export default function NewContractorPage() {
               confirm their identity. You never handle their keys.
             </p>
           </header>
-          <Card className="p-6">
-            <InviteForm />
-          </Card>
+          <InviteForm />
         </div>
 
-        {/* Explainer column */}
-        <aside className="lg:col-span-5">
+        {/* Explainer column: desktop-only. */}
+        <aside className="hidden md:block lg:col-span-5">
           <Card className="top-edge space-y-8 p-6 lg:sticky lg:top-8">
             <div className="space-y-3">
               <p className="overline text-brand-text">Privacy by default</p>

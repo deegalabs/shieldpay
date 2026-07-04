@@ -161,29 +161,36 @@ export function ProofExplorerTable({
 
   return (
     <div className="space-y-8">
-      <div className="relative max-w-3xl">
-        <Search
-          size={18}
-          strokeWidth={1.75}
-          aria-hidden
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-fg-faint"
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search a proof id, tx hash, or recipient"
-          aria-label="Search a proof id, tx hash, or recipient"
-          className={cn(
-            'mono w-full rounded-lg border border-border bg-surface-2 py-3.5 pl-12 pr-4 text-sm text-fg-default',
-            'placeholder:text-fg-faint focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand',
-            'top-edge transition-colors',
-          )}
-        />
+      {/* On mobile the search pins below the app bar so it stays reachable while
+          the proof cards scroll under it; on md+ it is a normal inline field. */}
+      <div className="sticky top-0 z-20 -mx-6 bg-slate-950/95 px-6 py-3 backdrop-blur-md md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+        <div className="relative max-w-3xl">
+          <Search
+            size={18}
+            strokeWidth={1.75}
+            aria-hidden
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-fg-faint"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search a proof id, tx hash, or recipient"
+            aria-label="Search a proof id, tx hash, or recipient"
+            className={cn(
+              'mono w-full rounded-lg border border-border bg-surface-2 py-3.5 pl-12 pr-4 text-sm text-fg-default',
+              'placeholder:text-fg-faint focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand',
+              'top-edge transition-colors',
+            )}
+          />
+        </div>
       </div>
 
-      <div className="overflow-x-auto pb-2">
-        <div className="min-w-[820px]">
+      {/* On md+ the ledger scrolls inside its 820px min-width. Below md the min
+          width is dropped so the stacked proof cards flow full-bleed with no
+          horizontal scroll (the phone-cramped table was the problem we fix). */}
+      <div className="md:overflow-x-auto md:pb-2">
+        <div className="md:min-w-[820px]">
           <DataTable
             columns={columns}
             rows={filtered}
@@ -196,6 +203,56 @@ export function ProofExplorerTable({
                 ? 'No proofs match your search.'
                 : 'No proofs recorded yet.'
             }
+            mobileCard={(r) => (
+              // Body only: the DataTable supplies the card chrome (surface,
+              // border, rounded, padding, top-edge) and `relative`.
+              <div className="flex flex-col gap-3">
+                {/* Seal pinned top-right of the DataTable card. */}
+                <span className="absolute right-4 top-4">
+                  <OnChainSeal state={r.verified ? 'verified' : 'computing'} size="md" />
+                </span>
+
+                {/* ID row: mono proof id in indigo, padded clear of the seal. */}
+                <div className="flex items-center gap-2 pr-12">
+                  <span className="overline text-fg-subtle">ID</span>
+                  <span className="proof-id text-brand-text" title={r.proofIdFull}>
+                    {r.proofIdShort}
+                  </span>
+                </div>
+
+                {/* TYPE row: the proof kind, indigo mono. */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="overline text-fg-subtle">Type</span>
+                  <span className="mono text-sm text-brand-text">{r.type}</span>
+                </div>
+
+                {/* RANGE row: same three states as the desktop column so no data
+                    is lost. Sealed range, computing pill, or disclosed total. */}
+                <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+                  <span className="overline text-fg-subtle">Range</span>
+                  {!r.verified ? (
+                    <ComputingChip />
+                  ) : r.range ? (
+                    <SealedChip range={r.range} size="md" />
+                  ) : (
+                    <span className="mono text-sm text-fg-strong">{r.disclosedLabel}</span>
+                  )}
+                </div>
+
+                {/* Tap to open the proof's settlement tx on the public explorer
+                    (the mobile equivalent of the desktop LEDGER TX column). */}
+                {r.txHash && (
+                  <a
+                    href={`${explorerBase}/tx/${r.txHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mono inline-flex items-center gap-1.5 self-start border-t border-border pt-3 text-xs text-brand-text transition-colors hover:text-brand"
+                  >
+                    View on-chain <ArrowUpRight size={13} />
+                  </a>
+                )}
+              </div>
+            )}
           />
         </div>
       </div>

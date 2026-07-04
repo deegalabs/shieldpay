@@ -1,15 +1,17 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 
 /**
  * App providers. Wraps the tree in Privy for professional, seedless auth
- * (email / Google / passkey). If the app id is missing, render children
- * untouched so the app still builds/runs without Privy configured.
+ * (email / Google / passkey) and the app-wide confirmation modal. If the app id
+ * is missing, render children (still with ConfirmProvider) so the app runs
+ * without Privy configured.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-  if (!appId) return <>{children}</>;
+  if (!appId) return <ConfirmProvider>{children}</ConfirmProvider>;
 
   return (
     <PrivyProvider
@@ -23,7 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         loginMethods: ['email', 'google', 'passkey'],
       }}
     >
-      {children}
+      <ConfirmProvider>{children}</ConfirmProvider>
     </PrivyProvider>
   );
 }

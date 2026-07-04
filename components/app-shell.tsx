@@ -19,8 +19,11 @@ export interface NavItem {
  */
 export function AppShell({
   title,
+  subtitle,
   nav,
+  user,
   actions,
+  primaryAction,
   children,
 }: {
   title: string;
@@ -28,11 +31,21 @@ export function AppShell({
   nav: NavItem[];
   user?: { name?: string; role?: string };
   actions?: React.ReactNode;
+  /** Optional primary CTA in the sidebar header (e.g. "New Payment"). Omit for
+      read-only portals like the worker view. */
+  primaryAction?: { href: string; label: string };
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-slate-900 text-slate-300">
-      <AppSidebar title={title} nav={nav} actions={actions} />
+      <AppSidebar
+        title={title}
+        subtitle={subtitle}
+        nav={nav}
+        user={user}
+        actions={actions}
+        primaryAction={primaryAction}
+      />
       {/* Main Canvas */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950 relative">
         {/* Noise texture overlay */}
@@ -43,7 +56,7 @@ export function AppShell({
               "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')",
           }}
         ></div>
-        <div className="flex-1 overflow-y-auto px-6 py-8 md:px-12 md:py-12 relative z-10 max-w-[1920px] mx-auto w-full flex flex-col gap-12">
+        <div className="flex-1 overflow-y-auto px-6 py-8 pb-28 md:px-12 md:py-12 relative z-10 max-w-[1920px] mx-auto w-full flex flex-col gap-12">
           {children}
         </div>
       </main>
