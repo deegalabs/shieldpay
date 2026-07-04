@@ -374,10 +374,10 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
 
           {/* Trust note + role row */}
           <div className="mt-2 flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-lowest px-4 py-2">
-              <ShieldCheck size={14} className="text-verified-text" />
-              <span className="font-mono text-mono-label text-fg-subtle">
-                No seed phrases. Your key controls your funds.
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-lowest px-3 py-2">
+              <ShieldCheck size={14} className="shrink-0 text-verified-text" />
+              <span className="whitespace-nowrap font-mono text-mono-label text-fg-subtle">
+                No seed phrases. Your key, your funds.
               </span>
             </div>
 
