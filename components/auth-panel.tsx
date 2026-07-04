@@ -373,9 +373,11 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
 
           {/* Trust note + role row */}
           <div className="mt-2 flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-lowest px-3 py-2">
+            {/* Fits one line where there is room; on a narrow phone it wraps
+                inside the card instead of overflowing past its edges. */}
+            <div className="flex max-w-full items-center gap-2 rounded-2xl border border-border bg-surface-lowest px-3 py-2">
               <ShieldCheck size={14} className="shrink-0 text-verified-text" />
-              <span className="whitespace-nowrap font-mono text-mono-label text-fg-subtle">
+              <span className="min-w-0 text-center font-mono text-[10px] uppercase tracking-widest text-fg-subtle">
                 No seed phrases. Your key, your funds.
               </span>
             </div>
