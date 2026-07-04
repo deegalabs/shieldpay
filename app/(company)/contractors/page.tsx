@@ -110,7 +110,9 @@ export default async function ContractorsPage() {
 
   return (
     <div className="space-y-10">
-      <header className="flex flex-col gap-6 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
+      {/* On mobile the header (title, counts, invite) pins to the top so the
+          contributor cards scroll under it; on md+ it is a normal header row. */}
+      <header className="sticky top-0 z-20 -mx-6 flex flex-col gap-4 border-b border-border bg-slate-950 px-6 pb-4 pt-6 md:static md:mx-0 md:flex-row md:items-end md:justify-between md:gap-6 md:bg-transparent md:px-0 md:pb-6 md:pt-0">
         <div className="space-y-3">
           <p className="overline">Recipients</p>
           <h1 className="font-headline text-headline-lg-mobile tracking-tight text-fg-default md:text-headline-lg">
@@ -129,13 +131,13 @@ export default async function ContractorsPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:hidden">
-            <div className="rounded-lg border border-border bg-surface-2 p-4 top-edge">
-              <div className="overline mb-2">Total recipients</div>
-              <div className="figure text-3xl text-fg-default">{contractors.length}</div>
+            <div className="rounded-lg border border-border bg-surface-2 p-3 top-edge">
+              <div className="overline mb-1.5">Total recipients</div>
+              <div className="figure text-2xl text-fg-default">{contractors.length}</div>
             </div>
-            <div className="rounded-lg border border-border bg-surface-2 p-4 top-edge">
-              <div className="overline mb-2">Anchored</div>
-              <div className="figure text-3xl text-verified-text">{anchored}</div>
+            <div className="rounded-lg border border-border bg-surface-2 p-3 top-edge">
+              <div className="overline mb-1.5">Anchored</div>
+              <div className="figure text-2xl text-verified-text">{anchored}</div>
             </div>
           </div>
         </div>

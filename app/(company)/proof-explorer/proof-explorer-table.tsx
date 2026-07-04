@@ -205,30 +205,29 @@ export function ProofExplorerTable({
             }
             mobileCard={(r) => (
               // Body only: the DataTable supplies the card chrome (surface,
-              // border, rounded, padding, top-edge) and `relative`.
+              // border, rounded, padding, top-edge).
               <div className="flex flex-col gap-3">
-                {/* Seal pinned top-right of the DataTable card. */}
-                <span className="absolute right-4 top-4">
-                  <OnChainSeal state={r.verified ? 'verified' : 'computing'} size="md" />
-                </span>
-
-                {/* ID row: mono proof id in indigo, padded clear of the seal. */}
-                <div className="flex items-center gap-2 pr-12">
-                  <span className="overline text-fg-subtle">ID</span>
-                  <span className="proof-id text-brand-text" title={r.proofIdFull}>
-                    {r.proofIdShort}
-                  </span>
+                {/* Header: the proof id leads, the on-chain seal sits beside it. */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="overline text-fg-subtle">Proof</span>
+                    <div className="proof-id mt-1 truncate text-brand-text" title={r.proofIdFull}>
+                      {r.proofIdShort}
+                    </div>
+                  </div>
+                  <OnChainSeal
+                    state={r.verified ? 'verified' : 'computing'}
+                    size="md"
+                    className="shrink-0"
+                  />
                 </div>
 
-                {/* TYPE row: the proof kind, indigo mono. */}
-                <div className="flex items-center justify-between gap-3">
-                  <span className="overline text-fg-subtle">Type</span>
-                  <span className="mono text-sm text-brand-text">{r.type}</span>
-                </div>
-
-                {/* RANGE row: same three states as the desktop column so no data
-                    is lost. Sealed range, computing pill, or disclosed total. */}
+                {/* Type + range: label left, value right, quiet hairlines. */}
                 <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+                  <span className="overline text-fg-subtle">Type</span>
+                  <span className="mono text-sm text-fg-strong">{r.type}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
                   <span className="overline text-fg-subtle">Range</span>
                   {!r.verified ? (
                     <ComputingChip />
@@ -239,8 +238,7 @@ export function ProofExplorerTable({
                   )}
                 </div>
 
-                {/* Tap to open the proof's settlement tx on the public explorer
-                    (the mobile equivalent of the desktop LEDGER TX column). */}
+                {/* Tap to open the proof's settlement tx on the public explorer. */}
                 {r.txHash && (
                   <a
                     href={`${explorerBase}/tx/${r.txHash}`}
