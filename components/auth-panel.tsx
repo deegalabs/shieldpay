@@ -261,7 +261,7 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
                   >
                     Email Address
                   </label>
-                  <div className="flex h-12 items-center rounded-lg border border-border bg-surface-3 px-4 transition-colors focus-within:border-brand">
+                  <div className="flex h-12 items-center rounded-lg border border-border bg-surface-base/60 px-4 transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/25">
                     <Mail size={18} className="mr-3 shrink-0 text-fg-subtle" />
                     <input
                       id="email"
@@ -289,7 +289,7 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
                   >
                     Enter the code sent to {email}
                   </label>
-                  <div className="flex h-12 items-center rounded-lg border border-border bg-surface-3 px-4 transition-colors focus-within:border-brand">
+                  <div className="flex h-12 items-center rounded-lg border border-border bg-surface-base/60 px-4 transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/25">
                     <KeyRound size={18} className="mr-3 shrink-0 text-fg-subtle" />
                     <input
                       id="code"
