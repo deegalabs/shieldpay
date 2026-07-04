@@ -97,7 +97,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ ok: true, runId: run.id, reference, lines: prepared });
+    // runId is the numeric internal id: /record uses it to set payments.run_id and
+    // to finalize the run. runPublicId is the opaque id for the /payroll/[run] URL.
+    return NextResponse.json({ ok: true, runId: run.id, runPublicId: run.public_id, reference, lines: prepared });
   } catch (e) {
     console.error('payroll prepare failed', e);
     return NextResponse.json({ error: 'payroll prepare failed' }, { status: 500 });

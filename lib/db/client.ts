@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { nanoid } from 'nanoid';
 import { Pool } from 'pg';
 import { SCHEMA_SQL } from './schema';
 import { encryptAtRest, decryptAtRest } from '@/lib/crypto/at-rest';
@@ -98,6 +99,7 @@ export async function insertPayment(
 // ── Payroll runs (N3) ──────────────────────────────────────────────────
 export interface PayrollRunRow {
   id: string;
+  public_id: string;
   company_id: string;
   reference: string;
   total_cents: string; // bigint as string
@@ -123,9 +125,10 @@ export async function setPayrollProof(
 
 export async function createPayrollRun(companyId: string, reference: string): Promise<PayrollRunRow> {
   await ensureSchema();
+  const publicId = 'run_' + nanoid();
   const { rows } = await getPool().query<PayrollRunRow>(
-    `INSERT INTO payroll_runs (company_id, reference) VALUES ($1,$2) RETURNING *`,
-    [companyId, reference],
+    `INSERT INTO payroll_runs (company_id, reference, public_id) VALUES ($1,$2,$3) RETURNING *`,
+    [companyId, reference, publicId],
   );
   return rows[0]!;
 }
@@ -142,11 +145,11 @@ export async function finalizePayrollRun(
   );
 }
 
-export async function getPayrollRun(id: string, companyId: string): Promise<PayrollRunRow | null> {
+export async function getPayrollRun(publicId: string, companyId: string): Promise<PayrollRunRow | null> {
   await ensureSchema();
   const { rows } = await getPool().query<PayrollRunRow>(
-    `SELECT * FROM payroll_runs WHERE id = $1 AND company_id = $2`,
-    [id, companyId],
+    `SELECT * FROM payroll_runs WHERE public_id = $1 AND company_id = $2`,
+    [publicId, companyId],
   );
   return rows[0] ?? null;
 }
@@ -381,6 +384,7 @@ export async function upsertCompany(c: {
 // ── Contractors ────────────────────────────────────────────────────────
 export interface ContractorRow {
   id: string;
+  public_id: string;
   company_id: string;
   name: string;
   cpf_hash: string | null;
@@ -405,10 +409,11 @@ export async function createInvite(c: {
   range_max: number;
 }): Promise<ContractorRow> {
   await ensureSchema();
+  const publicId = 'ctr_' + nanoid();
   const { rows } = await getPool().query<ContractorRow>(
-    `INSERT INTO contractors (company_id, name, email, role, range_min, range_max, status)
-     VALUES ($1,$2,$3,$4,$5,$6,'invited') RETURNING *`,
-    [c.company_id, c.name, c.email, c.role, c.range_min, c.range_max],
+    `INSERT INTO contractors (company_id, name, email, role, range_min, range_max, status, public_id)
+     VALUES ($1,$2,$3,$4,$5,$6,'invited',$7) RETURNING *`,
+    [c.company_id, c.name, c.email, c.role, c.range_min, c.range_max, publicId],
   );
   return rows[0]!;
 }
@@ -487,11 +492,11 @@ export async function listContractors(companyId: string): Promise<ContractorRow[
   return rows;
 }
 
-export async function getContractor(id: string, companyId: string): Promise<ContractorRow | null> {
+export async function getContractor(publicId: string, companyId: string): Promise<ContractorRow | null> {
   await ensureSchema();
   const { rows } = await getPool().query<ContractorRow>(
-    `SELECT * FROM contractors WHERE id = $1 AND company_id = $2`,
-    [id, companyId],
+    `SELECT * FROM contractors WHERE public_id = $1 AND company_id = $2`,
+    [publicId, companyId],
   );
   return rows[0] ?? null;
 }
@@ -505,42 +510,43 @@ export async function createContractor(c: {
   range_max: number;
 }): Promise<ContractorRow> {
   await ensureSchema();
+  const publicId = 'ctr_' + nanoid();
   const { rows } = await getPool().query<ContractorRow>(
-    `INSERT INTO contractors (company_id, name, cpf_hash, stellar_address, range_min, range_max)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [c.company_id, c.name, c.cpf_hash, c.stellar_address, c.range_min, c.range_max],
+    `INSERT INTO contractors (company_id, name, cpf_hash, stellar_address, range_min, range_max, public_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [c.company_id, c.name, c.cpf_hash, c.stellar_address, c.range_min, c.range_max, publicId],
   );
   return rows[0]!;
 }
 
 export async function updateContractor(
-  id: string,
+  publicId: string,
   companyId: string,
   c: { name: string; stellar_address: string; range_min: number; range_max: number },
 ): Promise<ContractorRow | null> {
   await ensureSchema();
   const { rows } = await getPool().query<ContractorRow>(
     `UPDATE contractors SET name=$3, stellar_address=$4, range_min=$5, range_max=$6
-     WHERE id=$1 AND company_id=$2 RETURNING *`,
-    [id, companyId, c.name, c.stellar_address, c.range_min, c.range_max],
+     WHERE public_id=$1 AND company_id=$2 RETURNING *`,
+    [publicId, companyId, c.name, c.stellar_address, c.range_min, c.range_max],
   );
   return rows[0] ?? null;
 }
 
-export async function deleteContractor(id: string, companyId: string): Promise<void> {
+export async function deleteContractor(publicId: string, companyId: string): Promise<void> {
   await ensureSchema();
-  await getPool().query(`DELETE FROM contractors WHERE id=$1 AND company_id=$2`, [id, companyId]);
+  await getPool().query(`DELETE FROM contractors WHERE public_id=$1 AND company_id=$2`, [publicId, companyId]);
 }
 
 export async function setContractorAnchored(
-  id: string,
+  publicId: string,
   companyId: string,
   txHash: string,
 ): Promise<void> {
   await ensureSchema();
   await getPool().query(
-    `UPDATE contractors SET anchored=true, anchor_tx_hash=$3 WHERE id=$1 AND company_id=$2`,
-    [id, companyId, txHash],
+    `UPDATE contractors SET anchored=true, anchor_tx_hash=$3 WHERE public_id=$1 AND company_id=$2`,
+    [publicId, companyId, txHash],
   );
 }
 

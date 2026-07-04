@@ -71,6 +71,15 @@ ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS proof_id TEXT;
 ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS proof_tx_hash TEXT;
 ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS proof_verified BOOLEAN NOT NULL DEFAULT false;
 
+-- Opaque public id for URLs/routes (Stripe-style run_...). Mirrors contractors:
+-- the numeric id stays the primary key for all internal relations (payments.run_id,
+-- finalize/proof updates); only the public-facing run route resolves by public_id.
+-- New rows get a nanoid from the app; existing rows are backfilled here with an
+-- md5-derived id (no re-seed). Kept nullable on purpose.
+ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS public_id TEXT;
+UPDATE payroll_runs SET public_id = 'run_' || substr(md5(random()::text || clock_timestamp()::text || id::text), 1, 16) WHERE public_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payroll_runs_public_id ON payroll_runs(public_id);
+
 -- N4: selective disclosure ("viewing key"). The company holds a viewing key;
 -- with it an authorized auditor can reveal AND re-verify exact amounts against
 -- the on-chain commitments. The chain/public view still only sees commitments.
@@ -138,6 +147,14 @@ ALTER TABLE contractors ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'a
 ALTER TABLE contractors ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE contractors ADD COLUMN IF NOT EXISTS role TEXT;
 ALTER TABLE contractors ALTER COLUMN stellar_address DROP NOT NULL;
+
+-- Opaque public id for URLs/routes (Stripe-style ctr_...). The numeric id stays
+-- the primary key for all internal foreign-key relations; only the public-facing
+-- routes resolve by public_id. New rows get a nanoid from the app; existing rows
+-- are backfilled here with an md5-derived id (no re-seed). Kept nullable on purpose.
+ALTER TABLE contractors ADD COLUMN IF NOT EXISTS public_id TEXT;
+UPDATE contractors SET public_id = 'ctr_' || substr(md5(random()::text || clock_timestamp()::text || id::text), 1, 16) WHERE public_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_contractors_public_id ON contractors(public_id);
 
 -- F3: fiscal-document linkage (Brazilian nota fiscal / NFS-e). Ties a recorded
 -- payment to an external fiscal document. MOCK-BACKED for now: the invoice data is

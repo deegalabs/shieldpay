@@ -39,7 +39,7 @@ export async function runPayrollNonCustodial(args: {
   reference: string;
   lines: PayrollLineInput[];
   onProgress?: (msg: string) => void;
-}): Promise<{ runId: string }> {
+}): Promise<{ runPublicId: string }> {
   if (!PUBLIC_CONTRACTS.paymentVerifier) {
     throw new Error('NEXT_PUBLIC_PAYMENT_VERIFIER_CONTRACT_ID is not configured');
   }
@@ -61,7 +61,10 @@ export async function runPayrollNonCustodial(args: {
   if (!prepRes.ok) {
     throw new Error(typeof prep.error === 'string' ? prep.error : JSON.stringify(prep.error));
   }
+  // Numeric internal id, threaded back to /record (payments.run_id + finalize).
   const runId: string = prep.runId;
+  // Opaque id for the /payroll/[run] URL the caller navigates to.
+  const runPublicId: string = prep.runPublicId;
   const prepared: any[] = prep.lines;
 
   const signer = new BrowserSigner(walletAddress, signRawHash);
@@ -144,5 +147,5 @@ export async function runPayrollNonCustodial(args: {
   if (!recRes.ok) {
     throw new Error(typeof rec.error === 'string' ? rec.error : JSON.stringify(rec.error));
   }
-  return { runId };
+  return { runPublicId };
 }

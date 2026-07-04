@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      runId: run.id,
+      runId: run.public_id, // opaque id for the /payroll/[run] URL (never the numeric id)
       reference,
       total: totalCents / 100,
       count: results.length,
