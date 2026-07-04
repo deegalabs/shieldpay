@@ -13,6 +13,7 @@ export default async function WorkerLayout({ children }: { children: React.React
       nav={nav}
       user={{ name: session?.name, role: session?.role }}
       actions={<TopbarActions />}
+      demoRole={session?.method === 'demo' ? 'worker' : undefined}
     >
       {children}
     </AppShell>

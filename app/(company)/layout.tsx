@@ -39,6 +39,7 @@ export default async function CompanyLayout({ children }: { children: React.Reac
       user={{ name: session?.name, role: session?.role }}
       actions={<TopbarActions canAudit />}
       primaryAction={{ href: '/payroll', label: 'New Payment' }}
+      demoRole={session?.method === 'demo' ? 'company' : undefined}
     >
       {children}
     </AppShell>

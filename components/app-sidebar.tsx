@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Plus, ShieldCheck, LifeBuoy, X } from 'lucide-react';
 import { BrandMark } from '@/components/ui/brand-mark';
+import { DemoSwitcher } from '@/components/demo-switcher';
 import { cn } from '@/lib/utils';
 import type { NavItem } from '@/components/app-shell';
 
@@ -28,6 +29,7 @@ export function AppSidebar({
   user,
   actions,
   primaryAction,
+  demoRole,
 }: {
   title: string;
   subtitle?: string;
@@ -35,6 +37,7 @@ export function AppSidebar({
   user?: { name?: string; role?: string };
   actions?: React.ReactNode;
   primaryAction?: { href: string; label: string };
+  demoRole?: 'company' | 'worker';
 }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
@@ -127,6 +130,11 @@ export function AppSidebar({
             <LifeBuoy size={14} />
             <span className="font-mono text-[10px] uppercase tracking-widest">Support</span>
           </Link>
+          {demoRole && (
+            <div className="pt-2">
+              <DemoSwitcher current={demoRole} />
+            </div>
+          )}
           {actions && <div className="pt-2">{actions}</div>}
         </div>
       </nav>
@@ -197,6 +205,11 @@ export function AppSidebar({
                   <LifeBuoy size={14} /> Support
                 </Link>
               </div>
+              {demoRole && (
+                <div className="border-t border-slate-800 p-3">
+                  <DemoSwitcher current={demoRole} />
+                </div>
+              )}
               {actions && <div className="border-t border-slate-800 p-3">{actions}</div>}
             </div>
           </>

@@ -11,6 +11,7 @@ import {
 import { Mail, KeyRound, Wallet, ShieldCheck, Lock, Fingerprint, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BrandMark } from '@/components/ui/brand-mark';
+import { cn } from '@/lib/utils';
 
 type Role = 'company' | 'worker';
 
@@ -414,6 +415,11 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
 }
 
 /** Company / Contributor demo entries plus the honest auditor note. */
+/**
+ * Demo entry: a role toggle (Company / Contributor) plus a single Enter button,
+ * so trying the demo is one clear choice. Auditor is not a login, it is a
+ * read-only link a company shares, so it stays a note pointing to that path.
+ */
 function DemoRow({
   busy,
   onDemo,
@@ -423,33 +429,53 @@ function DemoRow({
   onDemo: (r: Role) => void;
   onAuditor: (n: string) => void;
 }) {
+  const [role, setRole] = useState<Role>('company');
   return (
-    <div className="flex items-center gap-4 font-mono text-mono-label uppercase tracking-widest text-fg-subtle">
+    <div className="flex w-full max-w-sm flex-col items-center gap-3">
+      <span className="font-mono text-mono-label uppercase tracking-widest text-fg-subtle">
+        Explore the demo
+      </span>
+      <div
+        role="group"
+        aria-label="Demo role"
+        className="grid w-full grid-cols-2 gap-1 rounded-lg border border-border bg-surface-2 p-1"
+      >
+        {(['company', 'worker'] as const).map((r) => (
+          <button
+            key={r}
+            type="button"
+            aria-pressed={role === r}
+            onClick={() => setRole(r)}
+            className={cn(
+              'rounded-md px-3 py-2 font-mono text-mono-label uppercase tracking-wider transition-colors',
+              role === r ? 'bg-brand text-white' : 'text-fg-subtle hover:text-fg-default',
+            )}
+          >
+            {r === 'company' ? 'Company' : 'Contributor'}
+          </button>
+        ))}
+      </div>
+      <Button
+        variant="ghost"
+        size="lg"
+        className="w-full"
+        disabled={!!busy}
+        onClick={() => onDemo(role)}
+      >
+        {busy === 'demo'
+          ? 'Entering the demo…'
+          : `Enter as ${role === 'company' ? 'company' : 'contributor'}`}
+      </Button>
       <button
         type="button"
-        disabled={!!busy}
-        onClick={() => onDemo('company')}
-        className="transition-colors hover:text-brand-text disabled:opacity-50"
+        onClick={() =>
+          onAuditor(
+            'Auditor access is a read-only link a company shares. Enter the company demo and use Auditor access to try it.',
+          )
+        }
+        className="font-mono text-mono-label uppercase tracking-widest text-fg-subtle transition-colors hover:text-brand-text"
       >
-        Company
-      </button>
-      <span className="text-border">•</span>
-      <button
-        type="button"
-        disabled={!!busy}
-        onClick={() => onDemo('worker')}
-        className="transition-colors hover:text-brand-text disabled:opacity-50"
-      >
-        Contributor
-      </button>
-      <span className="text-border">•</span>
-      <button
-        type="button"
-        disabled={!!busy}
-        onClick={() => onAuditor('Auditors receive a time-boxed access link from a company.')}
-        className="transition-colors hover:text-brand-text disabled:opacity-50"
-      >
-        Auditor
+        Auditor? read-only link
       </button>
     </div>
   );

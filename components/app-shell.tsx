@@ -24,6 +24,7 @@ export function AppShell({
   user,
   actions,
   primaryAction,
+  demoRole,
   children,
 }: {
   title: string;
@@ -34,6 +35,8 @@ export function AppShell({
   /** Optional primary CTA in the sidebar header (e.g. "New Payment"). Omit for
       read-only portals like the worker view. */
   primaryAction?: { href: string; label: string };
+  /** Set on a demo session to show the in-app company/contributor switch. */
+  demoRole?: 'company' | 'worker';
   children: React.ReactNode;
 }) {
   return (
@@ -45,6 +48,7 @@ export function AppShell({
         user={user}
         actions={actions}
         primaryAction={primaryAction}
+        demoRole={demoRole}
       />
       {/* Main Canvas */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950 relative">
