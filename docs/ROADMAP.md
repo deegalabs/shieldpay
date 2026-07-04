@@ -6,7 +6,7 @@ validated on testnet. Base means the structure and contracts exist but a full
 production path (usually an external integration or a contract redeploy) is not done
 yet. Deferred means designed and documented but not started.
 
-Last updated: 2026-07-03.
+Last updated: 2026-07-04.
 
 ## Legend
 
@@ -120,6 +120,20 @@ Last updated: 2026-07-03.
 - A3 confidential balance, E3 multi-currency and tax, E6 SDK / npm package,
   B-gold in-circuit auditor key, F4 eSocial / DIRF (gated on the CLT crypto-salary
   law).
+
+### Internationalization, PT-BR and EN (planned, no contract work)
+- Add PT-BR alongside EN with a language switcher. Chosen approach: `next-intl` in
+  cookie mode (no URL prefix), so the default-deny path-prefix middleware and the
+  (company) / (worker) / (auditor) route groups stay untouched. Server Components
+  read strings with `getTranslations()`, client with `useTranslations()`, from
+  centralized `messages/{en,pt}.json`. Picked over react-i18next / React Context
+  (client-only; would force most pages to `'use client'`, against the server-first
+  architecture). Same library both Next apps in the org use (streak: cookie,
+  passexplorer: URL prefix). Rollout is incremental (public pages first, then chrome,
+  then the portals). On-chain data (proof ids, hashes, Stellar addresses, amounts,
+  memos, contract ids) is never translated; currency and dates become locale-aware.
+  Legal and court-receipt copy needs human-reviewed translation, EN stays canonical.
+  Full plan and file layout: `temp/i18n-plan.md`.
 
 ## Honest limitations (carried forward)
 
