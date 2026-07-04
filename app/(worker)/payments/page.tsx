@@ -17,7 +17,6 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { SealedChip } from '@/components/ui/sealed-chip';
 import { OnChainSeal } from '@/components/ui/on-chain-seal';
 import { ConnectionError } from '@/components/ui/connection-error';
-import { StatFigure } from '@/components/ui/stat-figure';
 import { CompleteAnchor } from '@/components/complete-anchor';
 import { WorkerIncomeCard } from '@/components/worker-income-card';
 
@@ -56,6 +55,9 @@ export default async function WorkerPayments() {
   const profile = orgs[0] ?? null;
   const companyName = orgs[0]?.company_name;
   const displayName = profile?.name || session?.name || 'My account';
+  // Every figure here is real: a count of received payments and how many carry a
+  // verified on-chain proof. No exact amount is stored, so nothing is summed.
+  const verifiedCount = payments.filter((p) => p.verified).length;
 
   const columns: Array<Column<PaymentRow>> = [
     {
@@ -146,13 +148,40 @@ export default async function WorkerPayments() {
       </header>
 
       {!dbError && payments.length > 0 && (
-        <StatFigure
-          variant="secondary"
-          label="Payments received"
-          value={String(payments.length)}
-          sublabel="Each one carries an on-chain proof you can share."
-        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card className="top-edge p-5">
+            <p className="overline">Payments received</p>
+            <p className="figure mt-2 text-3xl text-fg-default">{payments.length}</p>
+            <p className="mt-1 text-xs text-fg-subtle">Each carries an on-chain proof you can share.</p>
+          </Card>
+          <Card className="top-edge p-5">
+            <p className="overline">Verified on-chain</p>
+            <p className="figure mt-2 text-3xl text-verified-text">
+              {verifiedCount}
+              <span className="text-lg text-fg-subtle"> / {payments.length}</span>
+            </p>
+            <p className="mt-1 text-xs text-fg-subtle">Re-verifiable by anyone, no trust needed.</p>
+          </Card>
+          {profile && (
+            <Card className="top-edge p-5">
+              <p className="overline">Agreed range</p>
+              <div className="mt-2">
+                <SealedChip
+                  range={{ minCents: profile.range_min, maxCents: profile.range_max }}
+                  size="md"
+                />
+              </div>
+              <p className="mt-2 text-xs text-fg-subtle">
+                {companyName ? `${companyName}, per month` : 'Per month'}
+              </p>
+            </Card>
+          )}
+        </div>
       )}
+
+      {/* Proof of income leads: the contributor's headline feature, sharing a
+          verifiable income range without revealing the exact figure. */}
+      {session?.role === 'worker' && <WorkerIncomeCard companyName={companyName} />}
 
       {orgs.length > 0 && (
         <section className="space-y-3">
@@ -203,8 +232,6 @@ export default async function WorkerPayments() {
           </div>
         </section>
       )}
-
-      {session?.role === 'worker' && <WorkerIncomeCard companyName={companyName} />}
 
       <section className="space-y-3">
         <h2 className="overline">Payment history</h2>
