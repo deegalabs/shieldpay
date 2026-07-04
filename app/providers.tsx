@@ -21,8 +21,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
           theme: 'dark',
           accentColor: '#6366F1',
           logo: undefined,
+          // Show the wallet button in Privy's own connect flow too.
+          walletList: ['detected_wallets', 'wallet_connect'],
         },
-        loginMethods: ['email', 'google', 'passkey'],
+        // Wallet is a first-class login method so the Connect Wallet button
+        // authenticates (a wallet signature creates the Privy session), not just
+        // connects. Email/Google/passkey are seedless entry for everyone else.
+        loginMethods: ['email', 'google', 'passkey', 'wallet'],
       }}
     >
       <ConfirmProvider>{children}</ConfirmProvider>
