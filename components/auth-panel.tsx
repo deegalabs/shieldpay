@@ -11,7 +11,6 @@ import {
 import { Mail, KeyRound, Wallet, ShieldCheck, Lock, Fingerprint, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BrandMark } from '@/components/ui/brand-mark';
-import { cn } from '@/lib/utils';
 
 type Role = 'company' | 'worker';
 
@@ -416,9 +415,10 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
 
 /** Company / Contributor demo entries plus the honest auditor note. */
 /**
- * Demo entry: a role toggle (Company / Contributor) plus a single Enter button,
- * so trying the demo is one clear choice. Auditor is not a login, it is a
- * read-only link a company shares, so it stays a note pointing to that path.
+ * Demo entry: one button. Real sign-in above routes each persona automatically,
+ * so the demo needs no role picker here; it opens the company view and the
+ * in-app "Demo view" switch flips to the contributor without signing out.
+ * Auditor is not a login, it is a read-only link a company shares.
  */
 function DemoRow({
   busy,
@@ -429,54 +429,32 @@ function DemoRow({
   onDemo: (r: Role) => void;
   onAuditor: (n: string) => void;
 }) {
-  const [role, setRole] = useState<Role>('company');
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-3">
-      <span className="font-mono text-mono-label uppercase tracking-widest text-fg-subtle">
-        Explore the demo
-      </span>
-      <div
-        role="group"
-        aria-label="Demo role"
-        className="grid w-full grid-cols-2 gap-1 rounded-lg border border-border bg-surface-2 p-1"
-      >
-        {(['company', 'worker'] as const).map((r) => (
-          <button
-            key={r}
-            type="button"
-            aria-pressed={role === r}
-            onClick={() => setRole(r)}
-            className={cn(
-              'rounded-md px-3 py-2 font-mono text-mono-label uppercase tracking-wider transition-colors',
-              role === r ? 'bg-brand text-white' : 'text-fg-subtle hover:text-fg-default',
-            )}
-          >
-            {r === 'company' ? 'Company' : 'Contributor'}
-          </button>
-        ))}
-      </div>
+    <div className="flex w-full max-w-sm flex-col items-center gap-2">
       <Button
         variant="ghost"
         size="lg"
         className="w-full"
         disabled={!!busy}
-        onClick={() => onDemo(role)}
+        onClick={() => onDemo('company')}
       >
-        {busy === 'demo'
-          ? 'Entering the demo…'
-          : `Enter as ${role === 'company' ? 'company' : 'contributor'}`}
+        {busy === 'demo' ? 'Opening the demo…' : 'Explore the demo'}
       </Button>
-      <button
-        type="button"
-        onClick={() =>
-          onAuditor(
-            'Auditor access is a read-only link a company shares. Enter the company demo and use Auditor access to try it.',
-          )
-        }
-        className="font-mono text-mono-label uppercase tracking-widest text-fg-subtle transition-colors hover:text-brand-text"
-      >
-        Auditor? read-only link
-      </button>
+      <p className="text-center font-mono text-[10px] uppercase tracking-widest text-fg-faint">
+        Switch between company and contributor inside. Auditor access is a{' '}
+        <button
+          type="button"
+          onClick={() =>
+            onAuditor(
+              'Auditor access is a read-only link a company shares. Open the demo and use Auditor access to try it.',
+            )
+          }
+          className="text-fg-subtle underline-offset-2 transition-colors hover:text-brand-text hover:underline"
+        >
+          read-only link
+        </button>
+        .
+      </p>
     </div>
   );
 }

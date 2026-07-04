@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
 import { signSession, SESSION_COOKIE, cookieOptions, type Role } from '@/lib/auth/session';
 import { rateLimited } from '@/lib/auth/server';
+import { listContractorsByAddress, getCompanyByOwner } from '@/lib/db/client';
 
 export const runtime = 'nodejs';
 
@@ -45,9 +46,27 @@ export async function POST(req: NextRequest) {
     /* non-fatal */
   }
 
-  const r: Role = role === 'company' ? 'company' : 'worker';
+  // Route each persona to its own portal automatically, so nobody has to pick a
+  // role (and cannot pick the wrong one). A signer whose wallet is a registered
+  // contributor lands in the contributor portal; a company owner always resolves
+  // to the company workspace (it wins even if the same address is also a
+  // contributor somewhere); everyone else starts a company. The client `role` is
+  // only a fallback hint when the database is unreachable.
+  const sub = stellarAddress || userId;
+  let r: Role = role === 'worker' ? 'worker' : 'company';
+  try {
+    if (stellarAddress) {
+      const asContractor = await listContractorsByAddress(stellarAddress);
+      if (asContractor.length > 0) r = 'worker';
+    }
+    const ownsCompany = await getCompanyByOwner(sub).catch(() => null);
+    if (ownsCompany) r = 'company';
+  } catch {
+    /* keep the fallback role if the lookups fail */
+  }
+
   const sessionToken = await signSession({
-    sub: stellarAddress || userId,
+    sub,
     role: r,
     name,
     method: 'privy',
