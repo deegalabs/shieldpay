@@ -10,7 +10,6 @@ import {
 } from '@privy-io/react-auth';
 import { Mail, KeyRound, Wallet, ShieldCheck, Lock, Fingerprint, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BrandMark } from '@/components/ui/brand-mark';
 
 type Role = 'company' | 'worker';
 
@@ -211,7 +210,7 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
     }
   }
 
-  const headline = mode === 'signup' ? 'Create your account' : 'Sign in to ShieldPay';
+  const headline = mode === 'signup' ? 'Create your account' : 'Welcome back';
   const emailCta = mode === 'signup' ? 'Get started with email' : 'Continue with email';
   const disabled = !ready || !!busy;
   const signingIn = busy === 'bridge';
@@ -234,11 +233,11 @@ export function AuthPanel({ mode }: { mode: 'login' | 'signup' }) {
         {/* ---------------------------------------------------------------- */}
         <div className="flex flex-col gap-8 rounded-xl border border-white/5 border-t-white/15 bg-surface-3/40 p-6 backdrop-blur-[24px] sm:p-8 md:p-10">
           {/* Header */}
-          <div className="flex flex-col items-center gap-6">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded bg-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
-                <BrandMark size={22} />
-              </span>
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex items-center gap-2.5">
+              {/* The app icon (same gradient shield as the favicon and install). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icon.svg" alt="" width={36} height={36} className="size-9" />
               <span className="font-headline text-headline-lg-mobile tracking-tight text-foreground">
                 ShieldPay
               </span>
