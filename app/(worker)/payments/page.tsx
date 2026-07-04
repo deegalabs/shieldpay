@@ -1,4 +1,4 @@
-import { ShieldCheck, ArrowUpRight, FileText } from 'lucide-react';
+import { ShieldCheck, ArrowUpRight, FileText, Download } from 'lucide-react';
 import {
   listPayments,
   listPaymentsForWorker,
@@ -234,7 +234,16 @@ export default async function WorkerPayments() {
       )}
 
       <section className="space-y-3">
-        <h2 className="overline">Payment history</h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="overline">Payment history</h2>
+          {session?.role === 'worker' && payments.length > 0 && (
+            <Button asChild variant="ghost" size="sm">
+              <a href="/api/worker/export">
+                <Download size={14} /> Download CSV
+              </a>
+            </Button>
+          )}
+        </div>
         {dbError ? (
           <ConnectionError message="Your payments are safe on-chain. Please try again in a moment." />
         ) : (
