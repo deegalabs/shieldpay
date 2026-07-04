@@ -1,3 +1,5 @@
+import withSerwistInit from '@serwist/next';
+
 // Conservative security headers applied to every response. A strict
 // Content-Security-Policy is intentionally left out for now: it needs testing
 // against Privy's scripts before it can be enabled without breaking login.
@@ -39,4 +41,12 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// PWA: Serwist compiles app/sw.ts to public/sw.js (gitignored build output).
+// Disabled in dev so the service worker never caches during local work.
+const withSerwist = withSerwistInit({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+});
+
+export default withSerwist(nextConfig);

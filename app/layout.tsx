@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Public_Sans, Space_Grotesk, Space_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { Providers } from './providers';
+import { InstallPrompt } from '@/components/pwa/install-prompt';
+import { ServiceWorkerManager } from '@/components/pwa/service-worker-manager';
 import './globals.css';
 
 // Confidential Ledger type system. Inter carries body + UI labels; Space Grotesk
@@ -36,14 +38,28 @@ export const metadata: Metadata = {
   title: 'ShieldPay | Payroll & Payment Proof on Stellar',
   description:
     'Pay anyone in the world. Prove mathematically that you paid. Protect your company forever.',
+  applicationName: 'ShieldPay',
   manifest: '/manifest.webmanifest',
+  formatDetection: { telephone: false, email: false, address: false },
+  appleWebApp: { capable: true, title: 'ShieldPay', statusBarStyle: 'black-translucent' },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon-32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: { url: '/apple-touch-icon.png', sizes: '180x180' },
+  },
 };
 
 // Drives the mobile browser chrome color and a correct responsive viewport.
+// viewportFit: cover lets content use the iOS safe-area insets the app relies on.
 export const viewport: Viewport = {
   themeColor: '#020617',
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -57,6 +73,8 @@ export default function RootLayout({
       <body className="min-h-screen font-sans">
         <Providers>{children}</Providers>
         <Toaster theme="dark" position="top-right" richColors />
+        <InstallPrompt />
+        <ServiceWorkerManager />
       </body>
     </html>
   );
