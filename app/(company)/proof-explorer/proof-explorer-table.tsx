@@ -163,7 +163,7 @@ export function ProofExplorerTable({
     <div className="space-y-8">
       {/* On mobile the search pins below the app bar so it stays reachable while
           the proof cards scroll under it; on md+ it is a normal inline field. */}
-      <div className="sticky top-0 z-20 -mx-6 bg-slate-950/95 px-6 py-3 backdrop-blur-md md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+      <div className="sticky top-16 z-20 -mx-6 bg-slate-950/95 px-6 py-3 backdrop-blur-md md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
         <div className="relative max-w-3xl">
           <Search
             size={18}

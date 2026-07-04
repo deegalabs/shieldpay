@@ -112,7 +112,7 @@ export default async function ContractorsPage() {
     <div className="space-y-10">
       {/* On mobile the header (title, counts, invite) pins to the top so the
           contributor cards scroll under it; on md+ it is a normal header row. */}
-      <header className="sticky top-0 z-20 -mx-6 flex flex-col gap-4 border-b border-border bg-slate-950 px-6 pb-4 pt-6 md:static md:mx-0 md:flex-row md:items-end md:justify-between md:gap-6 md:bg-transparent md:px-0 md:pb-6 md:pt-0">
+      <header className="sticky top-16 z-20 -mx-6 flex flex-col gap-4 border-b border-border bg-slate-950 px-6 pb-4 pt-6 md:static md:mx-0 md:flex-row md:items-end md:justify-between md:gap-6 md:bg-transparent md:px-0 md:pb-6 md:pt-0">
         <div className="space-y-3">
           <p className="overline">Recipients</p>
           <h1 className="font-headline text-headline-lg-mobile tracking-tight text-fg-default md:text-headline-lg">

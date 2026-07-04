@@ -144,7 +144,7 @@ export function AppSidebar({
           menu with everything else (overflow nav, Security, Support, actions).
           Per the Stitch mobile prints (avatar top-right + bottom tabs). */}
       <div ref={menuRef} className="md:hidden">
-        <nav className="flex justify-between items-center w-full px-4 h-16 bg-slate-950 border-b border-slate-800/50 sticky top-0 z-50">
+        <nav className="flex justify-between items-center w-full px-4 h-16 bg-slate-950 border-b border-slate-800/50 fixed top-0 inset-x-0 z-50">
           <div className="flex items-center gap-2">
             <BrandMark size={28} className="h-7 w-7 rounded-md" />
             <div className="font-headline font-bold text-slate-50 tracking-tight text-xl">{title}</div>
@@ -171,7 +171,7 @@ export function AppSidebar({
         {open && (
           <>
             <div aria-hidden className="fixed inset-0 top-16 z-40 bg-slate-950/50" onClick={close} />
-            <div className="absolute right-3 top-[calc(4rem+0.5rem)] z-50 w-64 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.75)]">
+            <div className="fixed right-3 top-[calc(4rem+0.5rem)] z-50 w-64 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.75)]">
               <div className="border-b border-slate-800 px-4 py-3">
                 <div className="font-headline text-sm text-slate-100">{user?.name || 'Account'}</div>
                 {user?.role && (

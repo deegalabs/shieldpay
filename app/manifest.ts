@@ -14,7 +14,10 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Pay anyone in the world. Prove mathematically that you paid.',
     start_url: '/',
     scope: '/',
-    display: 'standalone',
+    // Request an immersive fullscreen window (hides the system status/nav bars on
+    // Android) and fall back to standalone where fullscreen is unsupported.
+    display: 'fullscreen',
+    display_override: ['fullscreen', 'standalone', 'minimal-ui'],
     orientation: 'portrait',
     lang: 'en',
     dir: 'ltr',
