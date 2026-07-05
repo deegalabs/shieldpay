@@ -57,10 +57,19 @@ export async function POST(req: NextRequest) {
   try {
     if (stellarAddress) {
       const asContractor = await listContractorsByAddress(stellarAddress);
-      if (asContractor.length > 0) r = 'worker';
+      if (asContractor.length > 0) {
+        r = 'worker';
+        // Greet the contributor by the name they registered, not the Privy
+        // email, in their portal chrome (#9).
+        if (asContractor[0]?.name) name = asContractor[0].name;
+      }
     }
     const ownsCompany = await getCompanyByOwner(sub).catch(() => null);
-    if (ownsCompany) r = 'company';
+    if (ownsCompany) {
+      r = 'company';
+      // The company owner sees the organization name (company wins over worker).
+      if (ownsCompany.name) name = ownsCompany.name;
+    }
   } catch {
     /* keep the fallback role if the lookups fail */
   }
