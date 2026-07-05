@@ -160,7 +160,11 @@ export default async function ContractorDetail({ params }: { params: { id: strin
               <SealedChip range={range} size="md" />
             </div>
             <div className="relative z-10">
-              <ContractorActions id={contractor.public_id} anchored={contractor.anchored} />
+              <ContractorActions
+                id={contractor.public_id}
+                anchored={contractor.anchored}
+                demo={session?.method === 'demo'}
+              />
             </div>
           </div>
         }

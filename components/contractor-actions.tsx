@@ -6,7 +6,18 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { startTopLoading, stopTopLoading } from '@/components/ui/top-loading-bar';
 
-export function ContractorActions({ id, anchored }: { id: string; anchored: boolean }) {
+export function ContractorActions({
+  id,
+  anchored,
+  demo = false,
+}: {
+  id: string;
+  anchored: boolean;
+  // The "mark anchored" shortcut only sets a DB flag (no on-chain signature), so
+  // it is a demo-only override. Outside the demo, a real anchor must be signed by
+  // the contributor's own wallet from their portal.
+  demo?: boolean;
+}) {
   const [busy, setBusy] = useState(false);
   const [isAnchored, setIsAnchored] = useState(anchored);
   const confirm = useConfirm();
@@ -51,9 +62,9 @@ export function ContractorActions({ id, anchored }: { id: string; anchored: bool
 
   return (
     <div className="flex gap-2">
-      {!isAnchored && (
+      {demo && !isAnchored && (
         <Button variant="ghost" size="sm" disabled={busy} onClick={anchor}>
-          Mark identity anchored
+          Mark anchored (demo)
         </Button>
       )}
       <Button variant="ghost" size="sm" disabled={busy} onClick={remove}>
