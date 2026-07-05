@@ -66,12 +66,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'contract has no identity hash to anchor' }, { status: 422 });
   }
   // The server only holds the key for its own company. It must not co-sign for a
-  // contract whose treasury is some other company's address.
+  // contract whose treasury is some other company's address (e.g. a non-custodial
+  // company whose treasury is its own wallet). This is an expected outcome, not an
+  // error: reply cosigned=false so the client falls back to the plain self-anchor
+  // cleanly, without a console error.
   if (contractor.company_treasury !== companyAddress) {
-    return NextResponse.json(
-      { error: 'company co-signing is not available for this contract' },
-      { status: 409 },
-    );
+    return NextResponse.json({ cosigned: false, reason: 'not_custodial' });
   }
 
   let result;

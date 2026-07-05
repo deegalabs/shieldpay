@@ -44,7 +44,6 @@ export async function anchorIdentity(args: {
     rangeMaxCents,
     contractorId,
   } = args;
-  const { bytesToField, fieldToBe32 } = await import('@/lib/zk/encode');
   const sdk: any = await import('@stellar/stellar-sdk');
   const { rpc, Contract, TransactionBuilder, Networks, Address, nativeToScVal, Keypair, xdr } = sdk;
   const server = new rpc.Server('https://soroban-testnet.stellar.org');
@@ -96,38 +95,26 @@ export async function anchorIdentity(args: {
     }
   }
 
-  // Fallback: single-party self-anchor (the contract does not require company
-  // auth, or no co-signature could be obtained).
+  // Fallback: single-party self-anchor with the plain `anchor` (worker-only
+  // require_auth). We reach here only when the company co-signature was NOT
+  // obtained, e.g. a non-custodial company whose treasury is its own wallet, so
+  // the server holds no key for it. `anchor_with_range` require_auth's the
+  // company too and would fail on-chain without that signature, so we anchor the
+  // identity alone; the payment range is still enforced off-chain and inside the
+  // per-payment proof. On-chain range binding only happens on the co-signed path.
   const account = await server.getAccount(addr);
   const metadata = `SHIELDPAY|ANCHOR|v1|org:${companyAddress}|cpf:${cpfHash}`;
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(metadata));
   const contractHash = Buffer.from(new Uint8Array(digest));
 
   const contract = new Contract(anchorContractId);
-  let op;
-  if (withRange) {
-    // The same worker-address hash the payment circuit exposes as public signal 3.
-    const workerDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(addr));
-    const workerAddressHash = fieldToBe32(bytesToField(Buffer.from(new Uint8Array(workerDigest))));
-    op = contract.call(
-      'anchor_with_range',
-      new Address(addr).toScVal(),
-      new Address(companyAddress).toScVal(),
-      nativeToScVal(contractHash, { type: 'bytes' }),
-      nativeToScVal(metadata, { type: 'string' }),
-      nativeToScVal(workerAddressHash, { type: 'bytes' }),
-      nativeToScVal(rangeMinCents, { type: 'u64' }),
-      nativeToScVal(rangeMaxCents, { type: 'u64' }),
-    );
-  } else {
-    op = contract.call(
-      'anchor',
-      new Address(addr).toScVal(),
-      new Address(companyAddress).toScVal(),
-      nativeToScVal(contractHash, { type: 'bytes' }),
-      nativeToScVal(metadata, { type: 'string' }),
-    );
-  }
+  const op = contract.call(
+    'anchor',
+    new Address(addr).toScVal(),
+    new Address(companyAddress).toScVal(),
+    nativeToScVal(contractHash, { type: 'bytes' }),
+    nativeToScVal(metadata, { type: 'string' }),
+  );
 
   let tx = new TransactionBuilder(account, { fee: '1000000', networkPassphrase: Networks.TESTNET })
     .addOperation(op)
