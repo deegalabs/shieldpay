@@ -102,7 +102,7 @@ export default async function ContractorsPage() {
       cell: (c) =>
         c.status === 'invited' ? (
           <span className="relative z-10 inline-flex justify-end">
-            <InviteLinkButton id={c.public_id} />
+            <InviteLinkButton id={c.public_id} email={c.email} />
           </span>
         ) : null,
     },
@@ -213,7 +213,7 @@ export default async function ContractorsPage() {
                 </div>
                 {c.status === 'invited' && (
                   <div className="relative z-10 flex justify-end">
-                    <InviteLinkButton id={c.public_id} />
+                    <InviteLinkButton id={c.public_id} email={c.email} />
                   </div>
                 )}
               </div>
