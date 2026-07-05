@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { Plus, Trash2, Lock, ArrowRight, ArrowLeft, ShieldCheck, AlertTriangle, Info } from 'lucide-react';
@@ -97,6 +98,11 @@ export default function PayrollPage() {
   }, []);
 
   const byId = (id: string) => contractors.find((c) => c.id === id);
+
+  // Contributors still finishing their identity anchor cannot be paid (a ZK
+  // range proof needs an anchored recipient), so their rows in the picker are
+  // disabled. Surface why, so a greyed-out name never reads as a bug (#8).
+  const pendingCount = contractors.filter((c) => !c.anchored).length;
 
   // Inline range check: a ZK range proof is only valid when the amount sits
   // within the agreed [min, max]. Returns the cents range when the entered
@@ -236,6 +242,7 @@ export default function PayrollPage() {
       // calm, blame-free line: the money did not move, so nothing is at risk.
       console.error('Payroll run failed', e);
       setError('The payment did not go through. Nothing was sent. You can try again in a moment.');
+      toast.error('The payment did not go through. Nothing was sent.');
       setBusy(false);
       setProgress(null);
     }
@@ -320,6 +327,13 @@ export default function PayrollPage() {
 
             <div className="space-y-3">
               <p className={OVERLINE}>Payment lines</p>
+              {pendingCount > 0 && (
+                <p className="flex items-start gap-1.5 text-xs text-fg-subtle">
+                  <Info size={13} className="mt-0.5 shrink-0" aria-hidden />
+                  {pendingCount === 1 ? '1 contributor is' : `${pendingCount} contributors are`}{' '}
+                  still finishing their identity anchor and can&apos;t be paid yet.
+                </p>
+              )}
               {lines.map((l, i) => {
                 const c = byId(l.contractorId);
                 const oor = outOfRange(l, c);
@@ -566,6 +580,13 @@ export default function PayrollPage() {
             </div>
             <div className="space-y-3">
               <p className={OVERLINE}>Payment lines</p>
+              {pendingCount > 0 && (
+                <p className="flex items-start gap-1.5 text-xs text-fg-subtle">
+                  <Info size={13} className="mt-0.5 shrink-0" aria-hidden />
+                  {pendingCount === 1 ? '1 contributor is' : `${pendingCount} contributors are`}{' '}
+                  still finishing their identity anchor and can&apos;t be paid yet.
+                </p>
+              )}
               {lines.map((l, i) => {
                 const c = byId(l.contractorId);
                 const oor = outOfRange(l, c);
