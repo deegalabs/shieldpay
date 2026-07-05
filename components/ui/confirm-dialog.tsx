@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { AlertTriangle, ShieldQuestion } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -56,14 +57,29 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         }}
       >
         {options && (
-          <DialogContent title={options.title} description={options.description}>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => settle(false)}>
+          <DialogContent
+            title={options.title}
+            description={options.description}
+            icon={
+              options.destructive ? (
+                <span className="grid size-10 place-items-center rounded-full border border-danger/30 bg-danger/10 text-danger-text shadow-[0_0_20px_-8px_hsl(var(--danger)/0.6)]">
+                  <AlertTriangle size={18} strokeWidth={2} aria-hidden />
+                </span>
+              ) : (
+                <span className="grid size-10 place-items-center rounded-full border border-brand/30 bg-brand/10 text-brand-text">
+                  <ShieldQuestion size={18} strokeWidth={2} aria-hidden />
+                </span>
+              )
+            }
+          >
+            <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => settle(false)} className="sm:min-w-24">
                 {options.cancelLabel ?? 'Cancel'}
               </Button>
               <Button
                 variant={options.destructive ? 'danger' : 'primary'}
                 onClick={() => settle(true)}
+                className="sm:min-w-24"
               >
                 {options.confirmLabel ?? 'Confirm'}
               </Button>
