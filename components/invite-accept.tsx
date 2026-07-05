@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useCreateWallet, useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +41,12 @@ export function InviteAccept({
   const { createWallet } = useCreateWallet();
   const { signRawHash } = useSignRawHash();
 
+  // Signing in with Privy (email OTP / Google OAuth) reloads the page, which
+  // would wipe what the collaborator typed. Persist the form to sessionStorage
+  // and restore it on mount so their name, ID and declaration survive the round
+  // trip (#5). Keyed by token so a different invite never restores stale input.
+  const storageKey = `sp:invite:${token.slice(0, 24)}`;
+
   const [name, setName] = useState(defaultName);
   const [cpf, setCpf] = useState('');
   const [declared, setDeclared] = useState(false);
@@ -49,6 +56,31 @@ export function InviteAccept({
   const [error, setError] = useState<string | null>(null);
   const [walletAddr, setWalletAddr] = useState<string | null>(null);
   const walletReq = useRef(false);
+  const reconcileReq = useRef(false);
+
+  // Restore any saved input on mount (after a login reload).
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { name?: string; cpf?: string; declared?: boolean };
+      if (saved.name) setName(saved.name);
+      if (saved.cpf) setCpf(saved.cpf);
+      if (saved.declared) setDeclared(true);
+    } catch {
+      /* ignore malformed storage */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save on every change so the login reload cannot lose it.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({ name, cpf, declared }));
+    } catch {
+      /* storage may be unavailable (private mode) */
+    }
+  }, [name, cpf, declared, storageKey]);
 
   // Pre-create the embedded Stellar wallet as soon as the collaborator is
   // authenticated. Creating it and signing with it in the same tick fails with
@@ -75,10 +107,44 @@ export function InviteAccept({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated]);
 
+  // Ask the server whether this invite is already anchored on-chain, and record
+  // it if so. Used both to self-heal a stuck "pending" state on mount and to
+  // recover after an anchor call throws (AlreadyAnchored / FAILED on retry).
+  async function reconcileAnchor(): Promise<boolean> {
+    try {
+      const res = await fetch('/api/invite/anchored', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json().catch(() => ({}));
+      return Boolean(data?.anchored);
+    } catch {
+      return false;
+    }
+  }
+
+  // Self-heal: if a prior attempt already anchored on-chain but our record stayed
+  // pending (the browser closed mid-wait), pick that up on mount and go straight
+  // to the portal instead of asking the collaborator to anchor again (#5).
+  useEffect(() => {
+    if (!authenticated || !walletAddr || done || reconcileReq.current) return;
+    reconcileReq.current = true;
+    void reconcileAnchor().then((anchored) => {
+      if (anchored) setDone(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, walletAddr, done]);
+
   // After accepting, the collaborator is already authenticated with Privy, so
   // open a worker session and send them straight to their portal instead of
   // asking them to sign in again.
   async function goToPortal() {
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      /* ignore */
+    }
     try {
       const token = await getAccessToken();
       await fetch('/api/auth/privy', {
@@ -182,8 +248,20 @@ export function InviteAccept({
       setDone(true);
     } catch (e: any) {
       const msg = String(e?.message || e);
-      if (/AlreadyAnchored|#1\b/.test(msg)) setDone(true);
-      else setError(msg);
+      // Idempotent recovery: the anchor may already exist on-chain (a prior
+      // attempt succeeded, or AlreadyAnchored / FAILED on a retry). Confirm with
+      // the server before treating this as a real failure, so we never dead-end
+      // a collaborator who is in fact already anchored (#5).
+      setStep('Checking your anchor…');
+      // reconcileAnchor both confirms on-chain and records it, so an
+      // AlreadyAnchored retry lands the company in the anchored state too.
+      const anchored = await reconcileAnchor();
+      if (anchored) {
+        setDone(true);
+      } else {
+        setError(msg);
+        toast.error('We could not finish anchoring. Nothing was charged. Please try again.');
+      }
     } finally {
       setBusy(false);
       setStep(null);

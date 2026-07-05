@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { anchorIdentity } from '@/lib/stellar/anchor-client';
 import { truncateKey } from '@/lib/utils';
@@ -83,15 +84,30 @@ export function CompleteAnchor({
         const d = await res.json().catch(() => ({}));
         throw new Error(d.error || `could not record the anchor (HTTP ${res.status})`);
       }
+      toast.success('Identity anchored on-chain');
       window.location.reload();
     } catch (e: any) {
       const msg = String(e?.message || e);
-      // If it was already anchored on-chain, just refresh to pick up the state.
-      if (/AlreadyAnchored|#1\b/.test(msg)) {
-        window.location.reload();
-        return;
+      // Idempotent recovery: the anchor may already exist on-chain (a retry hit
+      // AlreadyAnchored / FAILED). /api/worker/anchor independently verifies
+      // is_anchored on-chain, so ask it to record without a fresh hash; if the
+      // anchor is really there, we pick the state up on reload.
+      try {
+        const res = await fetch('/api/worker/anchor', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ contractorId }),
+        });
+        if (res.ok) {
+          toast.success('Identity anchored on-chain');
+          window.location.reload();
+          return;
+        }
+      } catch {
+        /* fall through to surfacing the original error */
       }
       setError(msg);
+      toast.error('We could not finish anchoring. Please try again.');
       setBusy(false);
     }
   }

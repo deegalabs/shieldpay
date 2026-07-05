@@ -8,7 +8,11 @@ export const runtime = 'nodejs';
 
 const Body = z.object({
   contractorId: z.union([z.string(), z.number()]),
-  tx_hash: z.string().regex(/^[0-9a-f]{64}$/i, 'invalid tx hash'),
+  // Optional: present on the fresh-success path. Absent on the reconcile path,
+  // where the anchor already exists on-chain (a retry hit AlreadyAnchored). The
+  // hash is informational only; the on-chain is_anchored check below is the
+  // real gate, so recording without it is safe (#5).
+  tx_hash: z.string().regex(/^[0-9a-f]{64}$/i, 'invalid tx hash').optional(),
 });
 
 /**
@@ -25,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
-    return NextResponse.json({ error: 'contractorId and a valid tx_hash are required' }, { status: 400 });
+    return NextResponse.json({ error: 'a valid contractorId is required' }, { status: 400 });
   }
   const contractorId = String(parsed.data.contractorId);
 
@@ -52,6 +56,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await setInviteAnchored(contractorId, parsed.data.tx_hash);
+  await setInviteAnchored(contractorId, parsed.data.tx_hash ?? 'onchain');
   return NextResponse.json({ ok: true });
 }
