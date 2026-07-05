@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { startTopLoading, stopTopLoading } from '@/components/ui/top-loading-bar';
 
 export function ContractorActions({ id, anchored }: { id: string; anchored: boolean }) {
   const [busy, setBusy] = useState(false);
@@ -34,11 +35,15 @@ export function ContractorActions({ id, anchored }: { id: string; anchored: bool
     });
     if (!ok) return;
     setBusy(true);
+    startTopLoading();
     try {
       const res = await fetch(`/api/contractors/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('failed');
+      toast.success('Contributor removed');
+      // Keep the bar running through the redirect (the page unloads next).
       window.location.href = '/contractors';
     } catch {
+      stopTopLoading();
       toast.error('Could not remove');
       setBusy(false);
     }

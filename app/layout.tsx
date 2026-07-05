@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { Providers } from './providers';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { ServiceWorkerManager } from '@/components/pwa/service-worker-manager';
+import { TopLoadingBar } from '@/components/ui/top-loading-bar';
 import './globals.css';
 
 // Confidential Ledger type system. Inter carries body + UI labels; Space Grotesk
@@ -71,6 +72,7 @@ export default function RootLayout({
       className={`dark ${inter.variable} ${publicSans.variable} ${grotesk.variable} ${mono.variable}`}
     >
       <body className="min-h-screen font-sans">
+        <TopLoadingBar />
         <Providers>{children}</Providers>
         <Toaster theme="dark" position="top-right" richColors />
         <InstallPrompt />
