@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireCompany, rateLimited } from '@/lib/auth/server';
-import { finalizePayrollRun } from '@/lib/db/client';
+import { finalizePayrollRun, setPayrollProof } from '@/lib/db/client';
 import { persistPayment } from '@/lib/payments/flow';
 import { isVerifiedOnChain } from '@/lib/stellar/soroban';
 
@@ -29,6 +29,14 @@ const Body = z.object({
   runId: z.string().min(1),
   reference: z.string().min(1),
   lines: z.array(Line).min(1).max(8),
+  // The aggregate Proof-of-Payroll the company wallet recorded on-chain, if any.
+  aggregate: z
+    .object({
+      proofId: z.string().min(1),
+      proofTxHash: z.string().regex(/^[0-9a-f]{64}$/i),
+    })
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -48,7 +56,7 @@ export async function POST(req: NextRequest) {
   const auth = await requireCompany();
   if (!auth.ok) return auth.res;
   const company = auth.company;
-  const { runId, lines } = parsed.data;
+  const { runId, lines, aggregate } = parsed.data;
 
   try {
     let totalCents = 0;
@@ -88,7 +96,13 @@ export async function POST(req: NextRequest) {
 
     await finalizePayrollRun(runId, totalCents, count);
 
-    return NextResponse.json({ ok: true, runId, total: totalCents / 100, count });
+    // Record the aggregate Proof-of-Payroll the company wallet already landed
+    // on-chain, so the run shows verified instead of a perpetual "Computing".
+    if (aggregate) {
+      await setPayrollProof(runId, aggregate.proofId, aggregate.proofTxHash);
+    }
+
+    return NextResponse.json({ ok: true, runId, total: totalCents / 100, count, aggregated: Boolean(aggregate) });
   } catch (e) {
     console.error('payroll record failed', e);
     return NextResponse.json({ error: 'payroll record failed' }, { status: 500 });

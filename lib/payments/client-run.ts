@@ -136,12 +136,36 @@ export async function runPayrollNonCustodial(args: {
     });
   }
 
+  // 2c. Aggregate Proof-of-Payroll: the company wallet records the whole-run
+  // proof on-chain itself (verify_and_record_payroll require_auth's the company,
+  // same unified verifier instance as the per-payment call). Best-effort, so a
+  // failure never fails the run, which already has its per-payment proofs.
+  let aggregate: { proofId: string; proofTxHash: string } | null = null;
+  if (prep.aggregate) {
+    try {
+      progress('Sealing the payroll proof');
+      const a = prep.aggregate;
+      const aggOp = new Contract(PUBLIC_CONTRACTS.paymentVerifier).call(
+        'verify_and_record_payroll',
+        nativeToScVal(walletAddress, { type: 'address' }),
+        bytesScVal(buf(a.runRef)),
+        nativeToScVal(BigInt(a.total), { type: 'u64' }),
+        bytesScVal(buf(a.proofBytes)),
+        bytesScVal(buf(a.publicSignalsBytes)),
+      );
+      const { hash, returnValue } = await signer.invoke(aggOp);
+      aggregate = { proofId: String(returnValue ?? ''), proofTxHash: hash };
+    } catch (e) {
+      console.error('aggregate payroll proof record failed', e);
+    }
+  }
+
   // 3. Record: server confirms on-chain and persists.
   progress('Recording receipts');
   const recRes = await fetch('/api/payroll/record', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ runId, reference, lines: recorded }),
+    body: JSON.stringify({ runId, reference, lines: recorded, aggregate }),
   });
   const rec = await recRes.json();
   if (!recRes.ok) {

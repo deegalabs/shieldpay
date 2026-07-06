@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireCompany, rateLimited } from '@/lib/auth/server';
 import { createPayrollRun, ensureCompanyViewingKey, listContractors } from '@/lib/db/client';
-import { prepareProof } from '@/lib/payments/flow';
+import { prepareProof, prepareAggregateProof } from '@/lib/payments/flow';
 import { sealWitness } from '@/lib/zk/disclosure';
 
 export const runtime = 'nodejs';
@@ -75,6 +75,9 @@ export async function POST(req: NextRequest) {
     const run = await createPayrollRun(company.id, reference);
 
     const prepared = [];
+    // Witnesses for the aggregate Proof-of-Payroll. Kept server-side only; the
+    // randomness never leaves in the response (only the aggregate proof does).
+    const aggWitness = [];
     for (const l of lines) {
       const input = { ...l, reference };
       const p = await prepareProof({ input }); // random binding; the wallet settles separately
@@ -95,11 +98,40 @@ export async function POST(req: NextRequest) {
         proofBytes: p.proofBytes.toString('hex'),
         publicSignalsBytes: p.publicSignalsBytes.toString('hex'),
       });
+      aggWitness.push({
+        value: p.amountCents,
+        randomness: p.randomness,
+        commitment: p.commitment,
+        minValue: Math.round(l.minUsdc * 100),
+        maxValue: Math.round(l.maxUsdc * 100),
+      });
+    }
+
+    // Aggregate Proof-of-Payroll: the company wallet records it on-chain itself.
+    // Best-effort, so a failure here never blocks the per-payment proofs.
+    let aggregate = null;
+    try {
+      const agg = await prepareAggregateProof({ runId: run.id, reference, lines: aggWitness });
+      aggregate = {
+        runRef: agg.runRef.toString('hex'),
+        total: agg.total,
+        proofBytes: agg.proofBytes.toString('hex'),
+        publicSignalsBytes: agg.publicSignalsBytes.toString('hex'),
+      };
+    } catch (e) {
+      console.error('aggregate payroll proof prepare failed', e);
     }
 
     // runId is the numeric internal id: /record uses it to set payments.run_id and
     // to finalize the run. runPublicId is the opaque id for the /payroll/[run] URL.
-    return NextResponse.json({ ok: true, runId: run.id, runPublicId: run.public_id, reference, lines: prepared });
+    return NextResponse.json({
+      ok: true,
+      runId: run.id,
+      runPublicId: run.public_id,
+      reference,
+      lines: prepared,
+      aggregate,
+    });
   } catch (e) {
     console.error('payroll prepare failed', e);
     return NextResponse.json({ error: 'payroll prepare failed' }, { status: 500 });

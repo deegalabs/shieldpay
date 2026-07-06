@@ -94,6 +94,28 @@ export async function prepareProof(args: {
 }
 
 /**
+ * Prepare the aggregate Proof-of-Payroll for a run, server-side, so the amount
+ * plaintext and each randomness never leave the server. Returns only the on-chain
+ * inputs the company's own wallet needs to sign `verify_and_record_payroll` in
+ * the browser (non-custodial path), the same call the custodial path makes via
+ * recordRunAggregateProof. The witnesses stay here.
+ */
+export async function prepareAggregateProof(args: {
+  runId: string;
+  reference: string;
+  lines: Array<{ value: number; randomness: string; commitment: string; minValue: number; maxValue: number }>;
+}): Promise<{ runRef: Buffer; total: number; proofBytes: Buffer; publicSignalsBytes: Buffer }> {
+  const { proof, publicSignals, totalCents } = await generatePayrollProof(args.lines);
+  const runRef = createHash('sha256').update(`${args.runId}|${args.reference}`).digest();
+  return {
+    runRef,
+    total: totalCents,
+    proofBytes: encodeProof(proof),
+    publicSignalsBytes: encodePublicSignals(publicSignals),
+  };
+}
+
+/**
  * Persist a verified payment. The exact amount is never stored in the clear:
  * only the commitment and the public range. When a `viewingKey` is supplied the
  * witness {amount, randomness} is sealed under it (N4), so an authorized auditor
