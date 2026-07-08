@@ -128,6 +128,13 @@ Last updated: 2026-07-08.
 Grouped follow-ups that turn the testnet product into something a real company can
 run on mainnet. Each is scoped so it can land independently.
 
+- Client-side proving. Move witness proof generation into the browser (a Rust to
+  WebAssembly prover, or snarkjs WASM) so the salary plaintext and the randomness
+  never reach the server at all. Today the server generates the proof, which means
+  the witness is trusted to the server for the prove step; browser proving removes
+  that trust boundary and is the stronger privacy story. Pairs with a trusted-setup
+  ceremony (the Groth16 keys must come from a real multi-party ceremony before
+  mainnet, not a dev setup).
 - Fee sponsorship (mainnet funding). A brand-new non-custodial recipient holds no
   XLM, so on mainnet their account cannot exist or pay a fee (testnet leans on the
   friendbot faucet). Sponsor the account reserve (sponsored reserves) and pay the
@@ -149,13 +156,20 @@ run on mainnet. Each is scoped so it can land independently.
   auditable mode that binds the recipient for court and compliance: the company
   chooses per run or per contributor between "bound and provable" and "shielded and
   private" (sensitive contributors, cross-border). Needs a withdraw circuit and a
-  pool contract, and would close the recipient-privacy limitation below.
+  pool contract, and would close the recipient-privacy limitation below. It is the
+  withdraw half of the E1 escrow, escrow the funds on the run, release them on a
+  valid withdraw proof, so E1 and this mode ship as one construction. A compliant
+  version gates deposits through an association-set membership / non-membership
+  proof, so illicit funds are excludable from the pool without breaking any
+  individual's privacy (the standard way to keep a privacy pool auditable).
 - Encrypted metadata vault plus scoped audit tokens. Beyond sealing the amount under
   the viewing key, encrypt the full per-payment metadata payload at rest (AES-GCM)
   and issue an auditor a scoped, revocable token (stored as a hash, one-time or
   time-boxed) that decrypts exactly the slice they are entitled to. Deepens the
   auditor portal from "ranges plus on-chain proofs" to a bounded, encrypted detail
-  set, without exposing the whole book.
+  set, without exposing the whole book. The encrypted blobs may live off-chain
+  (e.g. IPFS), referenced by content id on-chain, so the ledger holds only the
+  pointer.
 - Public per-artifact verify pages. A wallet-free public page for a single payment
   proof and for a whole payroll run, resolving the proof id straight from the
   contract (verified, total, range), shareable with a bank, court, or auditor.
