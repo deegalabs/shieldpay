@@ -6,7 +6,7 @@ validated on testnet. Base means the structure and contracts exist but a full
 production path (usually an external integration or a contract redeploy) is not done
 yet. Deferred means designed and documented but not started.
 
-Last updated: 2026-07-04.
+Last updated: 2026-07-08.
 
 ## Legend
 
@@ -112,14 +112,66 @@ Last updated: 2026-07-04.
   into a real reserve. The big day-after item.
 
 ### Scale and limits
-- A2: scale the aggregate width N. First confirm Soroban exposes a Poseidon host
-  function, then use an in-circuit Poseidon sum-tree with an on-chain root recompute.
+- A2: scale the aggregate width N. Build a run as a Merkle tree of the per-line
+  commitments and prove the root plus the total in one aggregate proof, so a run
+  scales to 128+ recipients with a single on-chain root instead of the current
+  small fixed width. Confirm Soroban exposes a Poseidon host function first, then
+  recompute the root on-chain; the per-line aggregate binding stays.
 - E5: a public payout cap in the payroll circuit (`sum <= budget`).
 
 ### Strategic bets (not scheduled)
-- A3 confidential balance, E3 multi-currency and tax, E6 SDK / npm package,
-  B-gold in-circuit auditor key, F4 eSocial / DIRF (gated on the CLT crypto-salary
-  law).
+- E6 SDK / npm package, B-gold in-circuit auditor key, F4 eSocial / DIRF (gated on
+  the CLT crypto-salary law).
+
+### Product next wave (funding, currency, privacy tier, disclosure)
+
+Grouped follow-ups that turn the testnet product into something a real company can
+run on mainnet. Each is scoped so it can land independently.
+
+- Fee sponsorship (mainnet funding). A brand-new non-custodial recipient holds no
+  XLM, so on mainnet their account cannot exist or pay a fee (testnet leans on the
+  friendbot faucet). Sponsor the account reserve (sponsored reserves) and pay the
+  fee with a fee-bump, so the contributor signs but never needs XLM. A per-company
+  `feeSponsor: platform | company` setting (default platform, admin-changeable, and
+  reversible per transaction since sponsorship is per-tx) chooses who pays.
+- Multi-stablecoin settlement, company chooses (expands E3). A per-company
+  `settlementAsset` (USDC, EURC, a BRL stablecoin), curated by real Stellar
+  liquidity, one asset per run. The ZK is unchanged: the circuit proves amount in
+  range and is unit-agnostic, so this touches only the payment rail, trustlines,
+  and display. A run may optionally carry more than one asset per line, behind a
+  per-company token registry.
+- Shielded payout mode, optional recipient privacy (the concrete form of A3). An
+  opt-in second privacy tier: instead of a direct recipient-bound transfer, the
+  payout funds a pooled note and the contributor withdraws with a zero-knowledge
+  proof (a Merkle tree of note commitments, a per-note nullifier to block double
+  spend, an accepted-roots list on-chain), so the recipient and the payment linkage
+  are hidden, not only the amount. It complements, and does not replace, the default
+  auditable mode that binds the recipient for court and compliance: the company
+  chooses per run or per contributor between "bound and provable" and "shielded and
+  private" (sensitive contributors, cross-border). Needs a withdraw circuit and a
+  pool contract, and would close the recipient-privacy limitation below.
+- Encrypted metadata vault plus scoped audit tokens. Beyond sealing the amount under
+  the viewing key, encrypt the full per-payment metadata payload at rest (AES-GCM)
+  and issue an auditor a scoped, revocable token (stored as a hash, one-time or
+  time-boxed) that decrypts exactly the slice they are entitled to. Deepens the
+  auditor portal from "ranges plus on-chain proofs" to a bounded, encrypted detail
+  set, without exposing the whole book.
+- Public per-artifact verify pages. A wallet-free public page for a single payment
+  proof and for a whole payroll run, resolving the proof id straight from the
+  contract (verified, total, range), shareable with a bank, court, or auditor.
+  Extends the landing verify panel and the proof-of-income page to both artifacts.
+- Contributor money movement. In the contributor portal: wallet balance, a receive
+  address and QR, and a cash-out path to Stellar off-ramps (SEP-24 / SEP-6 anchors).
+  A spendable stablecoin card via a card-issuing / BaaS partner is a later,
+  partner-gated step and depends on KYC.
+- Contributor invoice / fiscal linkage. Reuse the F3 `fiscal_link` base so a
+  contributor attaches a monthly invoice reference to a received payment, giving the
+  company an auditable book. A concrete municipal or provider adapter stays the
+  external dependency.
+- KYC / compliance provider (the on-chain half of E2). Wire a sanctions and KYC
+  provider (document plus liveness) as the compliance gate before a payment, and
+  move the gate into the settlement contract (E1 escrow) as an `is_allowed` check.
+  Enables the card and regulated payouts.
 
 ### Internationalization, PT-BR and EN (planned, no contract work)
 - Add PT-BR alongside EN with a language switcher. Chosen approach: `next-intl` in
@@ -137,9 +189,11 @@ Last updated: 2026-07-04.
 
 ## Honest limitations (carried forward)
 
-- The recipient and the fact of payment are public on Stellar. The amount is
-  private (commitment plus range proof). This is selective privacy, not a shielded
-  pool.
+- The recipient and the fact of payment are public on Stellar by default. The
+  amount is private (commitment plus range proof). This is selective privacy, and
+  it is deliberate: the default mode binds the recipient so the payment is provable
+  in court and to an auditor. The optional shielded payout mode above hides the
+  recipient too, for contexts where privacy outweighs provability, and is roadmap.
 - The worker-cosigned range and the aggregate line binding protect the honest
   payment flow. A company crafting raw contract calls with a mismatched identity
   hash can still bypass range enforcement. Binding the real on-chain recipient to the
